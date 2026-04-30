@@ -296,9 +296,13 @@ export async function findByIdempotencyKey(key: string): Promise<ResearchJob | n
   const sb = getSupabaseAdmin()
   if (!sb) return null
 
-  const { data } = await sb.from('research_jobs').select('*').eq('idempotency_key', key).order('created_at', { ascending: false }).limit(1).single()
-  if (!data) return null
-  return rowToJob(data)
+  try {
+    const { data } = await sb.from('research_jobs').select('*').eq('idempotency_key', key).order('created_at', { ascending: false }).limit(1).single()
+    if (!data) return null
+    return rowToJob(data)
+  } catch {
+    return null // Table may not exist
+  }
 }
 
 // ─── WORKER LOCKING ──────────────────────────────────────────────────────────

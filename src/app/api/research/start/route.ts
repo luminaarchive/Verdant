@@ -14,6 +14,7 @@ export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   const requestId = generateRequestId()
+  try {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
 
   // Rate limit
@@ -116,4 +117,8 @@ export async function POST(request: NextRequest) {
     etaSeconds: 180,
     async: true,
   })
+  } catch (err) {
+    console.error('[start] Unhandled error:', (err as Error).message)
+    return NextResponse.json({ ok: false, message: 'Internal server error. Please try again.', requestId }, { status: 500 })
+  }
 }
