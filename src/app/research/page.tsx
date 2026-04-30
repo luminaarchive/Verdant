@@ -222,10 +222,11 @@ function ResearchContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: queryString, mode: searchMode, timestamp: new Date().toISOString() }),
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = await response.json()
+      // Always parse the response — the proxy normalises errors to JSON
+      let data: unknown
+      try { data = await response.json() } catch { data = { raw: await response.text() } }
       let parsed: ResearchResult
-      try { parsed = typeof data === 'string' ? { raw: data } : data } catch { parsed = { raw: String(data) } }
+      try { parsed = typeof data === 'string' ? { raw: data } : (data as ResearchResult) } catch { parsed = { raw: String(data) } }
       setResult(parsed)
       setStatus('success')
     } catch {
