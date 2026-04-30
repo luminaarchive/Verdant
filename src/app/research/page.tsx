@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { SearchBox } from '@/components/verdant/SearchBox'
 import { useToast } from '@/components/verdant/Toast'
-import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle, ArrowRight } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle, ArrowRight, Eye } from 'lucide-react'
 import { TEMPLATES } from '@/lib/research/templates'
+import { addWatchlistItem } from '@/lib/retention/watchlists'
 
 interface ExecSummary {
   whatMattersMost?: string
@@ -221,6 +222,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
         <button onClick={copySummary} className="btn btn-subtle" style={abStyle}><Copy size={12} /> Summary</button>
         <button onClick={copyLink} className="btn btn-subtle" style={abStyle}><Share2 size={12} /> Link</button>
         <button onClick={saveToJournal} className="btn btn-subtle" style={abStyle}><BookmarkPlus size={12} /> Save</button>
+        <button onClick={() => { addWatchlistItem({ type: 'research', title: result.title || query, description: query, query, priority: 'medium' }); toast('Added to Watchlist', { icon: 'visibility' }) }} className="btn btn-subtle" style={abStyle}><Eye size={12} /> Watch</button>
         <button onClick={onRetry} className="btn btn-subtle" style={abStyle}><RotateCcw size={12} /> Redo</button>
         {!feedbackSent && result.runId && <>
           <button onClick={() => sendFeedback('positive')} className="btn btn-subtle" style={abStyle}><ThumbsUp size={12} /></button>

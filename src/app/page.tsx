@@ -8,6 +8,8 @@ import { SearchBox } from '@/components/verdant/SearchBox'
 import { ArrowRight } from 'lucide-react'
 import { TEMPLATES, TEMPLATE_CATEGORIES, type EnvironmentalTemplate } from '@/lib/research/templates'
 import { PRESETS } from '@/lib/research/presets'
+import { getReturnVisitSummary } from '@/lib/retention/signals'
+import { getWatchlists } from '@/lib/retention/watchlists'
 
 // ─── Template Card ──────────────────────────────────────────────────────────
 function TemplateCard({ t }: { t: EnvironmentalTemplate }) {
@@ -72,6 +74,14 @@ function HomeContent() {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [signalIndex] = useState(() => Math.floor(Math.random() * SIGNALS.length))
+  const [returnSummary, setReturnSummary] = useState<{ urgentCount: number; importantCount: number; totalSignals: number; staleReports: number; message: string } | null>(null)
+
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const wl = getWatchlists()
+      if (wl.length > 0) setReturnSummary(getReturnVisitSummary())
+    }
+  })
 
   const filteredTemplates = selectedCategory === 'all'
     ? TEMPLATES
@@ -116,6 +126,27 @@ function HomeContent() {
       <div style={{ width: '100%', maxWidth: '680px', marginBottom: '32px' }} className="fade-up">
         <SearchBox autoFocus />
       </div>
+
+      {/* Return Visit Intelligence */}
+      {returnSummary && returnSummary.totalSignals > 0 && (
+        <div style={{ width: '100%', maxWidth: '760px', marginBottom: '16px' }} className="fade-up">
+          <Link
+            href="/digest"
+            className="card"
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', textDecoration: 'none', borderLeft: `3px solid ${returnSummary.urgentCount > 0 ? '#C0392B' : returnSummary.importantCount > 0 ? '#B8860B' : 'var(--green-mid)'}` }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: returnSummary.urgentCount > 0 ? '#C0392B' : 'var(--green-mid)' }}>
+              {returnSummary.urgentCount > 0 ? 'error' : 'notifications_active'}
+            </span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>
+              {returnSummary.message}
+            </span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              View Digest <ArrowRight size={12} />
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Intelligence Signal */}
       <div style={{ width: '100%', maxWidth: '760px', marginBottom: '28px' }} className="fade-up">

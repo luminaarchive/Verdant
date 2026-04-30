@@ -3,15 +3,17 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X } from 'lucide-react'
+import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
 
 const navMain = [
-  { label: 'Home',     icon: Home,       href: '/' },
-  { label: 'Discover', icon: Compass,    href: '/discover' },
-  { label: 'Spaces',   icon: FolderOpen, href: '/spaces' },
-  { label: 'History',  icon: Clock,      href: '/history' },
-  { label: 'Journal',  icon: BookOpen,   href: '/journal' },
+  { label: 'Home',       icon: Home,       href: '/' },
+  { label: 'Discover',   icon: Compass,    href: '/discover' },
+  { label: 'Watchlists', icon: Eye,        href: '/watchlists' },
+  { label: 'Digest',     icon: Inbox,      href: '/digest' },
+  { label: 'Spaces',     icon: FolderOpen, href: '/spaces' },
+  { label: 'History',    icon: Clock,      href: '/history' },
+  { label: 'Journal',    icon: BookOpen,   href: '/journal' },
 ]
 
 const navFooter = [
