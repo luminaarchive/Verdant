@@ -126,18 +126,19 @@ export async function POST(request: NextRequest) {
       durationMs: elapsed(),
     })
 
-    // Save failure to Supabase
-    const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
-    const sb = getSupabaseAdmin()
-    if (sb) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (sb.from('failure_logs') as any).insert({
-        request_id: requestId,
-        failed_step: failedStep,
-        error_message: message,
-        metadata: { query, mode },
-      }).catch(() => {})
-    }
+    // Save failure to Supabase (best-effort)
+    try {
+      const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
+      const sb = getSupabaseAdmin()
+      if (sb) {
+        await sb.from('failure_logs').insert({
+          request_id: requestId,
+          failed_step: failedStep,
+          error_message: message,
+          metadata: { query, mode },
+        })
+      }
+    } catch { /* non-critical */ }
 
     return errorResponse(502, message, {
       retryable: true,
