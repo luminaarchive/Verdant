@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { SearchBox } from '@/components/verdant/SearchBox'
 import { useToast } from '@/components/verdant/Toast'
-import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle } from 'lucide-react'
 
 interface ResearchResult {
+  ok?: boolean
+  runId?: string
   title?: string
   executiveSummary?: string
   findings?: string[]
@@ -16,8 +18,15 @@ interface ResearchResult {
   outline?: { heading: string; body: string }[]
   stats?: { label: string; value: string }[]
   discussionStarters?: string[]
+  evidenceItems?: { claim: string; evidence: string; sourceIndex: number; strength?: string }[]
+  confidenceScore?: number
+  uncertaintyNotes?: string[]
+  costBreakdown?: { model: string; inputTokens: number; outputTokens: number; costUsd: number }
+  pipelineSource?: string
+  durationMs?: number
   raw?: string
   error?: string
+  message?: string
 }
 
 const LOADING_STEPS = [
@@ -126,48 +135,76 @@ function ResultCard({ children, style }: { children: React.ReactNode; style?: Re
   )
 }
 
-function StructuredResult({ result, query }: { result: ResearchResult; query: string }) {
+function StructuredResult({ result, query, onRetry }: { result: ResearchResult; query: string; onRetry: () => void }) {
   const { toast } = useToast()
   const router = useRouter()
+  const [showEvidence, setShowEvidence] = useState(false)
+  const [showUncertainty, setShowUncertainty] = useState(false)
+  const [feedbackSent, setFeedbackSent] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const saveToJournal = () => {
     const entries = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
-    const entry = {
-      id: Date.now(),
-      query,
-      title: result.title ?? query,
-      summary: result.executiveSummary ?? result.raw,
-      savedAt: new Date().toISOString(),
-    }
+    const entry = { id: Date.now(), query, title: result.title ?? query, summary: result.executiveSummary ?? result.raw, savedAt: new Date().toISOString() }
     entries.unshift(entry)
     localStorage.setItem('verdant-journal', JSON.stringify(entries.slice(0, 50)))
+    if (result.runId) { fetch('/api/journal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, title: result.title ?? query, summary: result.executiveSummary, runId: result.runId }) }).catch(() => {}) }
     toast('Saved to Journal', { icon: 'bookmark_added' })
   }
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      toast('Link copied to clipboard', { icon: 'link' })
-    })
+  const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => toast('Link copied', { icon: 'link' })) }
+  const copySummary = () => { navigator.clipboard.writeText(result.executiveSummary ?? '').then(() => toast('Summary copied', { icon: 'content_copy' })) }
+
+  const downloadDocx = async () => {
+    if (!result.runId) { toast('Export requires a run ID', { type: 'error' }); return }
+    setExporting(true)
+    try {
+      const res = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId: result.runId, format: 'docx' }) })
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `verdant-${result.runId}.docx`; a.click()
+      URL.revokeObjectURL(url)
+      toast('DOCX downloaded', { icon: 'download' })
+    } catch { toast('Export failed. Try again.', { type: 'error' }) }
+    setExporting(false)
   }
+
+  const sendFeedback = async (rating: 'positive' | 'negative') => {
+    if (!result.runId) return
+    setFeedbackSent(rating)
+    fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId: result.runId, rating }) }).catch(() => {})
+    toast(rating === 'positive' ? 'Thanks for the feedback!' : 'We\'ll improve this', { icon: rating === 'positive' ? 'thumb_up' : 'thumb_down' })
+  }
+
+  const abStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', height: '30px', padding: '0 10px' } as const
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} className="fade-up">
+      {/* Confidence badge */}
+      {result.confidenceScore !== undefined && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: result.confidenceScore >= 70 ? 'rgba(209,250,229,0.4)' : 'rgba(255,193,7,0.12)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+            <Shield size={12} style={{ color: result.confidenceScore >= 70 ? '#1A2F23' : '#B8860B' }} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '600', color: '#1A2F23' }}>Confidence: {result.confidenceScore}/100</span>
+          </div>
+          {result.pipelineSource && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{result.pipelineSource}</span>}
+          {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
+        </div>
+      )}
+
       {/* Action bar */}
-      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginBottom: '4px' }}>
-        <button
-          onClick={copyLink}
-          className="btn btn-subtle"
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', height: '32px', padding: '0 12px' }}
-        >
-          <Copy size={13} /> Copy Link
-        </button>
-        <button
-          onClick={saveToJournal}
-          className="btn btn-subtle"
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', height: '32px', padding: '0 12px' }}
-        >
-          <BookmarkPlus size={13} /> Save
-        </button>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '4px' }}>
+        <button onClick={downloadDocx} disabled={exporting || !result.runId} className="btn btn-subtle" style={abStyle}><Download size={12} /> {exporting ? '...' : 'DOCX'}</button>
+        <button onClick={copySummary} className="btn btn-subtle" style={abStyle}><Copy size={12} /> Summary</button>
+        <button onClick={copyLink} className="btn btn-subtle" style={abStyle}><Share2 size={12} /> Link</button>
+        <button onClick={saveToJournal} className="btn btn-subtle" style={abStyle}><BookmarkPlus size={12} /> Save</button>
+        <button onClick={onRetry} className="btn btn-subtle" style={abStyle}><RotateCcw size={12} /> Redo</button>
+        {!feedbackSent && result.runId && <>
+          <button onClick={() => sendFeedback('positive')} className="btn btn-subtle" style={abStyle}><ThumbsUp size={12} /></button>
+          <button onClick={() => sendFeedback('negative')} className="btn btn-subtle" style={abStyle}><ThumbsDown size={12} /></button>
+        </>}
+        {feedbackSent && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={12} /> Sent</span>}
       </div>
 
       {/* Row 1: Synthesis + Stats */}
@@ -305,12 +342,56 @@ function StructuredResult({ result, query }: { result: ResearchResult; query: st
         </ResultCard>
       </div>
 
-      {/* Success badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '4px' }}>
-        <CheckCircle2 size={13} style={{ color: 'var(--green-mid)' }} />
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)' }}>
-          Analysis complete
-        </p>
+      {/* Evidence Panel */}
+      {result.evidenceItems && result.evidenceItems.length > 0 && (
+        <ResultCard>
+          <button onClick={() => setShowEvidence(!showEvidence)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <SectionLabel>Evidence Panel ({result.evidenceItems.length})</SectionLabel>
+            {showEvidence ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+          </button>
+          {showEvidence && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+              {result.evidenceItems.map((ev, i) => (
+                <div key={i} style={{ borderLeft: '3px solid #2E5D3E', paddingLeft: '14px', paddingTop: '4px', paddingBottom: '4px' }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '600', color: '#1A2F23', marginBottom: '4px' }}>{ev.claim}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{ev.evidence}</p>
+                  {result.sources?.[ev.sourceIndex] && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Source [{ev.sourceIndex + 1}]: {result.sources[ev.sourceIndex].title} {ev.strength && `· ${ev.strength}`}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </ResultCard>
+      )}
+
+      {/* Uncertainty Notes */}
+      {result.uncertaintyNotes && result.uncertaintyNotes.length > 0 && (
+        <ResultCard>
+          <button onClick={() => setShowUncertainty(!showUncertainty)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <SectionLabel>Uncertainty & Limitations ({result.uncertaintyNotes.length})</SectionLabel>
+            {showUncertainty ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
+          </button>
+          {showUncertainty && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              {result.uncertaintyNotes.map((note, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <AlertTriangle size={13} style={{ color: '#B8860B', flexShrink: 0, marginTop: '2px' }} />
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{note}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </ResultCard>
+      )}
+
+      {/* Cost + Success badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '4px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <CheckCircle2 size={13} style={{ color: 'var(--green-mid)' }} />
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)' }}>Analysis complete</p>
+        </div>
+        {result.costBreakdown && (
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>Cost: ${result.costBreakdown.costUsd.toFixed(6)} · {result.costBreakdown.inputTokens + result.costBreakdown.outputTokens} tokens</p>
+        )}
       </div>
     </div>
   )
@@ -357,16 +438,18 @@ function ResearchContent() {
       const searchMode = typeof window !== 'undefined'
         ? (localStorage.getItem('verdant-search-mode') || 'focus')
         : 'focus'
-      const response = await fetch('/api/n8n', {
+      const idempotencyKey = `${queryString}-${Date.now()}`
+      const response = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryString, mode: searchMode, timestamp: new Date().toISOString() }),
+        body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey }),
       })
-      let data: unknown
-      try { data = await response.json() } catch { data = { raw: await response.text() } }
-      let parsed: ResearchResult
-      try { parsed = typeof data === 'string' ? { raw: data } : (data as ResearchResult) } catch { parsed = { raw: String(data) } }
-      setResult(parsed)
+      const data = await response.json()
+      if (data.ok === false && data.message) {
+        setResult({ error: data.message, raw: data.message })
+      } else {
+        setResult(data as ResearchResult)
+      }
       setStatus('success')
     } catch {
       setStatus('error')
@@ -422,9 +505,9 @@ function ResearchContent() {
         {status === 'error'   && <ErrorState onRetry={runFetch} />}
         {status === 'success' && !hasContent && <EmptyState />}
         {status === 'success' && result && hasContent && (
-          result.raw
+          result.raw && !result.executiveSummary
             ? <RawResult text={result.raw} query={queryString} />
-            : <StructuredResult result={result} query={queryString} />
+            : <StructuredResult result={result} query={queryString} onRetry={runFetch} />
         )}
 
         {status !== 'loading' && (
