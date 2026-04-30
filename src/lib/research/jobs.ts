@@ -308,22 +308,35 @@ export async function findByIdempotencyKey(key: string): Promise<ResearchJob | n
 // ─── WORKER LOCKING ──────────────────────────────────────────────────────────
 export async function acquireWorkerLock(jobId: string, ttlSeconds = 65): Promise<string | null> {
   const sb = getSupabaseAdmin()
-  if (!sb) return generateWorkerId() // Degraded mode: no locking
-
   const workerId = generateWorkerId()
+  if (!sb) return workerId // Degraded mode: no locking
+
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString()
 
-  // Atomic lock: only succeeds if no active lock exists
-  const { data, error } = await sb
-    .from('research_jobs')
-    .update({ worker_lock_id: workerId, worker_lock_expires_at: expiresAt })
-    .eq('job_id', jobId)
-    .or(`worker_lock_id.is.null,worker_lock_expires_at.lt.${new Date().toISOString()}`)
-    .select('job_id')
-    .single()
+  try {
+    // Atomic lock: only succeeds if no active lock exists
+    const { data, error } = await sb
+      .from('research_jobs')
+      .update({ worker_lock_id: workerId, worker_lock_expires_at: expiresAt })
+      .eq('job_id', jobId)
+      .or(`worker_lock_id.is.null,worker_lock_expires_at.lt.${new Date().toISOString()}`)
+      .select('job_id')
+      .single()
 
-  if (error || !data) return null // Lock not acquired
-  return workerId
+    if (error || !data) {
+      // Could be: table unreachable, or genuinely locked by another worker
+      // Check if it's a DB connectivity issue vs a real lock conflict
+      if (error?.message?.includes('fetch failed') || error?.message?.includes('does not exist')) {
+        console.warn('[jobs] Worker lock DB unavailable, running in degraded mode')
+        return workerId // Degraded: proceed without locking
+      }
+      return null // Genuinely locked by another worker
+    }
+    return workerId
+  } catch (e) {
+    console.warn('[jobs] Worker lock failed, degraded mode:', (e as Error).message)
+    return workerId // Degraded: proceed without locking
+  }
 }
 
 export async function releaseWorkerLock(jobId: string, workerId: string): Promise<void> {
