@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+/* ─── Verdant design tokens ──────────────────────────────────────────────── */
+:root {
+  --bg-main:       #FAFAF7;
+  --bg-card:       #F5F2EB;
+  --bg-accent:     #EDE8DC;
+  --green-dark:    #1A2E1A;
+  --green-mid:     #3D6B3D;
+  --text-main:     #1b1c1a;
+  --text-muted:    #747871;
+  --text-sec:      #434841;
+  --border:        rgba(26,46,26,0.12);
+  --highlight:     #b9edb3;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Spin animation for loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
