@@ -17,9 +17,27 @@ export interface PipelineOutput {
 
 function extractJSON(raw: string): unknown {
   let content = raw.trim()
-  if (content.startsWith('```json')) content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-  else if (content.startsWith('```')) content = content.replace(/^```\s*/, '').replace(/\s*```$/, '')
+  // Strip BOM and zero-width chars
+  content = content.replace(/^\uFEFF/, '').replace(/[\u200B-\u200D\uFEFF]/g, '')
+  // Strip markdown fenced code blocks (```json ... ``` or ``` ... ```)
+  content = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/i, '')
+  content = content.trim()
+  // Try direct parse first
   try { return JSON.parse(content) } catch {}
+  // Try to find the outermost JSON object using bracket matching
+  const start = content.indexOf('{')
+  if (start !== -1) {
+    let depth = 0
+    let end = -1
+    for (let i = start; i < content.length; i++) {
+      if (content[i] === '{') depth++
+      else if (content[i] === '}') { depth--; if (depth === 0) { end = i; break } }
+    }
+    if (end !== -1) {
+      try { return JSON.parse(content.slice(start, end + 1)) } catch {}
+    }
+  }
+  // Fallback: greedy regex
   const match = content.match(/\{[\s\S]*\}/)
   if (match) { try { return JSON.parse(match[0]) } catch {} }
   throw new Error('No valid JSON found in response')
