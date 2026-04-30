@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
   const job = await createJob({ query, mode, presetId, runId, idempotencyKey: idempotencyKey ?? undefined })
   log.info(`Job created: ${job.jobId} mode=${mode}`, { requestId, runId })
 
-  // ─── Focus & Deep: run inline (fits within 60s) ───────────────────────
-  if (mode === 'focus' || mode === 'deep') {
+  // ─── Focus: run inline (fits within 60s easily) ────────────────────────
+  if (mode === 'focus') {
     await updateJob(job.jobId, { status: 'evidence_synthesis', stage: 'Synthesizing evidence & findings', progress: 30, startedAt: new Date().toISOString() })
 
     try {
@@ -66,26 +66,30 @@ export async function POST(request: NextRequest) {
       })
 
       // Persist research run (best-effort)
-      await saveResearchRun({
-        run_id: result.runId, query: result.query, mode: result.mode,
-        status: 'ready', pipeline_source: result.pipelineSource,
-        confidence_score: result.confidenceScore, duration_ms: result.durationMs,
-        request_id: requestId,
-      }).catch(() => {})
-      await saveResearchResult({
-        run_id: result.runId,
-        title: result.title ?? '',
-        executive_summary: result.executiveSummary,
-        findings: result.findings ?? [],
-        outline: result.outline ?? [],
-        stats: result.stats ?? [],
-        sources: result.sources ?? [],
-        evidence_items: result.evidenceItems ?? [],
-        uncertainty_notes: result.uncertaintyNotes ?? [],
-        decision_recommendations: result.decisionRecommendations,
-        contradictions: result.contradictions,
-        strategic_follow_ups: result.strategicFollowUps,
-      }).catch(() => {})
+      try {
+        await saveResearchRun({
+          run_id: result.runId, query: result.query, mode: result.mode,
+          status: 'ready', pipeline_source: result.pipelineSource,
+          confidence_score: result.confidenceScore, duration_ms: result.durationMs,
+          request_id: requestId,
+        })
+      } catch { /* non-critical */ }
+      try {
+        await saveResearchResult({
+          run_id: result.runId,
+          title: result.title ?? '',
+          executive_summary: result.executiveSummary,
+          findings: result.findings ?? [],
+          outline: result.outline ?? [],
+          stats: result.stats ?? [],
+          sources: result.sources ?? [],
+          evidence_items: result.evidenceItems ?? [],
+          uncertainty_notes: result.uncertaintyNotes ?? [],
+          decision_recommendations: result.decisionRecommendations,
+          contradictions: result.contradictions,
+          strategic_follow_ups: result.strategicFollowUps,
+        })
+      } catch { /* non-critical */ }
 
       return NextResponse.json({
         ok: true,
@@ -105,16 +109,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ─── Analytica: return job ID immediately, process async via polling ───
-  await updateJob(job.jobId, { status: 'queued', stage: 'Queued for Analytica processing', progress: 5 })
+  // ─── Deep & Analytica: return job ID immediately, process async ────────
+  const etaMap: Record<string, number> = { deep: 60, analytica: 180 }
+  const stageLabel = mode === 'analytica' ? 'Queued for Analytica processing' : 'Queued for Deep analysis'
+  await updateJob(job.jobId, { status: 'queued', stage: stageLabel, progress: 5 })
 
   return NextResponse.json({
     ok: true,
     jobId: job.jobId,
     status: 'queued',
     progress: 5,
-    stage: 'Queued for Analytica processing',
-    etaSeconds: 180,
+    stage: stageLabel,
+    etaSeconds: etaMap[mode] ?? 60,
     async: true,
   })
   } catch (err) {

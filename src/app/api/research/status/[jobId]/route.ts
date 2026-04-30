@@ -22,8 +22,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(await getJobStatus(jobId))
   }
 
-  // ─── Analytica: trigger processing with worker lock ────────────────────
-  if (job.mode === 'analytica' && (job.status === 'queued' || job.status === 'source_collection')) {
+  // ─── Deep & Analytica: trigger processing with worker lock ─────────────
+  if ((job.mode === 'analytica' || job.mode === 'deep') && (job.status === 'queued' || job.status === 'source_collection')) {
     const requestId = generateRequestId()
 
     // Acquire worker lock (prevents double-processing across instances)
@@ -66,26 +66,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       })
 
       // Persist research run (best-effort)
-      await saveResearchRun({
-        run_id: result.runId, query: result.query, mode: result.mode,
-        status: 'ready', pipeline_source: result.pipelineSource,
-        confidence_score: result.confidenceScore, duration_ms: result.durationMs,
-        request_id: requestId,
-      }).catch(() => {})
-      await saveResearchResult({
-        run_id: result.runId,
-        title: result.title ?? '',
-        executive_summary: result.executiveSummary,
-        findings: result.findings ?? [],
-        outline: result.outline ?? [],
-        stats: result.stats ?? [],
-        sources: result.sources ?? [],
-        evidence_items: result.evidenceItems ?? [],
-        uncertainty_notes: result.uncertaintyNotes ?? [],
-        decision_recommendations: result.decisionRecommendations,
-        contradictions: result.contradictions,
-        strategic_follow_ups: result.strategicFollowUps,
-      }).catch(() => {})
+      try {
+        await saveResearchRun({
+          run_id: result.runId, query: result.query, mode: result.mode,
+          status: 'ready', pipeline_source: result.pipelineSource,
+          confidence_score: result.confidenceScore, duration_ms: result.durationMs,
+          request_id: requestId,
+        })
+      } catch { /* non-critical */ }
+      try {
+        await saveResearchResult({
+          run_id: result.runId,
+          title: result.title ?? '',
+          executive_summary: result.executiveSummary,
+          findings: result.findings ?? [],
+          outline: result.outline ?? [],
+          stats: result.stats ?? [],
+          sources: result.sources ?? [],
+          evidence_items: result.evidenceItems ?? [],
+          uncertainty_notes: result.uncertaintyNotes ?? [],
+          decision_recommendations: result.decisionRecommendations,
+          contradictions: result.contradictions,
+          strategic_follow_ups: result.strategicFollowUps,
+        })
+      } catch { /* non-critical */ }
 
       await releaseWorkerLock(jobId, workerId)
       return NextResponse.json(await getJobStatus(jobId))
