@@ -1,15 +1,11 @@
-// ─── Core Research Pipeline ─────────────────────────────────────────────────
-// Orchestrates: prompt → Gemini → Zod validation → enrichment → result
-// This is the heart of VerdantAI's backend.
+// ─── Core Research Pipeline (v2 — Provider-Agnostic) ────────────────────────
+// Orchestrates: prompt → provider-manager → Zod validation → enrichment → result
+// No longer hardcoded to Gemini. Uses provider abstraction layer.
 
 import { GeminiResearchResponseSchema, type ResearchResult, type CostBreakdown } from './schema'
-import { callGemini } from './gemini'
+import { callWithFailover, ProviderExhaustedError } from '../ai/provider-manager'
 import { getSystemInstruction, buildUserPrompt } from './prompt'
 import { log, generateRunId, timer, type LogContext } from './logger'
-
-// Gemini pricing (approximate, per 1K tokens) — for cost visibility
-const COST_PER_1K_INPUT = 0.000075   // Gemini 2.0 Flash
-const COST_PER_1K_OUTPUT = 0.0003
 
 export interface PipelineInput {
   query: string
@@ -20,34 +16,37 @@ export interface PipelineInput {
 export interface PipelineOutput {
   result: ResearchResult
   rawJson: string
+  providerAttempts: { provider: string; error?: string }[]
 }
 
 export async function runResearchPipeline(input: PipelineInput): Promise<PipelineOutput> {
   const runId = generateRunId()
   const elapsed = timer()
-  const ctx: Partial<LogContext> = {
-    requestId: input.requestId,
-    runId,
-    pipelineSource: 'gemini-direct',
-  }
+  const ctx: Partial<LogContext> = { requestId: input.requestId, runId }
 
   log.info('Pipeline started', ctx)
 
   // ─── Step 1: Build prompt ───────────────────────────────────────────────
   log.step('prompt', 'Building prompt', ctx)
-  const systemInstruction = getSystemInstruction(input.mode)
+  const systemPrompt = getSystemInstruction(input.mode)
   const userPrompt = buildUserPrompt(input.query, input.mode)
 
-  // ─── Step 2: Call Gemini ────────────────────────────────────────────────
-  log.step('gemini', 'Calling Gemini API', ctx)
-  const geminiResult = await callGemini(userPrompt, systemInstruction, ctx)
+  // ─── Step 2: Call provider (with failover) ──────────────────────────────
+  log.step('provider', 'Calling AI provider', ctx)
+  const providerResult = await callWithFailover({
+    query: input.query,
+    mode: input.mode,
+    systemPrompt,
+    userPrompt,
+  }, ctx)
+
+  const { response, attempts } = providerResult
 
   // ─── Step 3: Parse JSON ─────────────────────────────────────────────────
-  log.step('parse', 'Parsing Gemini response JSON', ctx)
+  log.step('parse', 'Parsing response JSON', ctx)
   let parsed: unknown
   try {
-    // Clean the response in case Gemini wraps it in markdown
-    let content = geminiResult.content.trim()
+    let content = response.content.trim()
     if (content.startsWith('```json')) {
       content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
     } else if (content.startsWith('```')) {
@@ -56,11 +55,11 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
     parsed = JSON.parse(content)
   } catch (e) {
     log.error(`JSON parse failed: ${(e as Error).message}`, { ...ctx, failureStep: 'parse' })
-    throw new Error(`Gemini returned invalid JSON. Parse error: ${(e as Error).message}`)
+    throw new Error(`Provider returned invalid JSON: ${(e as Error).message}`)
   }
 
   // ─── Step 4: Validate with Zod ──────────────────────────────────────────
-  log.step('validate', 'Validating response schema with Zod', ctx)
+  log.step('validate', 'Validating schema with Zod', ctx)
   const validation = GeminiResearchResponseSchema.safeParse(parsed)
 
   if (!validation.success) {
@@ -71,56 +70,55 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
 
   const data = validation.data
 
-  // ─── Step 5: Compute cost ───────────────────────────────────────────────
-  log.step('cost', 'Computing cost breakdown', ctx)
+  // ─── Step 5: Assemble result ────────────────────────────────────────────
+  const durationMs = elapsed()
   const costBreakdown: CostBreakdown = {
-    model: geminiResult.model,
-    inputTokens: geminiResult.inputTokens,
-    outputTokens: geminiResult.outputTokens,
-    costUsd: Number(
-      (
-        (geminiResult.inputTokens / 1000) * COST_PER_1K_INPUT +
-        (geminiResult.outputTokens / 1000) * COST_PER_1K_OUTPUT
-      ).toFixed(6)
-    ),
+    model: response.model,
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
+    costUsd: response.estimatedCostUsd,
   }
 
-  // ─── Step 6: Assemble result ────────────────────────────────────────────
-  const durationMs = elapsed()
+  const pipelineSource = response.provider === 'openrouter' ? 'openrouter' as const
+    : response.provider === 'gemini' ? 'gemini-direct' as const
+    : 'gemini-direct' as const
+
   const result: ResearchResult = {
     ...data,
     runId,
     query: input.query,
     mode: input.mode,
-    pipelineSource: 'gemini-direct',
+    pipelineSource,
     costBreakdown,
     createdAt: new Date().toISOString(),
     status: 'ready',
     durationMs,
   }
 
-  log.info(`Pipeline complete`, {
+  log.info(`Pipeline complete via ${response.provider}/${response.model}`, {
     ...ctx,
     durationMs,
-    sourceCount: data.sources.length,
-    confidenceScore: data.confidenceScore,
-    costUsd: costBreakdown.costUsd,
+    pipelineSource,
   })
 
   log.metric('research_complete', {
     ...ctx,
     durationMs,
-    inputTokens: geminiResult.inputTokens,
-    outputTokens: geminiResult.outputTokens,
-    costUsd: costBreakdown.costUsd,
+    provider: response.provider,
+    model: response.model,
+    inputTokens: response.inputTokens,
+    outputTokens: response.outputTokens,
+    costUsd: response.estimatedCostUsd,
     mode: input.mode,
     confidenceScore: data.confidenceScore,
     sourceCount: data.sources.length,
     findingsCount: data.findings.length,
+    failoverAttempts: attempts.length,
   })
 
   return {
     result,
-    rawJson: geminiResult.content,
+    rawJson: response.content,
+    providerAttempts: attempts.map(a => ({ provider: a.provider, error: a.error })),
   }
 }

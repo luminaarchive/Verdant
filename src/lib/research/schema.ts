@@ -90,7 +90,7 @@ export const ResearchResultSchema = GeminiResearchResponseSchema.extend({
   runId: z.string(),
   query: z.string(),
   mode: z.string(),
-  pipelineSource: z.enum(['gemini-direct', 'n8n-fallback']),
+  pipelineSource: z.enum(['openrouter', 'gemini-direct', 'n8n-fallback', 'cache']),
   costBreakdown: CostBreakdownSchema.optional(),
   createdAt: z.string(),
   status: z.enum(['queued', 'processing', 'ready', 'failed']),

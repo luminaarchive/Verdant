@@ -5,7 +5,7 @@
 export interface LogContext {
   requestId: string
   runId?: string
-  pipelineSource?: 'gemini-direct' | 'n8n-fallback'
+  pipelineSource?: 'openrouter' | 'gemini-direct' | 'n8n-fallback' | 'cache'
   step?: string
   durationMs?: number
   retryCount?: number

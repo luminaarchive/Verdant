@@ -1,5 +1,5 @@
 // ─── /api/research — Core Research Endpoint ─────────────────────────────────
-// POST: Submit a research query → Gemini pipeline → structured result
+// POST: Submit a research query → multi-provider pipeline → structured result
 // GET:  Retrieve a previous run by runId (for history/share)
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -114,37 +114,30 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown pipeline error'
-    const failedStep = message.includes('Gemini') ? 'gemini-call'
-      : message.includes('JSON') ? 'parse'
-      : message.includes('validation') ? 'validate'
-      : 'unknown'
+    const rawMessage = err instanceof Error ? err.message : 'Unknown pipeline error'
+    const failedStep = rawMessage.includes('JSON') ? 'parse'
+      : rawMessage.includes('validation') ? 'validate'
+      : rawMessage.includes('All providers') ? 'all-providers'
+      : 'provider-call'
 
-    log.error(`Pipeline failed: ${message}`, {
-      requestId,
-      failedStep,
-      durationMs: elapsed(),
-    })
+    // User-friendly message (don't leak provider internals)
+    let userMessage = 'Research engine temporarily unavailable. Please try again in a moment.'
+    if (failedStep === 'parse') userMessage = 'AI returned an invalid response. Please retry.'
+    else if (failedStep === 'validate') userMessage = 'AI response did not pass quality checks. Please retry.'
+    else if (rawMessage.includes('key') || rawMessage.includes('credential')) userMessage = 'Research providers are being reconfigured. Please try again shortly.'
+
+    log.error(`Pipeline failed: ${rawMessage}`, { requestId, failedStep, durationMs: elapsed() })
 
     // Save failure to Supabase (best-effort)
     try {
       const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
       const sb = getSupabaseAdmin()
       if (sb) {
-        await sb.from('failure_logs').insert({
-          request_id: requestId,
-          failed_step: failedStep,
-          error_message: message,
-          metadata: { query, mode },
-        })
+        await sb.from('failure_logs').insert({ request_id: requestId, failed_step: failedStep, error_message: rawMessage.slice(0, 500), metadata: { query, mode } })
       }
     } catch { /* non-critical */ }
 
-    return errorResponse(502, message, {
-      retryable: true,
-      failedStep,
-      requestId,
-    })
+    return errorResponse(502, userMessage, { retryable: true, failedStep, requestId })
   }
 }
 
