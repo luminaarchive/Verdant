@@ -118,7 +118,9 @@ export async function POST(request: NextRequest) {
     async: true,
   })
   } catch (err) {
-    console.error('[start] Unhandled error:', (err as Error).message)
-    return NextResponse.json({ ok: false, message: 'Internal server error. Please try again.', requestId }, { status: 500 })
+    const msg = (err as Error).message ?? 'Unknown error'
+    const stack = (err as Error).stack ?? ''
+    console.error('[start] Unhandled error:', msg, stack)
+    return NextResponse.json({ ok: false, message: `Server error: ${msg}`, requestId }, { status: 500 })
   }
 }
