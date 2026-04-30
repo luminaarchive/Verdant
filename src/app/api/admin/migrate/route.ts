@@ -1,9 +1,7 @@
-// ─── One-time migration runner ───────────────────────────────────────────────
-// POST /api/admin/migrate — Creates durable job tables using Supabase PostgREST
-// Uses the service role key to execute DDL via the /pg/query endpoint
+// ─── Migration: Drop and recreate tables via Supabase SQL API ────────────────
+// Uses the Supabase Management API to execute SQL directly
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -14,91 +12,122 @@ export async function POST(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.replace(/\\n/g, '').replace(/\s+/g, '')
-
+  
   if (!supabaseUrl || !serviceKey) {
-    return NextResponse.json({ ok: false, message: 'Supabase not configured' }, { status: 500 })
+    return NextResponse.json({ ok: false, message: 'Missing env vars' }, { status: 500 })
   }
 
-  const sb = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    db: { schema: 'public' },
-  })
-
-  const results: string[] = []
-
-  // Try creating tables by inserting and catching the "relation does not exist" error
-  // Then use a different approach: create tables via individual SQL statements through PostgREST
-
-  // Step 1: Check if research_jobs table exists
-  const { error: checkError } = await sb.from('research_jobs').select('job_id').limit(1)
+  // Use the Supabase pg-meta API to run raw SQL
+  // This endpoint is available at <project-url>/pg/query
+  const pgUrl = `${supabaseUrl}/pg/query`
   
-  if (checkError && checkError.message.includes('does not exist')) {
-    results.push('⚠️ research_jobs table does not exist. You must create it manually.')
-    results.push('📋 Go to Supabase Dashboard → SQL Editor → paste the migration SQL')
-    results.push(`🔗 https://supabase.com/dashboard/project/${supabaseUrl.replace('https://','').split('.')[0]}/sql/new`)
-    
+  const sql = `
+    DROP TABLE IF EXISTS research_job_partial_results CASCADE;
+    DROP TABLE IF EXISTS research_job_events CASCADE;
+    DROP TABLE IF EXISTS research_jobs CASCADE;
+
+    CREATE TABLE research_jobs (
+      job_id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      query TEXT NOT NULL,
+      normalized_query TEXT,
+      mode TEXT NOT NULL,
+      preset_id TEXT,
+      status TEXT NOT NULL DEFAULT 'queued',
+      progress INTEGER NOT NULL DEFAULT 0,
+      stage TEXT NOT NULL DEFAULT 'Queued for processing',
+      provider_source TEXT,
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      started_at TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      completed_at TIMESTAMPTZ,
+      failed_at TIMESTAMPTZ,
+      stale_at TIMESTAMPTZ,
+      eta_seconds INTEGER DEFAULT 30,
+      error_reason TEXT,
+      partial_result_available BOOLEAN NOT NULL DEFAULT false,
+      export_ready BOOLEAN NOT NULL DEFAULT false,
+      export_status TEXT DEFAULT 'pending',
+      confidence_score INTEGER,
+      source_count INTEGER,
+      evidence_count INTEGER,
+      result_data JSONB,
+      worker_lock_id TEXT,
+      worker_lock_expires_at TIMESTAMPTZ,
+      resume_token TEXT,
+      idempotency_key TEXT
+    );
+
+    CREATE TABLE research_job_events (
+      event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      job_id TEXT NOT NULL REFERENCES research_jobs(job_id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL,
+      previous_status TEXT,
+      next_status TEXT,
+      event_payload JSONB DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE research_job_partial_results (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      job_id TEXT NOT NULL REFERENCES research_jobs(job_id) ON DELETE CASCADE,
+      stage TEXT NOT NULL,
+      partial_data JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rj_status ON research_jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_rj_created ON research_jobs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_rj_idempotency ON research_jobs(idempotency_key) WHERE idempotency_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_rje_job ON research_job_events(job_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_rjpr_job ON research_job_partial_results(job_id, created_at DESC);
+
+    NOTIFY pgrst, 'reload schema';
+  `
+
+  try {
+    // Try pg-meta endpoint first
+    const pgResponse = await fetch(pgUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ query: sql }),
+    })
+
+    if (pgResponse.ok) {
+      const result = await pgResponse.json()
+      return NextResponse.json({ ok: true, message: 'Migration completed via pg/query', result })
+    }
+
+    // If pg-meta doesn't work, try the SQL endpoint
+    const sqlResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ name: 'exec_sql', args: { sql } }),
+    })
+
+    if (sqlResponse.ok) {
+      return NextResponse.json({ ok: true, message: 'Migration completed via rpc' })
+    }
+
+    const errText = await pgResponse.text()
     return NextResponse.json({
       ok: false,
-      message: 'Tables do not exist. Manual SQL execution required.',
-      dashboardUrl: `https://supabase.com/dashboard/project/${supabaseUrl.replace('https://','').split('.')[0]}/sql/new`,
-      sqlFile: 'supabase/migrations/003_durable_jobs.sql',
-      instructions: [
-        '1. Open the Supabase Dashboard URL above',
-        '2. Copy the SQL from supabase/migrations/003_durable_jobs.sql',
-        '3. Paste into the SQL Editor and click Run',
-        '4. Re-run this migration endpoint to verify',
-      ],
-      results,
+      message: 'pg/query and rpc both failed',
+      pgStatus: pgResponse.status,
+      pgError: errText.slice(0, 200),
+      hint: 'Run the SQL manually: supabase/migrations/003_durable_jobs.sql',
     })
-  } else if (checkError) {
-    results.push(`⚠️ research_jobs check returned: ${checkError.message}`)
-  } else {
-    results.push('✅ research_jobs table exists')
+  } catch (e) {
+    return NextResponse.json({ ok: false, message: (e as Error).message }, { status: 500 })
   }
-
-  // Step 2: Check research_job_events
-  const { error: eventsError } = await sb.from('research_job_events').select('event_id').limit(1)
-  if (eventsError && eventsError.message.includes('does not exist')) {
-    results.push('⚠️ research_job_events table missing — needs manual creation')
-  } else {
-    results.push('✅ research_job_events table exists')
-  }
-
-  // Step 3: Check research_job_partial_results
-  const { error: partialsError } = await sb.from('research_job_partial_results').select('id').limit(1)
-  if (partialsError && partialsError.message.includes('does not exist')) {
-    results.push('⚠️ research_job_partial_results table missing — needs manual creation')
-  } else {
-    results.push('✅ research_job_partial_results table exists')
-  }
-
-  // Step 4: Test a write cycle
-  const testJobId = `test_migration_${Date.now()}`
-  const { error: writeError } = await sb.from('research_jobs').insert({
-    job_id: testJobId,
-    run_id: 'test',
-    query: 'migration test',
-    mode: 'focus',
-    status: 'queued',
-    progress: 0,
-    stage: 'test',
-    retry_count: 0,
-  })
-  
-  if (writeError) {
-    results.push(`⚠️ Write test failed: ${writeError.message}`)
-  } else {
-    results.push('✅ Write test passed')
-    // Clean up
-    await sb.from('research_jobs').delete().eq('job_id', testJobId)
-    results.push('✅ Cleanup passed')
-  }
-
-  const allPassed = results.every(r => r.startsWith('✅'))
-
-  return NextResponse.json({
-    ok: allPassed,
-    message: allPassed ? 'All tables verified and writable. Durable job system is operational.' : 'Some tables need attention.',
-    results,
-  })
 }
