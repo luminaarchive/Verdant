@@ -1,16 +1,10 @@
 import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
 import { log, timer } from '../research/logger'
 
-const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  'google/gemma-3-4b-it:free': { input: 0, output: 0 },
-  'google/gemma-3-12b-it:free': { input: 0, output: 0 },
-  'meta-llama/llama-4-scout:free': { input: 0, output: 0 },
-}
-
 const MODE_MODELS: Record<string, string> = {
-  focus: 'google/gemma-3-4b-it:free',
-  deep: 'google/gemma-3-12b-it:free',
-  analytica: 'meta-llama/llama-4-scout:free',
+  focus: 'google/gemma-4-26b-a4b-it:free',
+  deep: 'google/gemma-4-31b-it:free',
+  analytica: 'qwen/qwen3-coder:free',
 }
 
 export class OpenRouterProvider implements AIProvider {
@@ -26,7 +20,7 @@ export class OpenRouterProvider implements AIProvider {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'https://verdantai.vercel.app', 'X-Title': 'VerdantAI Research' },
       body: JSON.stringify({ model, messages: [{ role: 'system', content: req.systemPrompt }, { role: 'user', content: req.userPrompt }], temperature: 0.3, max_tokens: 4096 }),
-      signal: AbortSignal.timeout(req.timeoutMs ?? 45_000),
+      signal: AbortSignal.timeout(req.timeoutMs ?? 60_000),
     })
     if (!response.ok) { const errText = await response.text().catch(() => 'no body'); const err = new Error(`OpenRouter ${response.status}: ${errText.slice(0, 300)}`); (err as any).httpStatus = response.status; throw err }
     const data = await response.json()
