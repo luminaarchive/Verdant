@@ -2,9 +2,9 @@ import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
 import { log, timer } from '../research/logger'
 
 const MODE_MODELS: Record<string, string> = {
-  focus: 'google/gemma-4-26b-a4b-it:free',
-  deep: 'google/gemma-4-31b-it:free',
-  analytica: 'qwen/qwen3-coder:free',
+  focus: 'openai/gpt-oss-20b:free',
+  deep: 'openai/gpt-oss-120b:free',
+  analytica: 'nvidia/nemotron-3-nano-30b-a3b:free',
 }
 
 export class OpenRouterProvider implements AIProvider {
