@@ -37,7 +37,7 @@ export function SearchBox() {
   return (
     <div className="w-full" style={{ maxWidth: '660px', marginBottom: '48px' }}>
       <div style={{
-        background: '#F5F2EB',
+        background: '#FFFFFF',
         border: '1.5px solid rgba(45,74,45,0.28)',
         borderRadius: '14px',
         padding: '8px',
@@ -85,7 +85,7 @@ export function SearchBox() {
             onClick={handleSubmit}
             disabled={isLoading}
             style={{
-              background: query.trim() && !isLoading ? '#1A2E1A' : 'rgba(26,46,26,0.2)',
+              background: query.trim() && !isLoading ? '#1A2F23' : 'rgba(26,46,26,0.2)',
               color: '#ffffff', width: '32px', height: '32px', borderRadius: '50%',
               border: 'none',
               cursor: query.trim() && !isLoading ? 'pointer' : 'default',

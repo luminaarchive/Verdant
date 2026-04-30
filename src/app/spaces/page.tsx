@@ -17,22 +17,22 @@ const spaces = [
 export default function SpacesPage() {
   const router = useRouter()
   return (
-    <div style={{ background: '#FAFAF7', display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ background: '#F9F8F4', display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={{ marginLeft: '220px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <TopBar />
         <main style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
           <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
               <div>
-                <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2E1A', marginBottom: '6px' }}>Spaces</h1>
+                <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>Spaces</h1>
                 <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#8A9288' }}>Organized collections of your research threads.</p>
               </div>
               <button 
                 onClick={() => router.push('/spaces/new')}
-                style={{ background: '#1A2E1A', color: '#F5F2EB', border: 'none', borderRadius: '8px', height: '36px', padding: '0 16px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: 'pointer', transition: 'background 0.15s' }}
+                style={{ background: '#1A2F23', color: '#FFFFFF', border: 'none', borderRadius: '8px', height: '36px', padding: '0 16px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#2D4A2D'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1A2E1A'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1A2F23'}
               >
                 New Space +
               </button>
@@ -42,13 +42,13 @@ export default function SpacesPage() {
                 const slug = space.title.toLowerCase().replace(/\s+/g, '-')
                 return (
                   <Link key={space.title} href={`/spaces/${slug}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ background: '#F5F2EB', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '12px', padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(26,46,26,0.05)' }}
+                    <div style={{ background: '#FFFFFF', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '12px', padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(26,46,26,0.05)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: space.dot }} />
-                        <span style={{ fontFamily: 'Georgia, serif', fontSize: '16px', color: '#1A2E1A' }}>{space.title}</span>
+                        <span style={{ fontFamily: 'Georgia, serif', fontSize: '16px', color: '#1A2F23' }}>{space.title}</span>
                       </div>
                       <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#8A9288', marginBottom: '12px' }}>{space.desc}</p>
                       <div style={{ flex: 1, marginBottom: '12px' }}>
@@ -66,7 +66,7 @@ export default function SpacesPage() {
               <div 
                 onClick={() => router.push('/spaces/new')}
                 style={{ border: '1px dashed rgba(45,74,45,0.25)', borderRadius: '12px', padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '160px', transition: 'border-color 0.15s, background 0.15s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'; (e.currentTarget as HTMLElement).style.background = 'rgba(26,46,26,0.02)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.background = 'rgba(26,46,26,0.02)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.25)'; (e.currentTarget as HTMLElement).style.background = 'transparent' }}
               >
                 <span style={{ fontSize: '24px', color: '#8A9288' }}>+</span>

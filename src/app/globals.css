@@ -2,10 +2,10 @@
 
 /* ─── Verdant design tokens ──────────────────────────────────────────────── */
 :root {
-  --bg-main:       #FAFAF7;
-  --bg-card:       #F5F2EB;
+  --bg-main:       #F9F8F4;
+  --bg-card:       #FFFFFF;
   --bg-accent:     #EDE8DC;
-  --green-dark:    #1A2E1A;
+  --green-dark:    #1A2F23;
   --green-mid:     #3D6B3D;
   --text-main:     #1b1c1a;
   --text-muted:    #747871;

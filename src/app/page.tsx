@@ -110,7 +110,7 @@ function HomeContent() {
       {/* Hero */}
       <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '48px' }}>
         <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '13px', lineHeight: '1.4', color: '#747871', marginBottom: '8px' }}>Good morning, Naturalist.</p>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '40px', fontWeight: '400', letterSpacing: '-1px', lineHeight: '1.2', color: '#1A2E1A', marginBottom: '4px' }}>verdant</h2>
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '40px', fontWeight: '400', letterSpacing: '-1px', lineHeight: '1.2', color: '#1A2F23', marginBottom: '4px' }}>verdant</h2>
         <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '15px', lineHeight: '1.6', color: '#747871' }}>Ask anything academic...</p>
       </div>
 
@@ -129,31 +129,40 @@ function HomeContent() {
             href={`/research?q=${encodeURIComponent(content.featured.title)}`}
             style={{
               gridColumn: 'span 2',
-              background: '#F5F2EB',
-              border: '1px solid rgba(45,74,45,0.12)',
-              borderRadius: '4px',
-              padding: '24px',
+              background: '#FFFFFF',
+              border: '1px solid rgba(0,0,0,0.04)',
+              borderRadius: '12px',
+              padding: '28px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               cursor: 'pointer',
               position: 'relative',
               overflow: 'hidden',
-              transition: 'border-color 0.15s',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+              transition: 'all 0.3s ease',
               textDecoration: 'none',
             }}
             className="group"
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.15)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 30px rgba(26,47,35,0.08)';
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.04)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.03)';
+              (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+            }}
           >
             <div style={{ position: 'absolute', right: 0, top: 0, width: '33%', height: '100%', background: 'linear-gradient(to left, rgba(229,226,219,0.3), transparent)' }} />
             <div>
               <span style={{ fontSize: '11px', fontFamily: 'system-ui, sans-serif', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#747871', display: 'block', marginBottom: '8px' }}>Featured Study</span>
-              <h4 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '400', color: '#1A2E1A', marginBottom: '12px', lineHeight: '1.3' }}>{content.featured.title}</h4>
+              <h4 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '400', color: '#1A2F23', marginBottom: '12px', lineHeight: '1.3' }}>{content.featured.title}</h4>
               <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#434841', maxWidth: '400px', lineHeight: '1.5' }}>{content.featured.desc}</p>
             </div>
             <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'system-ui, sans-serif', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#1A2E1A', borderBottom: '1px solid #1A2E1A', paddingBottom: '2px' }}>Begin Research</span>
+              <span style={{ fontSize: '11px', fontFamily: 'system-ui, sans-serif', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#1A2F23', borderBottom: '1px solid #1A2F23', paddingBottom: '2px' }}>Begin Research</span>
               <span className="material-symbols-outlined" style={{ color: '#747871', fontSize: '20px' }}>arrow_forward</span>
             </div>
           </Link>
@@ -171,9 +180,9 @@ function HomeContent() {
 // ─── Page shell — stable, prerender-safe ─────────────────────────────────────
 export default function VerdantHome() {
   return (
-    <div style={{ background: '#FAFAF7', color: '#1b1c1a', display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ background: '#F9F8F4', color: '#1b1c1a', display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={{ marginLeft: '220px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <TopBar />
         <Suspense fallback={
           <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -192,18 +201,27 @@ function PathwayCard({ icon, title, desc, query }: { icon: string; title: string
     <Link
       href={`/research?q=${encodeURIComponent(query)}`}
       style={{
-        background: '#F5F2EB',
-        border: '1px solid rgba(45,74,45,0.12)',
-        borderRadius: '4px',
-        padding: '16px',
+        background: '#FFFFFF',
+        border: '1px solid rgba(0,0,0,0.04)',
+        borderRadius: '12px',
+        padding: '20px',
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        transition: 'border-color 0.15s',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+        transition: 'all 0.3s ease',
         textDecoration: 'none',
       }}
-      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'}
-      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.15)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(26,47,35,0.06)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.04)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.02)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+      }}
     >
       <span className="material-symbols-outlined" style={{ color: '#747871', marginBottom: '8px', fontSize: '22px' }}>{icon}</span>
       <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: '15px', fontWeight: '500', color: '#1b1c1a', marginBottom: '4px' }}>{title}</span>

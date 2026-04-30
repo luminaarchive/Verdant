@@ -40,19 +40,19 @@ const groups = [
 export default function HistoryPage() {
   const [activeFilter, setActiveFilter] = useState('All Time')
   return (
-    <div style={{ background: '#FAFAF7', display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ background: '#F9F8F4', display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={{ marginLeft: '220px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <TopBar />
         <main style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
           <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2E1A', marginBottom: '6px' }}>History</h1>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>History</h1>
             <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#8A9288', marginBottom: '20px' }}>Your research sessions and reading history.</p>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
               {timeFilters.map((f) => {
                 const active = f === activeFilter
                 return (
-                  <button key={f} onClick={() => setActiveFilter(f)} style={{ background: active ? '#1A2E1A' : '#F5F2EB', color: active ? '#F5F2EB' : '#4A5248', border: active ? 'none' : '1px solid rgba(45,74,45,0.2)', borderRadius: '20px', padding: '6px 16px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', cursor: 'pointer' }}>
+                  <button key={f} onClick={() => setActiveFilter(f)} style={{ background: active ? '#1A2F23' : '#FFFFFF', color: active ? '#FFFFFF' : '#4A5248', border: active ? 'none' : '1px solid rgba(45,74,45,0.2)', borderRadius: '20px', padding: '6px 16px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', cursor: 'pointer' }}>
                     {f}
                   </button>
                 )
@@ -63,13 +63,13 @@ export default function HistoryPage() {
                 <p style={{ fontSize: '10px', fontFamily: 'system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#8A9288', marginBottom: '8px' }}>{group.label}</p>
                 {group.sessions.map((s) => (
                   <Link key={s.title} href={`/research?q=${encodeURIComponent(s.title)}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ background: '#F5F2EB', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '10px', padding: '16px 20px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'; (e.currentTarget as HTMLElement).style.background = '#EDE8DC' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'; (e.currentTarget as HTMLElement).style.background = '#F5F2EB' }}
+                    <div style={{ background: '#FFFFFF', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '10px', padding: '16px 20px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.background = '#EDE8DC' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'; (e.currentTarget as HTMLElement).style.background = '#FFFFFF' }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#3D6B3D', flexShrink: 0 }}>history</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2E1A', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</p>
+                        <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2F23', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</p>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <span style={{ fontSize: '11px', color: catColors[s.category] ?? '#747871', background: 'rgba(45,74,45,0.07)', borderRadius: '10px', padding: '2px 8px' }}>{s.category}</span>
                           <span style={{ fontSize: '11px', color: '#8A9288' }}>{s.duration}</span>

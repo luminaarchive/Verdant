@@ -49,7 +49,7 @@ function LoadingState() {
       <p key={step} style={{ fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#747871', animation: 'vFade 0.4s ease' }}>{current.label}</p>
       <div style={{ display: 'flex', gap: '6px' }}>
         {LOADING_STEPS.map((_, i) => (
-          <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: i === step ? '#1A2E1A' : 'rgba(26,46,26,0.15)', transition: 'background 0.3s' }} />
+          <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: i === step ? '#1A2F23' : 'rgba(26,46,26,0.15)', transition: 'background 0.3s' }} />
         ))}
       </div>
     </div>
@@ -63,7 +63,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '15px', color: '#434841', textAlign: 'center' }}>
         Couldn&apos;t reach the research pipeline. Please try again.
       </p>
-      <button onClick={onRetry} style={{ background: '#1A2E1A', color: '#F5F2EB', border: 'none', borderRadius: '2px', padding: '8px 20px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: 'pointer' }}>
+      <button onClick={onRetry} style={{ background: '#1A2F23', color: '#FFFFFF', border: 'none', borderRadius: '2px', padding: '8px 20px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: 'pointer' }}>
         Retry
       </button>
     </div>
@@ -72,7 +72,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ background: '#F5F2EB', border: '1px solid rgba(26,46,26,0.12)', borderRadius: '4px', padding: '24px', ...style }}>
+    <div style={{ background: '#FFFFFF', border: '1px solid rgba(26,46,26,0.12)', borderRadius: '4px', padding: '24px', ...style }}>
       {children}
     </div>
   )
@@ -123,7 +123,7 @@ function StructuredResult({ result }: { result: ResearchResult }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {result.stats.map((stat, i) => (
                 <div key={i}>
-                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2E1A', lineHeight: '1', marginBottom: '4px' }}>{stat.value}</p>
+                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2F23', lineHeight: '1', marginBottom: '4px' }}>{stat.value}</p>
                   <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#747871', lineHeight: '1.4' }}>{stat.label}</p>
                   {i < result.stats!.length - 1 && <div style={{ height: '1px', background: 'rgba(26,46,26,0.08)', marginTop: '14px' }} />}
                 </div>
@@ -142,9 +142,9 @@ function StructuredResult({ result }: { result: ResearchResult }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {result.outline.map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%', background: '#1A2E1A', color: '#F5F2EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontFamily: 'system-ui, sans-serif', fontWeight: '600', marginTop: '2px' }}>{i + 1}</div>
+                <div style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%', background: '#1A2F23', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontFamily: 'system-ui, sans-serif', fontWeight: '600', marginTop: '2px' }}>{i + 1}</div>
                 <div>
-                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '15px', color: '#1A2E1A', marginBottom: '4px' }}>{item.heading}</p>
+                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '15px', color: '#1A2F23', marginBottom: '4px' }}>{item.heading}</p>
                   <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#434841', lineHeight: '1.6' }}>{item.body}</p>
                 </div>
               </div>
@@ -185,8 +185,8 @@ function StructuredResult({ result }: { result: ResearchResult }) {
           {result.discussionStarters && result.discussionStarters.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {result.discussionStarters.map((q, i) => (
-                <div key={i} style={{ background: '#FAFAF7', border: '1px solid rgba(26,46,26,0.08)', borderRadius: '4px', padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'}
+                <div key={i} style={{ background: '#F9F8F4', border: '1px solid rgba(26,46,26,0.08)', borderRadius: '4px', padding: '10px 14px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,46,26,0.08)'}
                 >
                   <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#434841', lineHeight: '1.5' }}>{q}</p>
@@ -244,7 +244,7 @@ function ResearchContent() {
         {/* Breadcrumb */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#747871', marginBottom: '16px' }}>
           <Link href="/" style={{ color: '#747871', textDecoration: 'none' }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#1A2E1A'}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#1A2F23'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#747871'}
           >Home</Link>
           <span>›</span>
@@ -254,7 +254,7 @@ function ResearchContent() {
         </nav>
 
         {/* Query title */}
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2E1A', lineHeight: '1.25', letterSpacing: '-0.5px', marginBottom: '32px', maxWidth: '760px' }}>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.25', letterSpacing: '-0.5px', marginBottom: '32px', maxWidth: '760px' }}>
           {queryString}
         </h1>
 
@@ -264,8 +264,8 @@ function ResearchContent() {
 
         {status !== 'loading' && (
           <div style={{ marginTop: '40px' }}>
-            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#747871', textDecoration: 'none', border: '1px solid rgba(26,46,26,0.15)', borderRadius: '2px', padding: '6px 14px', background: '#F5F2EB', transition: 'border-color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'}
+            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'system-ui, sans-serif', fontSize: '13px', color: '#747871', textDecoration: 'none', border: '1px solid rgba(26,46,26,0.15)', borderRadius: '2px', padding: '6px 14px', background: '#FFFFFF', transition: 'border-color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,46,26,0.15)'}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
@@ -280,9 +280,9 @@ function ResearchContent() {
 
 export default function ResearchPage() {
   return (
-    <div style={{ background: '#FAFAF7', display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ background: '#F9F8F4', display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={{ marginLeft: '220px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <TopBar />
         <Suspense fallback={
           <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

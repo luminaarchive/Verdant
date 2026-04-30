@@ -33,8 +33,8 @@ function CategoryPills() {
             key={cat}
             onClick={() => handleClick(cat)}
             style={{
-              background: active ? '#1A2E1A' : 'transparent',
-              color: active ? '#F5F2EB' : '#4A5248',
+              background: active ? '#1A2F23' : 'transparent',
+              color: active ? '#FFFFFF' : '#4A5248',
               borderRadius: '20px', padding: '4px 16px',
               fontSize: '13px', fontFamily: 'system-ui, sans-serif',
               fontWeight: active ? '500' : '400',
@@ -58,8 +58,8 @@ function CategoryPillsSkeleton() {
     <nav className="flex items-center gap-1 h-full">
       {categories.map((cat) => (
         <button key={cat} disabled style={{
-          background: cat === 'All' ? '#1A2E1A' : 'transparent',
-          color: cat === 'All' ? '#F5F2EB' : '#4A5248',
+          background: cat === 'All' ? '#1A2F23' : 'transparent',
+          color: cat === 'All' ? '#FFFFFF' : '#4A5248',
           borderRadius: '20px', padding: '4px 16px',
           fontSize: '13px', fontFamily: 'system-ui, sans-serif',
           fontWeight: cat === 'All' ? '500' : '400',
@@ -77,7 +77,7 @@ export function TopBar() {
   return (
     <header
       className="w-full sticky top-0 z-50 flex items-center justify-between px-6"
-      style={{ height: '48px', background: '#FAFAF7', borderBottom: '1px solid rgba(26,46,26,0.12)' }}
+      style={{ height: '48px', background: '#F9F8F4', borderBottom: '1px solid rgba(26,46,26,0.12)' }}
     >
       <Suspense fallback={<CategoryPillsSkeleton />}>
         <CategoryPills />
@@ -89,11 +89,11 @@ export function TopBar() {
           style={{
             fontSize: '13px', fontFamily: 'system-ui, sans-serif', color: '#747871',
             border: '1px solid rgba(26,46,26,0.20)', padding: '2px 8px',
-            borderRadius: '2px', background: '#F5F2EB', cursor: 'pointer',
+            borderRadius: '2px', background: '#FFFFFF', cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EDE8DC'; (e.currentTarget as HTMLElement).style.color = '#1A2E1A' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F5F2EB'; (e.currentTarget as HTMLElement).style.color = '#747871' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EDE8DC'; (e.currentTarget as HTMLElement).style.color = '#1A2F23' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#FFFFFF'; (e.currentTarget as HTMLElement).style.color = '#747871' }}
         >
           GPT-4 Archive
         </button>
