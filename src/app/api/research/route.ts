@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     return errorResponse(400, `Validation error: ${issues}`, { requestId })
   }
 
-  const { query, mode, idempotencyKey } = parsed.data
+  const { query, mode, idempotencyKey, presetId } = parsed.data
 
   // ─── Idempotency check ────────────────────────────────────────────────
   if (idempotencyKey) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   // ─── Run pipeline ────────────────────────────────────────────────────
   try {
-    const { result } = await runResearchPipeline({ query, mode, requestId })
+    const { result } = await runResearchPipeline({ query, mode, requestId, presetId })
 
     // ─── Persist to Supabase (best-effort) ────────────────────────────
     await saveResearchRun({

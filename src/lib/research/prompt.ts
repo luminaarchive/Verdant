@@ -88,10 +88,20 @@ Tone: strategy consultant, boardroom-ready, action-oriented.`,
   return `${base}\n\n${modeInstructions[mode] ?? modeInstructions.focus}`
 }
 
-export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analytica'): string {
+export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analytica', presetId?: string): string {
+  // Import preset modifier dynamically to avoid circular deps
+  let domainContext = ''
+  if (presetId) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getPresetPromptModifier } = require('./presets')
+      domainContext = getPresetPromptModifier(presetId)
+    } catch { /* presets not available */ }
+  }
+
   return `Produce an Executive Intelligence Report for the following query. Apply ${mode.toUpperCase()} mode analysis depth.
 
-QUERY: ${query}
+QUERY: ${query}${domainContext}
 
 Remember:
 - executiveSummary must be an object with 5 fields (whatMattersMost, hiddenRisks, strategicImplications, recommendedNextAction, whyThisMattersNow)

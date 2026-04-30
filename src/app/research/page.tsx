@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { SearchBox } from '@/components/verdant/SearchBox'
 import { useToast } from '@/components/verdant/Toast'
-import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle, ArrowRight } from 'lucide-react'
+import { TEMPLATES } from '@/lib/research/templates'
 
 interface ExecSummary {
   whatMattersMost?: string
@@ -121,12 +122,16 @@ function ErrorState({ onRetry, message }: { onRetry: () => void; message?: strin
 
 function EmptyState() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '16px', padding: '80px 24px', textAlign: 'center' }}>
-      <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--text-muted)' }}>hourglass_empty</span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '16px', padding: '60px 24px', textAlign: 'center' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--green-mid)' }}>eco</span>
       <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: 'var(--text-main)' }}>No results returned</p>
-      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', maxWidth: '360px', lineHeight: '1.6' }}>
-        The research pipeline returned an empty response. Try rephrasing your query or selecting a different research mode.
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', maxWidth: '400px', lineHeight: '1.6' }}>
+        The intelligence pipeline returned an empty response. Try an environmental research template or rephrase your query.
       </p>
+      <Link href="/" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', marginTop: '8px' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>science</span>
+        Browse Environmental Templates
+      </Link>
     </div>
   )
 }
@@ -486,8 +491,13 @@ function ResearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const queryString = searchParams.get('q') ?? ''
+  const templateId = searchParams.get('tpl') ?? ''
+  const presetId = searchParams.get('preset') ?? ''
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [result, setResult] = useState<ResearchResult | null>(null)
+
+  // Get template-specific follow-ups
+  const activeTemplate = templateId ? TEMPLATES.find(t => t.id === templateId) : null
 
   const runFetch = useCallback(async () => {
     if (!queryString) { router.replace('/'); return }
@@ -503,7 +513,7 @@ function ResearchContent() {
       const response = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey }),
+        body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey, presetId: presetId || undefined }),
         signal: controller.signal,
       })
       clearTimeout(timeout)
@@ -585,8 +595,31 @@ function ResearchContent() {
             : <StructuredResult result={result} query={queryString} onRetry={runFetch} />
         )}
 
+        {/* Template-specific Follow-up Paths */}
+        {status === 'success' && activeTemplate && activeTemplate.followUps.length > 0 && (
+          <div style={{ marginTop: '20px' }} className="fade-up">
+            <div className="card" style={{ padding: '20px' }}>
+              <p className="section-label">Environmental Follow-up Paths</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeTemplate.followUps.map((fu, i) => (
+                  <button
+                    key={i}
+                    onClick={() => router.push(`/research?q=${encodeURIComponent(fu)}${presetId ? `&preset=${presetId}` : ''}`)}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#1A2F23'; (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.color = '#FFFFFF' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = '' }}
+                  >
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: '1.5', margin: 0 }}>{fu}</p>
+                    <ArrowRight size={13} style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {status !== 'loading' && (
-          <div style={{ marginTop: '36px' }}>
+          <div style={{ marginTop: '24px', display: 'flex', gap: '12px', alignItems: 'center' }}>
             <Link
               href="/"
               className="btn btn-ghost"
