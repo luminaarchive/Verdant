@@ -48,13 +48,14 @@ const LOADING_STEPS = [
   { icon: 'auto_awesome',   label: 'Synthesizing findings...' },
 ]
 
-function LoadingState() {
+function LoadingState({ asyncStage, asyncProgress, etaSeconds }: { asyncStage?: string; asyncProgress?: number; etaSeconds?: number }) {
   const [step, setStep] = useState(0)
   useEffect(() => {
     const id = setInterval(() => setStep(s => (s + 1) % LOADING_STEPS.length), 2500)
     return () => clearInterval(id)
   }, [])
   const current = LOADING_STEPS[step]
+  const isAsync = !!asyncStage
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '28px', padding: '80px 24px' }}>
@@ -62,35 +63,32 @@ function LoadingState() {
         <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(26,47,35,0.12)', animation: 'pulse 2s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', inset: '10px', borderRadius: '50%', border: '1.5px solid rgba(26,47,35,0.20)', animation: 'pulse 2s ease-in-out infinite 0.3s' }} />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span
-            key={step}
-            className="material-symbols-outlined fade-in"
-            style={{ fontSize: '26px', color: '#1A2F23' }}
-          >
-            {current.icon}
-          </span>
+          <span key={step} className="material-symbols-outlined fade-in" style={{ fontSize: '26px', color: '#1A2F23' }}>{current.icon}</span>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-        <p key={step} className="fade-in" style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>
-          {current.label}
+        <p className="fade-in" style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>
+          {isAsync ? asyncStage : current.label}
         </p>
-        <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', opacity: 0.6 }}>
-          Analysis may take up to 60 seconds
+        {isAsync && typeof asyncProgress === 'number' && (
+          <div style={{ width: '240px', height: '4px', borderRadius: '2px', background: 'rgba(26,47,35,0.08)', overflow: 'hidden', marginTop: '4px' }}>
+            <div style={{ height: '100%', width: `${asyncProgress}%`, borderRadius: '2px', background: '#1A2F23', transition: 'width 0.5s ease' }} />
+          </div>
+        )}
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', opacity: 0.6 }}>
+          {isAsync && etaSeconds ? `Estimated ${Math.ceil(etaSeconds / 60)} min remaining` : 'Analysis may take up to 60 seconds'}
         </p>
+        {isAsync && (
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: '600', marginTop: '4px' }}>Analytica — International-Grade Intelligence</p>
+        )}
       </div>
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {LOADING_STEPS.map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width: '5px', height: '5px', borderRadius: '50%',
-              background: i === step ? '#1A2F23' : 'rgba(26,47,35,0.15)',
-              transition: 'background 0.3s',
-            }}
-          />
-        ))}
-      </div>
+      {!isAsync && (
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {LOADING_STEPS.map((_, i) => (
+            <div key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', background: i === step ? '#1A2F23' : 'rgba(26,47,35,0.15)', transition: 'background 0.3s' }} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -497,6 +495,9 @@ function ResearchContent() {
   const presetId = searchParams.get('preset') ?? ''
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [result, setResult] = useState<ResearchResult | null>(null)
+  const [asyncStage, setAsyncStage] = useState<string | undefined>()
+  const [asyncProgress, setAsyncProgress] = useState<number | undefined>()
+  const [asyncEta, setAsyncEta] = useState<number | undefined>()
 
   // Get template-specific follow-ups
   const activeTemplate = templateId ? TEMPLATES.find(t => t.id === templateId) : null
@@ -505,43 +506,112 @@ function ResearchContent() {
     if (!queryString) { router.replace('/'); return }
     setStatus('loading')
     setResult(null)
+    setAsyncStage(undefined)
+    setAsyncProgress(undefined)
+
+    const searchMode = typeof window !== 'undefined'
+      ? (localStorage.getItem('verdant-search-mode') || 'focus')
+      : 'focus'
+    const idempotencyKey = `${queryString}-${Date.now()}`
+
     try {
-      const searchMode = typeof window !== 'undefined'
-        ? (localStorage.getItem('verdant-search-mode') || 'focus')
-        : 'focus'
-      const idempotencyKey = `${queryString}-${Date.now()}`
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 55000)
-      const response = await fetch('/api/research', {
+      // ─── Use async job system ────────────────────────────────────────
+      const startRes = await fetch('/api/research/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey, presetId: presetId || undefined }),
-        signal: controller.signal,
       })
-      clearTimeout(timeout)
-      let data: ResearchResult
-      try {
-        data = await response.json()
-      } catch {
-        setResult({ error: 'Server returned an invalid response. The request may have timed out. Please try again.', raw: 'Server timeout or invalid response' })
+      const startData = await startRes.json()
+
+      if (!startData.ok && startData.message) {
+        setResult({ error: startData.message, raw: startData.message })
         setStatus('success')
         return
       }
-      if (data.ok === false && (data.message || data.error)) {
-        setResult({ error: data.message || data.error, raw: data.message || data.error })
-      } else {
-        setResult(data)
+
+      // Focus/Deep: result returned immediately
+      if (startData.result) {
+        const data = startData.result as ResearchResult
+        if (data.ok === false && (data.message || data.error)) {
+          setResult({ error: data.message || data.error, raw: data.message || data.error })
+        } else {
+          setResult(data)
+        }
+        setStatus('success')
+        return
       }
+
+      // Failed inline
+      if (startData.status === 'failed') {
+        setResult({ error: startData.errorReason || 'Analysis failed', raw: startData.errorReason })
+        setStatus('success')
+        return
+      }
+
+      // ─── Analytica: poll for status ──────────────────────────────────
+      if (startData.async && startData.jobId) {
+        const jobId = startData.jobId
+        setAsyncStage(startData.stage || 'Queued for processing')
+        setAsyncProgress(startData.progress || 5)
+        setAsyncEta(startData.etaSeconds || 180)
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/api/research/status/${jobId}`)
+            const statusData = await statusRes.json()
+
+            setAsyncStage(statusData.stage)
+            setAsyncProgress(statusData.progress)
+
+            if (statusData.ready) {
+              clearInterval(pollInterval)
+              // Fetch full result
+              const resultRes = await fetch(`/api/research/result/${jobId}`)
+              const resultData = await resultRes.json()
+              if (resultData.ok && resultData.result) {
+                setResult(resultData.result as ResearchResult)
+              } else {
+                setResult({ error: 'Failed to retrieve completed report', raw: '' })
+              }
+              setAsyncStage(undefined)
+              setAsyncProgress(undefined)
+              setStatus('success')
+            } else if (statusData.failed) {
+              clearInterval(pollInterval)
+              setResult({ error: statusData.errorReason || 'Analysis failed after retries', raw: statusData.errorReason })
+              setAsyncStage(undefined)
+              setAsyncProgress(undefined)
+              setStatus('success')
+            }
+          } catch {
+            // Silently retry polling on network errors
+          }
+        }, 5000)
+
+        // Safety: stop polling after 10 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval)
+          if (status === 'loading') {
+            setResult({ error: 'Analysis timed out. Analytica reports may take several minutes — please try again.', raw: 'Timeout' })
+            setAsyncStage(undefined)
+            setStatus('success')
+          }
+        }, 600000)
+        return
+      }
+
+      // Fallback: unexpected response
+      setResult({ error: 'Unexpected response from research engine', raw: JSON.stringify(startData) })
       setStatus('success')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        setResult({ error: 'Request timed out. The research engine may be under heavy load. Please try again.', raw: 'Timeout' })
+        setResult({ error: 'Request timed out. Please try again.', raw: 'Timeout' })
         setStatus('success')
       } else {
         setStatus('error')
       }
     }
-  }, [queryString, router])
+  }, [queryString, router, presetId])
 
   useEffect(() => { runFetch() }, [runFetch])
 
@@ -588,7 +658,7 @@ function ResearchContent() {
           {queryString}
         </h1>
 
-        {status === 'loading' && <LoadingState />}
+        {status === 'loading' && <LoadingState asyncStage={asyncStage} asyncProgress={asyncProgress} etaSeconds={asyncEta} />}
         {status === 'error'   && <ErrorState onRetry={runFetch} />}
         {status === 'success' && !hasContent && <EmptyState />}
         {status === 'success' && result && hasContent && (
