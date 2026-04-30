@@ -102,6 +102,35 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
     data = validation.data
   }
 
+  // ─── Quality Audit: enforce honest confidence calibration ───────────
+  log.step('audit', 'Quality audit — confidence calibration', ctx)
+  const sourceCount = Array.isArray(data.sources) ? data.sources.length : 0
+  const evidenceCount = Array.isArray(data.evidenceItems) ? data.evidenceItems.length : 0
+  const hasContradictions = Array.isArray(data.contradictions) && data.contradictions.length > 0
+  const uncertaintyCount = Array.isArray(data.uncertaintyNotes) ? data.uncertaintyNotes.length : 0
+  let auditedConfidence = typeof data.confidenceScore === 'number' ? data.confidenceScore : 50
+
+  // Cap confidence when evidence base is thin
+  if (sourceCount <= 1) auditedConfidence = Math.min(auditedConfidence, 35)
+  else if (sourceCount <= 2) auditedConfidence = Math.min(auditedConfidence, 55)
+  else if (sourceCount <= 3) auditedConfidence = Math.min(auditedConfidence, 75)
+
+  if (evidenceCount <= 1) auditedConfidence = Math.min(auditedConfidence, 40)
+  else if (evidenceCount <= 2) auditedConfidence = Math.min(auditedConfidence, 60)
+
+  // Penalize if no uncertainty is declared (likely over-confident)
+  if (uncertaintyCount === 0 && auditedConfidence > 80) auditedConfidence = Math.min(auditedConfidence, 75)
+
+  // Contradictions reduce confidence (honest signal)
+  if (hasContradictions) auditedConfidence = Math.min(auditedConfidence, 70)
+
+  data.confidenceScore = auditedConfidence
+
+  // Flag if this was a fallback parse
+  if (!validation.success) {
+    data.confidenceScore = Math.min(data.confidenceScore, 40)
+  }
+
   const durationMs = elapsed()
   const costBreakdown: CostBreakdown = {
     model: response.model,
@@ -124,7 +153,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
     durationMs,
   }
 
-  log.info(`Pipeline complete via ${response.provider}/${response.model}`, { ...ctx, durationMs, pipelineSource })
+  log.info(`Pipeline complete via ${response.provider}/${response.model} | confidence=${auditedConfidence} sources=${sourceCount} evidence=${evidenceCount}`, { ...ctx, durationMs, pipelineSource })
 
   return {
     result,
