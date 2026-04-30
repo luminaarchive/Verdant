@@ -25,15 +25,24 @@ export function renderReportTemplate(result: ResearchResult): ReportSection[] {
   sections.push({ type: 'metadata', label: 'Mode', value: result.mode.charAt(0).toUpperCase() + result.mode.slice(1) })
   sections.push({ type: 'metadata', label: 'Generated', value: new Date(result.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })
   sections.push({ type: 'metadata', label: 'Confidence', value: `${result.confidenceScore}/100` })
-  sections.push({ type: 'metadata', label: 'Pipeline', value: result.pipelineSource })
+  sections.push({ type: 'metadata', label: 'Provider', value: result.pipelineSource })
   if (result.durationMs) {
     sections.push({ type: 'metadata', label: 'Duration', value: `${(result.durationMs / 1000).toFixed(1)}s` })
   }
   sections.push({ type: 'divider' })
 
-  // ── Executive Summary ──
-  sections.push({ type: 'heading', content: 'Executive Summary', level: 1 })
-  sections.push({ type: 'paragraph', content: result.executiveSummary })
+  // ── Executive Intelligence Briefing ──
+  sections.push({ type: 'heading', content: 'Executive Intelligence Briefing', level: 1 })
+  if (typeof result.executiveSummary === 'object') {
+    const es = result.executiveSummary
+    if (es.whatMattersMost) { sections.push({ type: 'heading', content: 'What Matters Most', level: 2 }); sections.push({ type: 'paragraph', content: es.whatMattersMost }) }
+    if (es.hiddenRisks) { sections.push({ type: 'heading', content: 'Hidden Risks', level: 2 }); sections.push({ type: 'paragraph', content: es.hiddenRisks }) }
+    if (es.strategicImplications) { sections.push({ type: 'heading', content: 'Strategic Implications', level: 2 }); sections.push({ type: 'paragraph', content: es.strategicImplications }) }
+    if (es.recommendedNextAction) { sections.push({ type: 'heading', content: 'Recommended Action', level: 2 }); sections.push({ type: 'paragraph', content: es.recommendedNextAction }) }
+    if (es.whyThisMattersNow) { sections.push({ type: 'heading', content: 'Why This Matters Now', level: 2 }); sections.push({ type: 'paragraph', content: es.whyThisMattersNow }) }
+  } else if (typeof result.executiveSummary === 'string') {
+    sections.push({ type: 'paragraph', content: result.executiveSummary })
+  }
   sections.push({ type: 'divider' })
 
   // ── Key Findings ──
@@ -41,34 +50,51 @@ export function renderReportTemplate(result: ResearchResult): ReportSection[] {
   sections.push({ type: 'bullets', items: result.findings })
   sections.push({ type: 'divider' })
 
-  // ── Data Snapshot ──
-  if (result.stats.length > 0) {
-    sections.push({ type: 'heading', content: 'Data Snapshot', level: 1 })
-    for (const stat of result.stats) {
-      sections.push({ type: 'stat', label: stat.label, value: stat.value })
+  // ── Decision Recommendations ──
+  if (result.decisionRecommendations && result.decisionRecommendations.length > 0) {
+    sections.push({ type: 'heading', content: 'Decision Recommendations', level: 1 })
+    for (const rec of result.decisionRecommendations) {
+      sections.push({ type: 'heading', content: rec.recommendation, level: 2 })
+      sections.push({ type: 'paragraph', content: rec.rationale })
+      const tags = [`Risk: ${rec.riskLevel ?? 'medium'}`, `Urgency: ${rec.urgency ?? 'medium'}`]
+      sections.push({ type: 'metadata', label: 'Assessment', value: tags.join(' · ') })
     }
     sections.push({ type: 'divider' })
   }
 
-  // ── Research Outline ──
-  sections.push({ type: 'heading', content: 'Research Outline', level: 1 })
-  for (const item of result.outline) {
-    sections.push({ type: 'heading', content: item.heading, level: 2 })
-    sections.push({ type: 'paragraph', content: item.body })
+  // ── Data Snapshot ──
+  if (result.stats.length > 0) {
+    sections.push({ type: 'heading', content: 'Data Snapshot', level: 1 })
+    for (const stat of result.stats) sections.push({ type: 'stat', label: stat.label, value: stat.value })
+    sections.push({ type: 'divider' })
   }
-  sections.push({ type: 'divider' })
+
+  // ── Research Outline ──
+  if (result.outline.length > 0) {
+    sections.push({ type: 'heading', content: 'Detailed Analysis', level: 1 })
+    for (const item of result.outline) {
+      sections.push({ type: 'heading', content: item.heading, level: 2 })
+      sections.push({ type: 'paragraph', content: item.body })
+    }
+    sections.push({ type: 'divider' })
+  }
 
   // ── Evidence Panel ──
   if (result.evidenceItems.length > 0) {
-    sections.push({ type: 'heading', content: 'Evidence Panel', level: 1 })
+    sections.push({ type: 'heading', content: 'Evidence Map', level: 1 })
     for (const ev of result.evidenceItems) {
       const src = result.sources[ev.sourceIndex]
-      sections.push({
-        type: 'evidence',
-        evidence: ev,
-        source: src,
-        sourceIndex: ev.sourceIndex,
-      })
+      sections.push({ type: 'evidence', evidence: ev, source: src, sourceIndex: ev.sourceIndex })
+    }
+    sections.push({ type: 'divider' })
+  }
+
+  // ── Contradictions ──
+  if (result.contradictions && result.contradictions.length > 0) {
+    sections.push({ type: 'heading', content: 'Contradictions Detected', level: 1 })
+    for (const c of result.contradictions) {
+      sections.push({ type: 'paragraph', content: c.conflict })
+      sections.push({ type: 'bullets', items: [`Position A: ${c.sourceA}`, `Position B: ${c.sourceB}`, `Implication: ${c.implication}`] })
     }
     sections.push({ type: 'divider' })
   }
@@ -76,18 +102,26 @@ export function renderReportTemplate(result: ResearchResult): ReportSection[] {
   // ── Uncertainty Notes ──
   if (result.uncertaintyNotes.length > 0) {
     sections.push({ type: 'heading', content: 'Uncertainty & Limitations', level: 1 })
-    sections.push({ type: 'bullets', items: result.uncertaintyNotes })
+    const notes = result.uncertaintyNotes.map(n =>
+      typeof n === 'object' ? `${n.uncertainty} — ${n.reason} (Resolution: ${n.whatWouldResolveIt})` : String(n)
+    )
+    sections.push({ type: 'bullets', items: notes })
+    sections.push({ type: 'divider' })
+  }
+
+  // ── Strategic Follow-ups ──
+  if (result.strategicFollowUps && result.strategicFollowUps.length > 0) {
+    sections.push({ type: 'heading', content: 'Strategic Follow-up Questions', level: 1 })
+    sections.push({ type: 'bullets', items: result.strategicFollowUps })
     sections.push({ type: 'divider' })
   }
 
   // ── Sources ──
   sections.push({ type: 'heading', content: 'Sources & Citations', level: 1 })
-  result.sources.forEach((src, i) => {
-    sections.push({ type: 'citation', source: src, sourceIndex: i })
-  })
+  result.sources.forEach((src, i) => sections.push({ type: 'citation', source: src, sourceIndex: i }))
   sections.push({ type: 'divider' })
 
-  // ── Cost (if available) ──
+  // ── Cost ──
   if (result.costBreakdown) {
     sections.push({ type: 'heading', content: 'Cost Breakdown', level: 1 })
     sections.push({ type: 'metadata', label: 'Model', value: result.costBreakdown.model })

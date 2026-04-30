@@ -8,19 +8,29 @@ import { SearchBox } from '@/components/verdant/SearchBox'
 import { useToast } from '@/components/verdant/Toast'
 import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle } from 'lucide-react'
 
+interface ExecSummary {
+  whatMattersMost?: string
+  hiddenRisks?: string
+  strategicImplications?: string
+  recommendedNextAction?: string
+  whyThisMattersNow?: string
+}
+
 interface ResearchResult {
   ok?: boolean
   runId?: string
   title?: string
-  executiveSummary?: string
+  executiveSummary?: ExecSummary | string
   findings?: string[]
+  decisionRecommendations?: { recommendation: string; rationale: string; evidenceRefs?: number[]; riskLevel?: string; urgency?: string }[]
   sources?: { title: string; url?: string; year?: string; author?: string }[]
   outline?: { heading: string; body: string }[]
   stats?: { label: string; value: string }[]
-  discussionStarters?: string[]
-  evidenceItems?: { claim: string; evidence: string; sourceIndex: number; strength?: string }[]
+  evidenceItems?: { claim: string; evidence: string; sourceIndex: number; strength?: string; confidence?: number }[]
+  contradictions?: { conflict: string; sourceA: string; sourceB: string; implication: string }[]
   confidenceScore?: number
-  uncertaintyNotes?: string[]
+  uncertaintyNotes?: ({ uncertainty: string; reason: string; whatWouldResolveIt: string } | string)[]
+  strategicFollowUps?: string[]
   costBreakdown?: { model: string; inputTokens: number; outputTokens: number; costUsd: number }
   pipelineSource?: string
   durationMs?: number
@@ -145,15 +155,22 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
 
   const saveToJournal = () => {
     const entries = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
-    const entry = { id: Date.now(), query, title: result.title ?? query, summary: result.executiveSummary ?? result.raw, savedAt: new Date().toISOString() }
+    const localSummary = typeof result.executiveSummary === 'object' ? (result.executiveSummary?.whatMattersMost ?? '') : (result.executiveSummary ?? result.raw ?? '')
+    const entry = { id: Date.now(), query, title: result.title ?? query, summary: localSummary, savedAt: new Date().toISOString() }
     entries.unshift(entry)
     localStorage.setItem('verdant-journal', JSON.stringify(entries.slice(0, 50)))
-    if (result.runId) { fetch('/api/journal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, title: result.title ?? query, summary: result.executiveSummary, runId: result.runId }) }).catch(() => {}) }
+    const summaryStr = typeof result.executiveSummary === 'object' ? (result.executiveSummary?.whatMattersMost ?? '') : (result.executiveSummary ?? '')
+    if (result.runId) { fetch('/api/journal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, title: result.title ?? query, summary: summaryStr, runId: result.runId }) }).catch(() => {}) }
     toast('Saved to Journal', { icon: 'bookmark_added' })
   }
 
   const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => toast('Link copied', { icon: 'link' })) }
-  const copySummary = () => { navigator.clipboard.writeText(result.executiveSummary ?? '').then(() => toast('Summary copied', { icon: 'content_copy' })) }
+  const copySummary = () => {
+    const text = typeof result.executiveSummary === 'object'
+      ? Object.entries(result.executiveSummary).map(([k, v]) => `${k}: ${v}`).join('\n\n')
+      : (result.executiveSummary ?? '')
+    navigator.clipboard.writeText(text).then(() => toast('Summary copied', { icon: 'content_copy' }))
+  }
 
   const downloadDocx = async () => {
     if (!result.runId) { toast('Export requires a run ID', { type: 'error' }); return }
@@ -210,25 +227,40 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       {/* Row 1: Synthesis + Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '14px' }}>
         <ResultCard>
-          <SectionLabel>The Synthesis</SectionLabel>
-          {result.executiveSummary && (
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', lineHeight: '1.8', color: 'var(--text-main)', marginBottom: result.findings?.length ? '20px' : 0 }}>
-              {result.executiveSummary}
-            </p>
-          )}
+          <SectionLabel>Executive Intelligence Briefing</SectionLabel>
+          {typeof result.executiveSummary === 'object' && result.executiveSummary ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {result.executiveSummary.whatMattersMost && (
+                <div><p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1A2F23', marginBottom: '6px', opacity: 0.6 }}>What Matters Most</p><p style={{ fontFamily: 'Georgia, serif', fontSize: '15.5px', lineHeight: '1.75', color: 'var(--text-main)' }}>{result.executiveSummary.whatMattersMost}</p></div>
+              )}
+              {result.executiveSummary.hiddenRisks && (
+                <div style={{ borderLeft: '3px solid #B8860B', paddingLeft: '14px' }}><p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#B8860B', marginBottom: '6px' }}>Hidden Risks</p><p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', lineHeight: '1.75', color: 'var(--text-secondary)' }}>{result.executiveSummary.hiddenRisks}</p></div>
+              )}
+              {result.executiveSummary.strategicImplications && (
+                <div><p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1A2F23', marginBottom: '6px', opacity: 0.6 }}>Strategic Implications</p><p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', lineHeight: '1.75', color: 'var(--text-secondary)' }}>{result.executiveSummary.strategicImplications}</p></div>
+              )}
+              {result.executiveSummary.recommendedNextAction && (
+                <div style={{ background: 'rgba(209,250,229,0.25)', borderRadius: '8px', padding: '14px 16px', border: '1px solid rgba(46,93,62,0.15)' }}><p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2E5D3E', marginBottom: '6px' }}>Recommended Action</p><p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', lineHeight: '1.75', color: '#1A2F23' }}>{result.executiveSummary.recommendedNextAction}</p></div>
+              )}
+              {result.executiveSummary.whyThisMattersNow && (
+                <div><p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1A2F23', marginBottom: '6px', opacity: 0.6 }}>Why This Matters Now</p><p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', lineHeight: '1.75', color: 'var(--text-secondary)' }}>{result.executiveSummary.whyThisMattersNow}</p></div>
+              )}
+            </div>
+          ) : typeof result.executiveSummary === 'string' && result.executiveSummary ? (
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', lineHeight: '1.8', color: 'var(--text-main)' }}>{result.executiveSummary}</p>
+          ) : null}
           {result.findings && result.findings.length > 0 && (
-            <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {result.findings.map((f, i) => (
-                <li key={i} style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', lineHeight: '1.65', color: 'var(--text-secondary)' }}>
-                  {f}
-                </li>
-              ))}
-            </ul>
+            <div style={{ marginTop: '16px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1A2F23', marginBottom: '10px', opacity: 0.6 }}>Key Findings</p>
+              <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {result.findings.map((f, i) => (
+                  <li key={i} style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', lineHeight: '1.65', color: 'var(--text-secondary)' }}>{f}</li>
+                ))}
+              </ul>
+            </div>
           )}
           {!result.executiveSummary && !result.findings?.length && (
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>
-              No summary data was returned for this query.
-            </p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>No summary data was returned for this query.</p>
           )}
         </ResultCard>
 
@@ -270,7 +302,30 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
         </ResultCard>
       )}
 
-      {/* Sources + Discussion */}
+      {/* Decision Recommendations */}
+      {result.decisionRecommendations && result.decisionRecommendations.length > 0 && (
+        <ResultCard>
+          <SectionLabel>Decision Recommendations</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {result.decisionRecommendations.map((rec, i) => {
+              const riskColors: Record<string, string> = { low: '#2E5D3E', medium: '#B8860B', high: '#C0392B', critical: '#8B0000' }
+              const urgColors: Record<string, string> = { low: 'var(--text-muted)', medium: '#B8860B', high: '#C0392B', immediate: '#8B0000' }
+              return (
+                <div key={i} style={{ borderLeft: `3px solid ${riskColors[rec.riskLevel ?? 'medium'] ?? '#B8860B'}`, paddingLeft: '16px' }}>
+                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '14.5px', color: '#1A2F23', marginBottom: '6px', fontWeight: '400' }}>{rec.recommendation}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '8px' }}>{rec.rationale}</p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {rec.riskLevel && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '3px 8px', borderRadius: '4px', background: `${riskColors[rec.riskLevel]}15`, color: riskColors[rec.riskLevel] }}>Risk: {rec.riskLevel}</span>}
+                    {rec.urgency && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '3px 8px', borderRadius: '4px', background: `${urgColors[rec.urgency]}15`, color: urgColors[rec.urgency] }}>Urgency: {rec.urgency}</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </ResultCard>
+      )}
+
+      {/* Sources + Strategic Follow-ups */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
         <ResultCard>
           <SectionLabel>Sources &amp; Citations</SectionLabel>
@@ -299,37 +354,13 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
         </ResultCard>
 
         <ResultCard>
-          <SectionLabel>Continue Exploring</SectionLabel>
-          {result.discussionStarters && result.discussionStarters.length > 0 ? (
+          <SectionLabel>Strategic Follow-ups</SectionLabel>
+          {result.strategicFollowUps && result.strategicFollowUps.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {result.discussionStarters.map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => router.push(`/research?q=${encodeURIComponent(q)}`)}
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '10px 14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'left',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px',
-                  }}
-                  onMouseEnter={e => {
-                    ;(e.currentTarget as HTMLElement).style.background = '#1A2F23'
-                    ;(e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'
-                    ;(e.currentTarget as HTMLElement).style.color = '#FFFFFF'
-                  }}
-                  onMouseLeave={e => {
-                    ;(e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'
-                    ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
-                    ;(e.currentTarget as HTMLElement).style.color = ''
-                  }}
+              {result.strategicFollowUps.map((q, i) => (
+                <button key={i} onClick={() => router.push(`/research?q=${encodeURIComponent(q)}`)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s ease', textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#1A2F23'; (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.color = '#FFFFFF' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.color = '' }}
                 >
                   <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', lineHeight: '1.5', margin: 0 }}>{q}</p>
                   <ArrowLeft size={13} style={{ flexShrink: 0, transform: 'rotate(180deg)' }} />
@@ -337,7 +368,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
               ))}
             </div>
           ) : (
-            <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>No discussion prompts returned.</p>
+            <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>No strategic follow-ups generated.</p>
           )}
         </ResultCard>
       </div>
@@ -363,27 +394,55 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
         </ResultCard>
       )}
 
+      {/* Contradictions */}
+      {result.contradictions && result.contradictions.length > 0 && (
+        <ResultCard>
+          <SectionLabel>Contradictions Detected ({result.contradictions.length})</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {result.contradictions.map((c, i) => (
+              <div key={i} style={{ background: 'rgba(184,134,11,0.06)', borderRadius: '8px', padding: '14px 16px', border: '1px solid rgba(184,134,11,0.15)' }}>
+                <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2F23', marginBottom: '8px' }}>{c.conflict}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}><strong style={{ color: '#2E5D3E' }}>Position A:</strong> {c.sourceA}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}><strong style={{ color: '#B8860B' }}>Position B:</strong> {c.sourceB}</p>
+                </div>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', fontStyle: 'italic' }}>Implication: {c.implication}</p>
+              </div>
+            ))}
+          </div>
+        </ResultCard>
+      )}
+
       {/* Uncertainty Notes */}
       {result.uncertaintyNotes && result.uncertaintyNotes.length > 0 && (
         <ResultCard>
           <button onClick={() => setShowUncertainty(!showUncertainty)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <SectionLabel>Uncertainty & Limitations ({result.uncertaintyNotes.length})</SectionLabel>
+            <SectionLabel>Uncertainty &amp; Limitations ({result.uncertaintyNotes.length})</SectionLabel>
             {showUncertainty ? <ChevronUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
           </button>
           {showUncertainty && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-              {result.uncertaintyNotes.map((note, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <AlertTriangle size={13} style={{ color: '#B8860B', flexShrink: 0, marginTop: '2px' }} />
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{note}</p>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+              {result.uncertaintyNotes.map((note, i) => {
+                const isObj = typeof note === 'object'
+                return (
+                  <div key={i} style={{ borderLeft: '2px solid rgba(184,134,11,0.4)', paddingLeft: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <AlertTriangle size={13} style={{ color: '#B8860B', flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-main)', lineHeight: '1.6', fontWeight: '500' }}>{isObj ? note.uncertainty : String(note)}</p>
+                        {isObj && note.reason && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5', marginTop: '4px' }}>{note.reason}</p>}
+                        {isObj && note.whatWouldResolveIt && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--green-mid)', lineHeight: '1.5', marginTop: '4px' }}>→ Resolution: {note.whatWouldResolveIt}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </ResultCard>
       )}
 
-      {/* Cost + Success badge */}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '4px', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <CheckCircle2 size={13} style={{ color: 'var(--green-mid)' }} />

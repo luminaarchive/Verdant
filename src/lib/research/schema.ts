@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+// ─── API Error Contract ─────────────────────────────────────────────────────
 export const ApiErrorSchema = z.object({
   ok: z.literal(false),
   status: z.number(),
@@ -11,6 +12,7 @@ export const ApiErrorSchema = z.object({
 })
 export type ApiError = z.infer<typeof ApiErrorSchema>
 
+// ─── Source ─────────────────────────────────────────────────────────────────
 export const SourceSchema = z.object({
   title: z.string(),
   url: z.string().optional(),
@@ -19,26 +21,60 @@ export const SourceSchema = z.object({
 })
 export type Source = z.infer<typeof SourceSchema>
 
+// ─── Executive Summary (structured, not a paragraph) ────────────────────────
+export const ExecutiveSummarySchema = z.object({
+  whatMattersMost: z.string(),
+  hiddenRisks: z.string(),
+  strategicImplications: z.string(),
+  recommendedNextAction: z.string(),
+  whyThisMattersNow: z.string(),
+})
+export type ExecutiveSummary = z.infer<typeof ExecutiveSummarySchema>
+
+// ─── Decision Recommendation ────────────────────────────────────────────────
+export const DecisionRecommendationSchema = z.object({
+  recommendation: z.string(),
+  rationale: z.string(),
+  evidenceRefs: z.array(z.number().int().min(0)).optional().default([]),
+  riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional().default('medium'),
+  urgency: z.enum(['low', 'medium', 'high', 'immediate']).optional().default('medium'),
+})
+export type DecisionRecommendation = z.infer<typeof DecisionRecommendationSchema>
+
+// ─── Evidence Item (enhanced with confidence per claim) ─────────────────────
 export const EvidenceItemSchema = z.object({
   claim: z.string(),
   evidence: z.string(),
   sourceIndex: z.number().int().min(0),
-  strength: z.enum(['strong', 'moderate', 'weak']).optional(),
+  strength: z.enum(['strong', 'moderate', 'weak']).optional().default('moderate'),
+  confidence: z.number().min(0).max(100).optional(),
 })
 export type EvidenceItem = z.infer<typeof EvidenceItemSchema>
 
-export const OutlineItemSchema = z.object({
-  heading: z.string(),
-  body: z.string(),
+// ─── Contradiction ──────────────────────────────────────────────────────────
+export const ContradictionSchema = z.object({
+  conflict: z.string(),
+  sourceA: z.string(),
+  sourceB: z.string(),
+  implication: z.string(),
 })
-export type OutlineItem = z.infer<typeof OutlineItemSchema>
+export type Contradiction = z.infer<typeof ContradictionSchema>
 
-export const StatSchema = z.object({
-  label: z.string(),
-  value: z.string(),
+// ─── Uncertainty Note (enhanced) ────────────────────────────────────────────
+export const UncertaintyNoteSchema = z.object({
+  uncertainty: z.string(),
+  reason: z.string(),
+  whatWouldResolveIt: z.string(),
 })
+export type UncertaintyNote = z.infer<typeof UncertaintyNoteSchema>
+
+// ─── Outline + Stat ─────────────────────────────────────────────────────────
+export const OutlineItemSchema = z.object({ heading: z.string(), body: z.string() })
+export type OutlineItem = z.infer<typeof OutlineItemSchema>
+export const StatSchema = z.object({ label: z.string(), value: z.string() })
 export type Stat = z.infer<typeof StatSchema>
 
+// ─── Cost Breakdown ─────────────────────────────────────────────────────────
 export const CostBreakdownSchema = z.object({
   model: z.string(),
   inputTokens: z.number().int(),
@@ -47,20 +83,24 @@ export const CostBreakdownSchema = z.object({
 })
 export type CostBreakdown = z.infer<typeof CostBreakdownSchema>
 
+// ─── AI Response Schema (what the model returns) ────────────────────────────
 export const GeminiResearchResponseSchema = z.object({
   title: z.string().min(1),
-  executiveSummary: z.string().min(1),
+  executiveSummary: ExecutiveSummarySchema,
   findings: z.array(z.string()).min(1),
-  outline: z.array(OutlineItemSchema).optional().default([{ heading: 'Overview', body: '' }]),
-  stats: z.array(StatSchema).optional().default([{ label: 'Data', value: 'N/A' }]),
-  sources: z.array(SourceSchema).optional().default([{ title: 'General Knowledge' }]),
-  discussionStarters: z.array(z.string()).optional().default(['What are the implications?']),
-  evidenceItems: z.array(EvidenceItemSchema).optional().default([{ claim: '', evidence: '', sourceIndex: 0 }]),
+  decisionRecommendations: z.array(DecisionRecommendationSchema).optional().default([]),
+  outline: z.array(OutlineItemSchema).optional().default([]),
+  stats: z.array(StatSchema).optional().default([]),
+  sources: z.array(SourceSchema).optional().default([]),
+  evidenceItems: z.array(EvidenceItemSchema).optional().default([]),
+  contradictions: z.array(ContradictionSchema).optional().default([]),
   confidenceScore: z.number().min(0).max(100).optional().default(50),
-  uncertaintyNotes: z.array(z.string()).optional().default([]),
+  uncertaintyNotes: z.array(UncertaintyNoteSchema).optional().default([]),
+  strategicFollowUps: z.array(z.string()).optional().default([]),
 })
 export type GeminiResearchResponse = z.infer<typeof GeminiResearchResponseSchema>
 
+// ─── Full Research Result (what we return to the frontend) ──────────────────
 export const ResearchResultSchema = GeminiResearchResponseSchema.extend({
   runId: z.string(),
   query: z.string(),
@@ -73,6 +113,7 @@ export const ResearchResultSchema = GeminiResearchResponseSchema.extend({
 })
 export type ResearchResult = z.infer<typeof ResearchResultSchema>
 
+// ─── Request Schemas ────────────────────────────────────────────────────────
 export const ResearchRequestSchema = z.object({
   query: z.string().min(3).max(2000),
   mode: z.enum(['focus', 'deep', 'analytica']).default('focus'),
@@ -108,12 +149,3 @@ export const ShareRequestSchema = z.object({
   expiresInHours: z.number().int().min(1).max(720).default(72),
 })
 export type ShareRequest = z.infer<typeof ShareRequestSchema>
-
-export const RunStatusSchema = z.object({
-  runId: z.string(),
-  status: z.enum(['queued', 'processing', 'ready', 'failed']),
-  progress: z.string().optional(),
-  result: ResearchResultSchema.optional(),
-  error: z.string().optional(),
-})
-export type RunStatus = z.infer<typeof RunStatusSchema>

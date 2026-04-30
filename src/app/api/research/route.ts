@@ -90,9 +90,11 @@ export async function POST(request: NextRequest) {
       outline: result.outline,
       stats: result.stats,
       sources: result.sources,
-      discussion_starters: result.discussionStarters,
+      decision_recommendations: result.decisionRecommendations,
       evidence_items: result.evidenceItems,
+      contradictions: result.contradictions,
       uncertainty_notes: result.uncertaintyNotes,
+      strategic_follow_ups: result.strategicFollowUps,
     }).catch(e => log.warn(`Supabase result save failed: ${e}`, { requestId, runId: result.runId }))
 
     // ─── Set idempotency ──────────────────────────────────────────────
@@ -172,11 +174,13 @@ function rebuildResult(data: { run: any; result: any }) {
     title: data.result?.title ?? data.run.query,
     executiveSummary: data.result?.executive_summary ?? '',
     findings: data.result?.findings ?? [],
+    decisionRecommendations: data.result?.decision_recommendations ?? [],
     outline: data.result?.outline ?? [],
     stats: data.result?.stats ?? [],
     sources: data.result?.sources ?? [],
-    discussionStarters: data.result?.discussion_starters ?? [],
     evidenceItems: data.result?.evidence_items ?? [],
+    contradictions: data.result?.contradictions ?? [],
     uncertaintyNotes: data.result?.uncertainty_notes ?? [],
+    strategicFollowUps: data.result?.strategic_follow_ups ?? [],
   }
 }

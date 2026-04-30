@@ -28,15 +28,23 @@ function extractJSON(raw: string): unknown {
 function buildFallback(query: string, raw: string): unknown {
   return {
     title: `Research: ${query}`,
-    executiveSummary: raw.slice(0, 2000),
+    executiveSummary: {
+      whatMattersMost: raw.slice(0, 500),
+      hiddenRisks: 'Unable to assess risks from unstructured response.',
+      strategicImplications: 'Further structured analysis recommended.',
+      recommendedNextAction: 'Retry with a more specific query for better results.',
+      whyThisMattersNow: 'Initial research pass completed — quality verification needed.',
+    },
     findings: [raw.slice(0, 500)],
+    decisionRecommendations: [],
     outline: [{ heading: 'Overview', body: raw.slice(0, 1000) }],
     stats: [{ label: 'Source', value: 'AI Generated' }],
     sources: [{ title: 'AI Research Output' }],
-    discussionStarters: [`What are the key implications of ${query}?`],
     evidenceItems: [{ claim: query, evidence: raw.slice(0, 300), sourceIndex: 0, strength: 'moderate' }],
+    contradictions: [],
     confidenceScore: 40,
-    uncertaintyNotes: ['Response generated from free AI model — verify with primary sources.'],
+    uncertaintyNotes: [{ uncertainty: 'Response generated from fallback path', reason: 'Primary AI output could not be parsed into structured format', whatWouldResolveIt: 'Retry the query or use a different research mode' }],
+    strategicFollowUps: [`What are the strategic implications of ${query}?`],
   }
 }
 

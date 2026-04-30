@@ -59,14 +59,16 @@ export async function saveResearchRun(run: {
 export async function saveResearchResult(result: {
   run_id: string
   title: string
-  executive_summary: string
+  executive_summary: unknown
   findings: string[]
-  outline: { heading: string; body: string }[]
-  stats: { label: string; value: string }[]
-  sources: { title: string; url?: string; author?: string; year?: string }[]
-  discussion_starters: string[]
-  evidence_items: { claim: string; evidence: string; sourceIndex: number; strength?: string }[]
-  uncertainty_notes: string[]
+  outline: unknown[]
+  stats: unknown[]
+  sources: unknown[]
+  decision_recommendations?: unknown[]
+  evidence_items: unknown[]
+  contradictions?: unknown[]
+  uncertainty_notes: unknown[]
+  strategic_follow_ups?: string[]
   raw_json?: string
 }) {
   const sb = getSupabaseAdmin()

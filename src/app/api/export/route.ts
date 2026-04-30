@@ -52,12 +52,14 @@ export async function POST(request: NextRequest) {
     title: res.title,
     executiveSummary: res.executive_summary ?? '',
     findings: res.findings ?? [],
+    decisionRecommendations: res.decision_recommendations ?? [],
     outline: res.outline ?? [],
     stats: res.stats ?? [],
     sources: res.sources ?? [],
-    discussionStarters: res.discussion_starters ?? [],
     evidenceItems: res.evidence_items ?? [],
+    contradictions: res.contradictions ?? [],
     uncertaintyNotes: res.uncertainty_notes ?? [],
+    strategicFollowUps: res.strategic_follow_ups ?? [],
     costBreakdown: r.cost_usd ? { model: 'gemini-2.0-flash', inputTokens: 0, outputTokens: 0, costUsd: r.cost_usd } : undefined,
   }
 
