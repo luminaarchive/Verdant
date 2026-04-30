@@ -1,26 +1,40 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowUp, Loader2, Crosshair, FlaskConical, BarChart2 } from 'lucide-react'
 
 type SearchMode = 'focus' | 'deep' | 'analytica'
 
-const MODES: { id: SearchMode; icon: string; label: string }[] = [
-  { id: 'focus',    icon: 'center_focus_strong', label: 'Focus' },
-  { id: 'deep',     icon: 'science',             label: 'Deep Research' },
-  { id: 'analytica',icon: 'analytics',           label: 'Analytica' },
+const MODES: { id: SearchMode; icon: React.ElementType; label: string; desc: string }[] = [
+  { id: 'focus',     icon: Crosshair,   label: 'Focus',       desc: 'Fast, concise analysis' },
+  { id: 'deep',      icon: FlaskConical, label: 'Deep',        desc: 'Thorough multi-source research' },
+  { id: 'analytica', icon: BarChart2,   label: 'Analytica',   desc: 'Statistical & data-heavy output' },
 ]
 
-export function SearchBox() {
+interface SearchBoxProps {
+  autoFocus?: boolean
+  compact?: boolean
+}
+
+export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps) {
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState<SearchMode>('focus')
   const [isLoading, setIsLoading] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   const router = useRouter()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('verdant-search-mode') as SearchMode | null
     if (saved && ['focus', 'deep', 'analytica'].includes(saved)) setMode(saved)
   }, [])
+
+  useEffect(() => {
+    if (autoFocus && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [autoFocus])
 
   const handleModeChange = (m: SearchMode) => {
     setMode(m)
@@ -34,72 +48,122 @@ export function SearchBox() {
     router.push(`/research?q=${encodeURIComponent(trimmed)}`)
   }
 
+  const canSubmit = query.trim().length > 0 && !isLoading
+
   return (
-    <div className="w-full" style={{ maxWidth: '660px', marginBottom: '48px' }}>
-      <div style={{
-        background: '#FFFFFF',
-        border: '1.5px solid rgba(45,74,45,0.28)',
-        borderRadius: '14px',
-        padding: '8px',
-        display: 'flex', flexDirection: 'column', gap: '8px',
-      }}>
+    <div className="w-full" style={{ maxWidth: '680px' }}>
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: `1.5px solid ${isFocused ? '#1A2F23' : 'rgba(26,47,35,0.20)'}`,
+          borderRadius: '14px',
+          padding: compact ? '6px' : '8px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          boxShadow: isFocused ? '0 0 0 3px rgba(26,47,35,0.06)' : 'var(--shadow-sm)',
+        }}
+      >
         <textarea
+          ref={textareaRef}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
-          placeholder="Begin your inquiry here..."
-          rows={2}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          placeholder="Ask anything about ecology, biodiversity, geology..."
+          rows={compact ? 1 : 2}
           style={{
-            width: '100%', background: 'transparent', border: 'none',
-            resize: 'none', outline: 'none',
-            fontFamily: 'system-ui, sans-serif', fontSize: '15px',
-            lineHeight: '1.6', color: '#1b1c1a',
-            padding: '8px', minHeight: '60px',
+            width: '100%',
+            background: 'transparent',
+            border: 'none',
+            resize: 'none',
+            outline: 'none',
+            fontFamily: "'Inter', system-ui, sans-serif",
+            fontSize: '15px',
+            lineHeight: '1.6',
+            color: 'var(--text-main)',
+            padding: '8px 10px',
+            minHeight: compact ? '40px' : '56px',
           }}
         />
-        <div className="flex items-center justify-between px-2 pb-1 pt-2"
-          style={{ borderTop: '1px solid rgba(26,46,26,0.10)' }}>
-          <div className="flex items-center gap-2">
-            {MODES.map((m) => {
+
+        <div
+          className="flex items-center justify-between px-2 pb-1"
+          style={{ borderTop: '1px solid rgba(26,47,35,0.07)', paddingTop: '6px' }}
+        >
+          {/* Mode Pills */}
+          <div className="flex items-center gap-1">
+            {MODES.map(m => {
               const isActive = mode === m.id
+              const Icon = m.icon
               return (
                 <button
                   key={m.id}
                   onClick={() => handleModeChange(m.id)}
+                  title={m.desc}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    fontFamily: 'system-ui, sans-serif', fontSize: '13px',
-                    background: isActive ? '#b9edb3' : 'transparent',
-                    color: isActive ? '#1b1c1a' : '#747871',
-                    padding: '2px 8px', borderRadius: '2px', border: 'none',
-                    cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontSize: '12.5px',
+                    fontWeight: isActive ? '600' : '400',
+                    background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
+                    color: isActive ? '#1A2F23' : 'var(--text-muted)',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: isActive ? '1px solid rgba(26,47,35,0.15)' : '1px solid transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.04)' }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{m.icon}</span>
+                  <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
                   {m.label}
                 </button>
               )
             })}
           </div>
+
+          {/* Submit */}
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={!canSubmit}
+            aria-label="Submit research query"
             style={{
-              background: query.trim() && !isLoading ? '#1A2F23' : 'rgba(26,46,26,0.2)',
-              color: '#ffffff', width: '32px', height: '32px', borderRadius: '50%',
+              background: canSubmit ? '#1A2F23' : 'rgba(26,47,35,0.15)',
+              color: '#FFFFFF',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
               border: 'none',
-              cursor: query.trim() && !isLoading ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.15s',
+              cursor: canSubmit ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s ease, transform 0.15s ease',
+              flexShrink: 0,
             }}
+            onMouseEnter={e => { if (canSubmit) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
           >
             {isLoading
-              ? <span className="material-symbols-outlined" style={{ fontSize: '16px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
-              : <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_upward</span>
+              ? <Loader2 size={15} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+              : <ArrowUp size={15} strokeWidth={2.5} />
             }
           </button>
         </div>
       </div>
+
+      {/* Hint */}
+      {!compact && (
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '8px', textAlign: 'center' }}>
+          Press <kbd style={{ background: 'rgba(26,47,35,0.08)', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>Enter</kbd> to search · <kbd style={{ background: 'rgba(26,47,35,0.08)', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>Shift+Enter</kbd> for new line
+        </p>
+      )}
     </div>
   )
 }

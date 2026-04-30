@@ -3,89 +3,99 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Sidebar } from '@/components/verdant/Sidebar'
-import { TopBar } from '@/components/verdant/TopBar'
+import { AppLayout } from '@/components/verdant/AppLayout'
+import { ChevronRight } from 'lucide-react'
 
 export default function NewSpacePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title) return
-    const slug = title.toLowerCase().replace(/\s+/g, '-')
-    router.push(`/spaces/${slug}`)
+    if (!title.trim()) return
+    setIsCreating(true)
+    const slug = title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    setTimeout(() => router.push(`/spaces/${slug}`), 400)
   }
 
   return (
-    <div style={{ background: '#F9F8F4', display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar />
-      <div style={{ marginLeft: '260px', flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        <TopBar />
-        <main style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-          <div style={{ maxWidth: '600px', margin: '40px auto 0' }}>
-            {/* Breadcrumb */}
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: '#747871', marginBottom: '16px' }}>
-              <Link href="/spaces" style={{ color: '#747871', textDecoration: 'none' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#1A2F23'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#747871'}
-              >Spaces</Link>
-              <span>›</span>
-              <span style={{ color: '#1b1c1a' }}>New Space</span>
-            </nav>
+    <AppLayout>
+      <div style={{ padding: '36px 32px 60px' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          {/* Breadcrumb */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+            <Link href="/spaces" style={{ color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#1A2F23'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'}
+            >Spaces</Link>
+            <ChevronRight size={12} />
+            <span style={{ color: 'var(--text-main)' }}>New Space</span>
+          </nav>
 
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', color: '#1A2F23', marginBottom: '8px' }}>Create New Space</h1>
-            <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#8A9288', marginBottom: '32px' }}>
-              Organize your research threads into a dedicated collection.
-            </p>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '30px', fontWeight: '400', color: '#1A2F23', marginBottom: '8px' }}>Create New Space</h1>
+          <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '32px' }}>
+            Organize your research threads into a focused collection.
+          </p>
 
-            <form onSubmit={handleCreate} style={{ background: '#FFFFFF', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '12px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontFamily: 'system-ui, sans-serif', fontSize: '13px', fontWeight: '600', color: '#1A2F23' }}>Space Title</label>
-                <input 
-                  type="text" 
+                <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', fontWeight: '600', color: '#1A2F23' }}>
+                  Space Title <span style={{ color: 'var(--destructive)' }}>*</span>
+                </label>
+                <input
+                  type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="e.g. Mycorrhizal Networks"
                   autoFocus
-                  style={{ background: '#F9F8F4', border: '1px solid rgba(26,46,26,0.2)', borderRadius: '4px', padding: '10px 12px', fontSize: '14px', fontFamily: 'system-ui, sans-serif', color: '#1b1c1a', outline: 'none' }}
+                  required
+                  maxLength={60}
+                  className="input"
                 />
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontFamily: 'system-ui, sans-serif', fontSize: '13px', fontWeight: '600', color: '#1A2F23' }}>Description (Optional)</label>
-                <input 
-                  type="text" 
-                  value={desc}
-                  onChange={e => setDesc(e.target.value)}
-                  placeholder="Brief description of this collection"
-                  style={{ background: '#F9F8F4', border: '1px solid rgba(26,46,26,0.2)', borderRadius: '4px', padding: '10px 12px', fontSize: '14px', fontFamily: 'system-ui, sans-serif', color: '#1b1c1a', outline: 'none' }}
-                />
+                <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+                  {title.length}/60 characters
+                </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                <button 
-                  type="button"
-                  onClick={() => router.push('/spaces')}
-                  style={{ flex: 1, background: 'transparent', color: '#4A5248', border: '1px solid rgba(26,46,26,0.2)', borderRadius: '6px', height: '40px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: 'pointer', transition: 'background 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(26,46,26,0.05)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={!title}
-                  style={{ flex: 1, background: title ? '#1A2F23' : 'rgba(26,46,26,0.2)', color: '#FFFFFF', border: 'none', borderRadius: '6px', height: '40px', fontSize: '13px', fontFamily: 'system-ui, sans-serif', fontWeight: '500', cursor: title ? 'pointer' : 'default', transition: 'background 0.15s' }}
-                >
-                  Create Space
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', fontWeight: '600', color: '#1A2F23' }}>
+                  Description
+                </label>
+                <textarea
+                  value={desc}
+                  onChange={e => setDesc(e.target.value)}
+                  placeholder="Brief description of this research collection..."
+                  rows={3}
+                  maxLength={200}
+                  className="input"
+                  style={{ resize: 'vertical', minHeight: '80px' }}
+                />
               </div>
-            </form>
-          </div>
-        </main>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => router.push('/spaces')}
+                className="btn btn-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!title.trim() || isCreating}
+                className="btn btn-primary"
+                style={{ minWidth: '140px' }}
+              >
+                {isCreating ? 'Creating...' : 'Create Space'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }
