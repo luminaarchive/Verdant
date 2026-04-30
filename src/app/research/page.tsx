@@ -217,14 +217,11 @@ function ResearchContent() {
       const searchMode = typeof window !== 'undefined'
         ? (localStorage.getItem('verdant-search-mode') || 'focus')
         : 'focus'
-      const response = await fetch(
-        'https://n8n-production-08c7.up.railway.app/webhook/102bbfd1-ae4d-4470-a653-03b5278bf654',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: queryString, mode: searchMode, timestamp: new Date().toISOString() }),
-        }
-      )
+      const response = await fetch('/api/n8n', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryString, mode: searchMode, timestamp: new Date().toISOString() }),
+      })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
       let parsed: ResearchResult
