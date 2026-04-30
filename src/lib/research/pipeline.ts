@@ -102,27 +102,44 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
     data = validation.data
   }
 
-  // ─── Quality Audit: enforce honest confidence calibration ───────────
-  log.step('audit', 'Quality audit — confidence calibration', ctx)
+  // ─── Quality Audit: mode-aware confidence calibration ───────────────
+  log.step('audit', 'Quality audit — mode-aware confidence calibration', ctx)
   const sourceCount = Array.isArray(data.sources) ? data.sources.length : 0
   const evidenceCount = Array.isArray(data.evidenceItems) ? data.evidenceItems.length : 0
+  const findingCount = Array.isArray(data.findings) ? data.findings.length : 0
+  const outlineCount = Array.isArray(data.outline) ? data.outline.length : 0
+  const recCount = Array.isArray(data.decisionRecommendations) ? data.decisionRecommendations.length : 0
   const hasContradictions = Array.isArray(data.contradictions) && data.contradictions.length > 0
   const uncertaintyCount = Array.isArray(data.uncertaintyNotes) ? data.uncertaintyNotes.length : 0
   let auditedConfidence = typeof data.confidenceScore === 'number' ? data.confidenceScore : 50
 
-  // Cap confidence when evidence base is thin
+  // ── Universal evidence-thin penalties ──
   if (sourceCount <= 1) auditedConfidence = Math.min(auditedConfidence, 35)
   else if (sourceCount <= 2) auditedConfidence = Math.min(auditedConfidence, 55)
-  else if (sourceCount <= 3) auditedConfidence = Math.min(auditedConfidence, 75)
 
   if (evidenceCount <= 1) auditedConfidence = Math.min(auditedConfidence, 40)
   else if (evidenceCount <= 2) auditedConfidence = Math.min(auditedConfidence, 60)
 
-  // Penalize if no uncertainty is declared (likely over-confident)
+  // No uncertainty = likely over-confident
   if (uncertaintyCount === 0 && auditedConfidence > 80) auditedConfidence = Math.min(auditedConfidence, 75)
 
   // Contradictions reduce confidence (honest signal)
   if (hasContradictions) auditedConfidence = Math.min(auditedConfidence, 70)
+
+  // ── Mode-specific depth enforcement ──
+  const modeMinimums = {
+    focus:     { sources: 3, evidence: 3, findings: 4, outline: 3, recs: 2 },
+    deep:      { sources: 5, evidence: 5, findings: 6, outline: 5, recs: 3 },
+    analytica: { sources: 6, evidence: 6, findings: 8, outline: 8, recs: 4 },
+  }
+  const mins = modeMinimums[input.mode] ?? modeMinimums.focus
+  let depthPenalty = 0
+  if (sourceCount < mins.sources) depthPenalty += 5
+  if (evidenceCount < mins.evidence) depthPenalty += 5
+  if (findingCount < mins.findings) depthPenalty += 3
+  if (outlineCount < mins.outline) depthPenalty += 3
+  if (recCount < mins.recs) depthPenalty += 4
+  auditedConfidence = Math.max(10, auditedConfidence - depthPenalty)
 
   data.confidenceScore = auditedConfidence
 
@@ -130,6 +147,8 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   if (!validation.success) {
     data.confidenceScore = Math.min(data.confidenceScore, 40)
   }
+
+  log.info(`Quality audit: mode=${input.mode} sources=${sourceCount}/${mins.sources} evidence=${evidenceCount}/${mins.evidence} findings=${findingCount}/${mins.findings} outline=${outlineCount}/${mins.outline} recs=${recCount}/${mins.recs} depthPenalty=${depthPenalty} confidence=${data.confidenceScore}`, ctx)
 
   const durationMs = elapsed()
   const costBreakdown: CostBreakdown = {
