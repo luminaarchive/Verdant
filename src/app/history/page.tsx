@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { Sidebar } from '@/components/verdant/Sidebar'
 import { TopBar } from '@/components/verdant/TopBar'
 
@@ -61,21 +62,23 @@ export default function HistoryPage() {
               <div key={group.label} style={{ marginBottom: '28px' }}>
                 <p style={{ fontSize: '10px', fontFamily: 'system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#8A9288', marginBottom: '8px' }}>{group.label}</p>
                 {group.sessions.map((s) => (
-                  <div key={s.title} style={{ background: '#F5F2EB', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '10px', padding: '16px 20px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#3D6B3D', flexShrink: 0 }}>history</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2E1A', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</p>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', color: catColors[s.category] ?? '#747871', background: 'rgba(45,74,45,0.07)', borderRadius: '10px', padding: '2px 8px' }}>{s.category}</span>
-                        <span style={{ fontSize: '11px', color: '#8A9288' }}>{s.duration}</span>
-                        <span style={{ fontSize: '11px', color: '#8A9288' }}>{s.sources}</span>
+                  <Link key={s.title} href={`/research?q=${encodeURIComponent(s.title)}`} style={{ textDecoration: 'none' }}>
+                    <div style={{ background: '#F5F2EB', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '10px', padding: '16px 20px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2E1A'; (e.currentTarget as HTMLElement).style.background = '#EDE8DC' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(45,74,45,0.12)'; (e.currentTarget as HTMLElement).style.background = '#F5F2EB' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#3D6B3D', flexShrink: 0 }}>history</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2E1A', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</p>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', color: catColors[s.category] ?? '#747871', background: 'rgba(45,74,45,0.07)', borderRadius: '10px', padding: '2px 8px' }}>{s.category}</span>
+                          <span style={{ fontSize: '11px', color: '#8A9288' }}>{s.duration}</span>
+                          <span style={{ fontSize: '11px', color: '#8A9288' }}>{s.sources}</span>
+                        </div>
                       </div>
+                      <span style={{ fontSize: '11px', color: '#8A9288', flexShrink: 0 }}>{s.timestamp}</span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#8A9288', flexShrink: 0 }}>{s.timestamp}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ))}

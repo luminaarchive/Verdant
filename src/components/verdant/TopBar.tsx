@@ -90,7 +90,10 @@ export function TopBar() {
             fontSize: '13px', fontFamily: 'system-ui, sans-serif', color: '#747871',
             border: '1px solid rgba(26,46,26,0.20)', padding: '2px 8px',
             borderRadius: '2px', background: '#F5F2EB', cursor: 'pointer',
+            transition: 'all 0.15s ease',
           }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EDE8DC'; (e.currentTarget as HTMLElement).style.color = '#1A2E1A' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F5F2EB'; (e.currentTarget as HTMLElement).style.color = '#747871' }}
         >
           GPT-4 Archive
         </button>

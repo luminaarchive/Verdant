@@ -77,10 +77,13 @@ export function Sidebar() {
 
       {/* Forest widget */}
       <div className="mt-auto pt-4" style={{ borderTop: '1px solid rgba(26,46,26,0.12)' }}>
-        <div className="px-2" onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
-          <div className="flex flex-col gap-3 p-3" style={{
+        <div className="px-2" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }}>
+          <div className="flex flex-col gap-3 p-3 transition-colors duration-150" style={{
             background: '#EDE8DC', border: '1px solid rgba(45,74,45,0.12)', borderRadius: '10px',
-          }}>
+          }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#E5DFD0'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#EDE8DC'}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: '#1A2E1A' }}>
                 <div className="rounded-full" style={{ width: '4px', height: '4px', background: '#E05A3A' }} />
