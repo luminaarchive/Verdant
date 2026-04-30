@@ -174,74 +174,90 @@ export async function createJob(input: {
     idempotencyKey: input.idempotencyKey,
   }
 
-  // Persist to Supabase
+  // Always set cache first (ensures system works even if DB fails)
+  cacheSet(job)
+
+  // Persist to Supabase (best-effort, non-blocking for system stability)
   const sb = getSupabaseAdmin()
   if (sb) {
-    const row = {
-      job_id: jobId,
-      run_id: input.runId,
-      query: input.query,
-      normalized_query: input.query.toLowerCase().trim(),
-      mode: input.mode,
-      preset_id: input.presetId ?? null,
-      status: 'queued',
-      progress: 0,
-      stage: 'Queued for processing',
-      retry_count: 0,
-      eta_seconds: etaMap[input.mode] ?? 30,
-      partial_result_available: false,
-      export_ready: false,
-      idempotency_key: input.idempotencyKey ?? null,
+    try {
+      const row = {
+        job_id: jobId,
+        run_id: input.runId,
+        query: input.query,
+        normalized_query: input.query.toLowerCase().trim(),
+        mode: input.mode,
+        preset_id: input.presetId ?? null,
+        status: 'queued',
+        progress: 0,
+        stage: 'Queued for processing',
+        retry_count: 0,
+        eta_seconds: etaMap[input.mode] ?? 30,
+        partial_result_available: false,
+        export_ready: false,
+        idempotency_key: input.idempotencyKey ?? null,
+      }
+      await sb.from('research_jobs').insert(row)
+      await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode })
+    } catch (e) {
+      console.warn('[jobs] DB insert failed (table may not exist), using cache:', (e as Error).message)
     }
-    await sb.from('research_jobs').insert(row).catch((e: Error) => console.error('[jobs] create failed:', e.message))
-    await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode, query: input.query })
   }
 
-  cacheSet(job)
   return job
 }
 
 // ─── READ ────────────────────────────────────────────────────────────────────
 export async function getJob(jobId: string): Promise<ResearchJob | null> {
-  // Check cache first
+  // Check cache first (always available)
   const cached = cacheGet(jobId)
   if (cached) return cached
 
-  // Read from Supabase (source of truth)
+  // Try Supabase (source of truth when available)
   const sb = getSupabaseAdmin()
-  if (!sb) return null
+  if (sb) {
+    try {
+      const { data } = await sb.from('research_jobs').select('*').eq('job_id', jobId).single()
+      if (data) {
+        const job = rowToJob(data)
+        cacheSet(job)
+        return job
+      }
+    } catch {
+      // DB table may not exist — fall through to null
+    }
+  }
 
-  const { data, error } = await sb.from('research_jobs').select('*').eq('job_id', jobId).single()
-  if (error || !data) return null
-
-  const job = rowToJob(data)
-  cacheSet(job)
-  return job
+  return null
 }
 
 // ─── UPDATE ──────────────────────────────────────────────────────────────────
 export async function updateJob(jobId: string, updates: Partial<ResearchJob>): Promise<ResearchJob | null> {
-  const sb = getSupabaseAdmin()
-  const row = jobToRow({ jobId, ...updates })
-
-  if (sb) {
-    const { data, error } = await sb.from('research_jobs').update(row).eq('job_id', jobId).select().single()
-    if (error) { console.error('[jobs] update failed:', error.message); return null }
-    if (data) {
-      const job = rowToJob(data)
-      cacheSet(job)
-      return job
-    }
-  }
-
-  // Fallback: update cache only (degraded mode)
+  // Always update cache first (ensures system works even if DB fails)
   const cached = cacheGet(jobId)
   if (cached) {
     const updated = { ...cached, ...updates, updatedAt: new Date().toISOString() }
     cacheSet(updated)
-    return updated
   }
-  return null
+
+  // Try Supabase update
+  const sb = getSupabaseAdmin()
+  if (sb) {
+    try {
+      const row = jobToRow({ jobId, ...updates })
+      const { data } = await sb.from('research_jobs').update(row).eq('job_id', jobId).select().single()
+      if (data) {
+        const job = rowToJob(data)
+        cacheSet(job)
+        return job
+      }
+    } catch (e) {
+      console.warn('[jobs] DB update failed, using cache:', (e as Error).message)
+    }
+  }
+
+  // Return cached version (degraded mode)
+  return cacheGet(jobId)
 }
 
 // ─── COMPLETE ────────────────────────────────────────────────────────────────
