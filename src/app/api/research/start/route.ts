@@ -1,13 +1,13 @@
 // ─── POST /api/research/start — Create a research job ────────────────────────
 // Returns jobId immediately. Focus/Deep run inline. Analytica queues for async.
+// All job state persisted to Supabase (durable source of truth).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ResearchRequestSchema } from '@/lib/research/schema'
 import { runResearchPipeline } from '@/lib/research/pipeline'
-import { createJob, completeJob, failJob, updateJob } from '@/lib/research/jobs'
-import { checkRateLimit, checkIdempotency, setIdempotency } from '@/lib/research/rate-limit'
-import { log, generateRequestId, timer } from '@/lib/research/logger'
-import { generateRunId } from '@/lib/research/logger'
+import { createJob, completeJob, failJob, updateJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
+import { checkRateLimit } from '@/lib/research/rate-limit'
+import { log, generateRequestId, timer, generateRunId } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
 
 export const maxDuration = 60
@@ -36,35 +36,35 @@ export async function POST(request: NextRequest) {
   const { query, mode, idempotencyKey, presetId } = parsed.data
   const runId = generateRunId()
 
-  // Idempotency
+  // ─── Idempotency: check DB for existing job ────────────────────────────
   if (idempotencyKey) {
-    const existing = checkIdempotency(idempotencyKey)
+    const existing = await findByIdempotencyKey(idempotencyKey)
     if (existing) {
-      return NextResponse.json({ ok: true, jobId: existing, status: 'ready', cached: true })
+      if (existing.status === 'ready' && existing.result) {
+        return NextResponse.json({ ok: true, jobId: existing.jobId, status: 'ready', cached: true, result: existing.result })
+      }
+      return NextResponse.json({ ok: true, jobId: existing.jobId, status: existing.status, cached: true, async: existing.mode === 'analytica', progress: existing.progress, stage: existing.stage })
     }
   }
 
-  // Create the job
-  const job = createJob({ query, mode, presetId, runId })
+  // Create the durable job
+  const job = await createJob({ query, mode, presetId, runId, idempotencyKey: idempotencyKey ?? undefined })
   log.info(`Job created: ${job.jobId} mode=${mode}`, { requestId, runId })
-
-  if (idempotencyKey) setIdempotency(idempotencyKey, job.jobId)
 
   // ─── Focus & Deep: run inline (fits within 60s) ───────────────────────
   if (mode === 'focus' || mode === 'deep') {
-    const elapsed = timer()
-    updateJob(job.jobId, { status: 'evidence_synthesis', stage: 'Synthesizing evidence & findings', progress: 30, startedAt: new Date().toISOString() })
+    await updateJob(job.jobId, { status: 'evidence_synthesis', stage: 'Synthesizing evidence & findings', progress: 30, startedAt: new Date().toISOString() })
 
     try {
       const { result } = await runResearchPipeline({ query, mode, requestId, presetId })
-      completeJob(job.jobId, result, {
+      await completeJob(job.jobId, result, {
         confidenceScore: result.confidenceScore,
         sourceCount: (result as any).sources?.length,
         evidenceCount: (result as any).evidenceItems?.length,
         exportReady: false,
       })
 
-      // Persist (best-effort)
+      // Persist research run (best-effort)
       await saveResearchRun({
         run_id: result.runId, query: result.query, mode: result.mode,
         status: 'ready', pipeline_source: result.pipelineSource,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         result,
       })
     } catch (err) {
-      failJob(job.jobId, (err as Error).message)
+      await failJob(job.jobId, (err as Error).message)
       return NextResponse.json({
         ok: true,
         jobId: job.jobId,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ─── Analytica: return job ID immediately, process async via polling ───
-  updateJob(job.jobId, { status: 'queued', stage: 'Queued for Analytica processing', progress: 5 })
+  await updateJob(job.jobId, { status: 'queued', stage: 'Queued for Analytica processing', progress: 5 })
 
   return NextResponse.json({
     ok: true,

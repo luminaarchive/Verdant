@@ -1,11 +1,12 @@
 // ─── GET /api/research/result/[jobId] — Retrieve completed report ────────────
+// Reads from durable Supabase storage. Survives crashes and deployments.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getJob } from '@/lib/research/jobs'
+import { getJob, getPartialResults } from '@/lib/research/jobs'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params
-  const job = getJob(jobId)
+  const job = await getJob(jobId)
 
   if (!job) {
     return NextResponse.json({ ok: false, message: 'Job not found or expired' }, { status: 404 })
@@ -16,10 +17,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (job.status === 'failed') {
+    const partials = await getPartialResults(jobId)
     return NextResponse.json({
       ok: false, jobId, status: 'failed',
       errorReason: job.errorReason,
-      partialResult: job.partialResultAvailable ? job.partialResult : undefined,
+      partialResults: partials.length > 0 ? partials : undefined,
     })
   }
 
