@@ -355,11 +355,16 @@ export async function savePartialResult(jobId: string, stage: string, partialDat
   const sb = getSupabaseAdmin()
   if (!sb) return
 
-  await sb.from('research_job_partial_results').insert({
-    job_id: jobId,
-    stage,
-    partial_data: partialData,
-  }).catch((e: Error) => console.error('[jobs] partial save failed:', e.message))
+  try {
+    const { error } = await sb.from('research_job_partial_results').insert({
+      job_id: jobId,
+      stage,
+      partial_data: partialData,
+    })
+    if (error) console.warn('[jobs] partial save error:', error.message)
+  } catch (e) {
+    console.warn('[jobs] partial save failed:', (e as Error).message)
+  }
 
   await updateJob(jobId, { partialResultAvailable: true })
 }
@@ -382,13 +387,18 @@ async function logEvent(jobId: string, eventType: string, prevStatus?: string, n
   const sb = getSupabaseAdmin()
   if (!sb) return
 
-  await sb.from('research_job_events').insert({
-    job_id: jobId,
-    event_type: eventType,
-    previous_status: prevStatus ?? null,
-    next_status: nextStatus ?? null,
-    event_payload: payload ?? {},
-  }).catch((e: Error) => console.error('[jobs] event log failed:', e.message))
+  try {
+    const { error } = await sb.from('research_job_events').insert({
+      job_id: jobId,
+      event_type: eventType,
+      previous_status: prevStatus ?? null,
+      next_status: nextStatus ?? null,
+      event_payload: payload ?? {},
+    })
+    if (error) console.warn('[jobs] event log error:', error.message)
+  } catch (e) {
+    console.warn('[jobs] event log failed:', (e as Error).message)
+  }
 }
 
 export { logEvent }
