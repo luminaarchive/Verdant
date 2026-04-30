@@ -439,20 +439,36 @@ function ResearchContent() {
         ? (localStorage.getItem('verdant-search-mode') || 'focus')
         : 'focus'
       const idempotencyKey = `${queryString}-${Date.now()}`
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 55000)
       const response = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey }),
+        signal: controller.signal,
       })
-      const data = await response.json()
-      if (data.ok === false && data.message) {
-        setResult({ error: data.message, raw: data.message })
+      clearTimeout(timeout)
+      let data: ResearchResult
+      try {
+        data = await response.json()
+      } catch {
+        setResult({ error: 'Server returned an invalid response. The request may have timed out. Please try again.', raw: 'Server timeout or invalid response' })
+        setStatus('success')
+        return
+      }
+      if (data.ok === false && (data.message || data.error)) {
+        setResult({ error: data.message || data.error, raw: data.message || data.error })
       } else {
-        setResult(data as ResearchResult)
+        setResult(data)
       }
       setStatus('success')
-    } catch {
-      setStatus('error')
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setResult({ error: 'Request timed out. The research engine may be under heavy load. Please try again.', raw: 'Timeout' })
+        setStatus('success')
+      } else {
+        setStatus('error')
+      }
     }
   }, [queryString, router])
 
