@@ -11,6 +11,8 @@ import { checkRateLimit } from '@/lib/research/rate-limit'
 import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
 import { validateEnv } from '@/lib/env-check'
+import { inngest } from '@/inngest/client'
+import { MODE_CONFIG } from '@/lib/research/mode-config'
 
 // Validate env on module load — logs clear errors to Vercel logs immediately
 validateEnv()
@@ -126,10 +128,30 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ─── Deep & Analytica: return job ID immediately, process async ────────
-  const etaMap: Record<string, number> = { deep: 60, analytica: 180 }
+  // ─── Deep & Analytica: dispatch to Inngest, return jobId instantly ────
+  const config = MODE_CONFIG[mode as keyof typeof MODE_CONFIG]
   const stageLabel = mode === 'analytica' ? 'Queued for Analytica processing' : 'Queued for Deep analysis'
   await updateJob(job.jobId, { status: 'queued', stage: stageLabel, progress: 5 })
+
+  // Dispatch to Inngest durable pipeline (runs outside Vercel 60s timeout)
+  try {
+    await inngest.send({
+      name: 'research/job.created',
+      data: {
+        jobId: job.jobId,
+        query,
+        mode,
+        presetId: presetId ?? undefined,
+      },
+    })
+    log.info(`Inngest event dispatched for job ${job.jobId}`, { requestId, runId })
+    await logEvent(job.jobId, 'inngest_dispatched', 'queued', 'queued', { mode })
+  } catch (inngestErr) {
+    // If Inngest dispatch fails, log but don't fail the request.
+    // The status polling route still has fallback in-process execution.
+    log.warn(`Inngest dispatch failed, falling back to poll-triggered execution: ${(inngestErr as Error).message}`, { requestId })
+    await logEvent(job.jobId, 'inngest_dispatch_failed', 'queued', 'queued', { error: (inngestErr as Error).message })
+  }
 
   return NextResponse.json({
     ok: true,
@@ -137,7 +159,7 @@ export async function POST(request: NextRequest) {
     status: 'queued',
     progress: 5,
     stage: stageLabel,
-    etaSeconds: etaMap[mode] ?? 60,
+    etaSeconds: (config?.timeoutMinutes ?? 1) * 60,
     async: true,
   })
   } catch (err) {

@@ -2,6 +2,8 @@
 // Zero-hallucination, source-grounded, consistency-enforced, mode-differentiated.
 // Three distinct intelligence products. International-grade output.
 
+import { MODE_CONFIG } from './mode-config'
+
 export function getSystemInstruction(mode: 'focus' | 'deep' | 'analytica'): string {
   const base = `You are VerdantAI — an Environmental Intelligence Authority. You produce decision-grade environmental research reports that meet international consulting and scientific reporting standards.
 
@@ -205,7 +207,11 @@ CONFIDENCE: Analytica wins through defensibility, not fluency. Score honestly. B
 ${schema}`,
   }
 
-  return `${base}\n\n${modeInstructions[mode] ?? modeInstructions.focus}`
+  // Append mode-specific page/word count enforcement from MODE_CONFIG
+  const config = MODE_CONFIG[mode]
+  const lengthEnforcement = `\n\n═══════════════════════════════════════════════\nLENGTH & FORMAT ENFORCEMENT\n═══════════════════════════════════════════════\n\n${config.promptAddition}`
+
+  return `${base}\n\n${modeInstructions[mode] ?? modeInstructions.focus}${lengthEnforcement}`
 }
 
 export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analytica', presetId?: string): string {
