@@ -1,19 +1,26 @@
 // ─── Provider Manager — Orchestrator with Intelligent Failover ──────────────
 // This is the ONLY module the research pipeline calls.
 // It handles: provider selection → execution → retry → failover → health tracking.
+//
+// Fallback chain (strict order):
+//   1. OpenRouter (Claude Opus/Sonnet via OpenRouter) — PRIMARY
+//   2. Gemini (last resort fallback — quota-limited)
+//
+// For Deep and Analytica modes, OpenRouter is ALWAYS tried first because:
+//   - Claude models produce higher quality long-form output
+//   - Gemini has tight quota limits that cause 429 errors under load
+//   - OpenRouter provides access to premium models without Vercel timeout issues
 
 import type { AIProvider, ProviderRequest, ProviderResponse, ProviderFailure } from './types'
 import { classifyError } from './types'
 import { OpenRouterProvider } from './openrouter'
 import { GeminiProvider } from './gemini-provider'
-import { recordSuccess, recordFailure, hasRecentFailure, getSuccessRate } from './health'
+import { recordSuccess, recordFailure } from './health'
 import { log, type LogContext } from '../research/logger'
 
-// ─── Provider Registry ──────────────────────────────────────────────────────
-const providers: AIProvider[] = [
-  new OpenRouterProvider(),
-  new GeminiProvider(),
-]
+// ─── Provider Registry (order matters — first = highest priority) ───────────
+const openRouter = new OpenRouterProvider()
+const gemini = new GeminiProvider()
 
 // ─── Failover Configuration ─────────────────────────────────────────────────
 const MAX_RETRIES_PER_PROVIDER = 1
@@ -32,10 +39,10 @@ export async function callWithFailover(
   const attempts: ProviderFailure[] = []
   const startTime = Date.now()
 
-  // Build ordered provider list based on health
-  const ordered = getProviderOrder()
+  // Build ordered provider list: OpenRouter always first, Gemini last
+  const ordered = getProviderOrder(req.mode)
 
-  log.info(`Provider order: [${ordered.map(p => p.name).join(' → ')}]`, ctx)
+  log.info(`Provider order for ${req.mode}: [${ordered.map(p => p.name).join(' → ')}]`, ctx)
 
   for (const provider of ordered) {
     if (!provider.isConfigured()) {
@@ -113,22 +120,18 @@ export async function callWithFailover(
   )
 }
 
-// ─── Intelligent Provider Ordering ──────────────────────────────────────────
+// ─── Provider Ordering (mode-aware) ─────────────────────────────────────────
+// OpenRouter is ALWAYS first for Deep and Analytica (Claude models).
+// Gemini is ALWAYS last (quota-limited, acts as emergency fallback).
+// This is a FIXED ordering — not health-based. Health-based sorting was
+// causing Gemini to be promoted above OpenRouter after OpenRouter had a
+// single transient failure, leading to Gemini quota exhaustion.
 
-function getProviderOrder(): AIProvider[] {
-  return [...providers]
-    .filter(p => p.isConfigured())
-    .sort((a, b) => {
-      // Deprioritize providers with recent failures
-      const aRecent = hasRecentFailure(a.name) ? 1 : 0
-      const bRecent = hasRecentFailure(b.name) ? 1 : 0
-      if (aRecent !== bRecent) return aRecent - bRecent
-
-      // Prefer higher success rate
-      const aRate = getSuccessRate(a.name)
-      const bRate = getSuccessRate(b.name)
-      return bRate - aRate
-    })
+function getProviderOrder(mode: string): AIProvider[] {
+  // Fixed order: OpenRouter first (Claude), Gemini last (fallback)
+  // This prevents Gemini from being promoted and exhausting its quota
+  const allProviders: AIProvider[] = [openRouter, gemini]
+  return allProviders.filter(p => p.isConfigured())
 }
 
 // ─── Custom Error ───────────────────────────────────────────────────────────
