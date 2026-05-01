@@ -1,7 +1,16 @@
 // ─── Rate Limiter ───────────────────────────────────────────────────────────
 // Simple in-memory rate limiter per IP.
-// Resets on cold start (acceptable for Vercel serverless).
-// For production at scale, replace with Redis/Upstash.
+// Resets on cold start — this is INTENTIONALLY ephemeral.
+//
+// Design decision: Rate limiting is acceptable as in-memory because:
+//   1. A cold-start reset only briefly lifts the rate limit — not a security risk.
+//   2. Each Vercel instance gets its own rate limit window — acceptable at our scale.
+//   3. For true distributed rate limiting, upgrade to Redis/Upstash.
+//
+// NOTE: Idempotency deduplication is NOT handled here. It is DB-backed via
+// findByIdempotencyKey() in src/lib/research/jobs.ts using the research_jobs
+// table's idempotency_key column. This ensures idempotency survives crashes,
+// cold starts, and multi-instance deployment.
 
 interface RateLimitEntry {
   count: number
@@ -47,30 +56,4 @@ export function checkRateLimit(ip: string): RateLimitResult {
   }
 
   return { allowed: true, remaining: MAX_REQUESTS - entry.count, resetAt: entry.resetAt }
-}
-
-// ─── Idempotency ────────────────────────────────────────────────────────────
-// Deduplicates requests within a 30-second window based on idempotencyKey.
-
-const idempotencyStore = new Map<string, { runId: string; timestamp: number }>()
-const IDEMPOTENCY_WINDOW_MS = 30_000
-
-export function checkIdempotency(key: string): string | null {
-  const entry = idempotencyStore.get(key)
-  if (!entry) return null
-  if (Date.now() - entry.timestamp > IDEMPOTENCY_WINDOW_MS) {
-    idempotencyStore.delete(key)
-    return null
-  }
-  return entry.runId
-}
-
-export function setIdempotency(key: string, runId: string): void {
-  idempotencyStore.set(key, { runId, timestamp: Date.now() })
-  // Cleanup old entries
-  for (const [k, v] of idempotencyStore) {
-    if (Date.now() - v.timestamp > IDEMPOTENCY_WINDOW_MS * 2) {
-      idempotencyStore.delete(k)
-    }
-  }
 }

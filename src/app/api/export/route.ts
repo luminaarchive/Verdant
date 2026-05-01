@@ -1,6 +1,7 @@
 // ─── /api/export — PDF + DOCX Export ────────────────────────────────────────
 // POST: { runId, format: 'pdf' | 'docx' }
 // Returns the generated file as a download, or a signed URL.
+// Export state is durably tracked in the research_jobs table.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ExportRequestSchema } from '@/lib/research/schema'
@@ -9,6 +10,39 @@ import { generateDocxBuffer } from '@/lib/research/docx-generator'
 import { renderReportHtml } from '@/lib/research/report-template'
 import type { ResearchResult } from '@/lib/research/schema'
 import { log, generateRequestId, timer } from '@/lib/research/logger'
+import { logEvent } from '@/lib/research/jobs'
+
+// ─── Durable export state tracking ──────────────────────────────────────────
+// Updates the research_jobs row (if it exists) to track export lifecycle.
+async function trackExportState(runId: string, state: {
+  exportStatus?: string
+  exportReady?: boolean
+  exportGenerationAttempts?: number
+  exportFailureReason?: string
+  exportFilePath?: string
+  exportFileSize?: number
+}) {
+  const sb = getSupabaseAdmin()
+  if (!sb) return
+  try {
+    // Find the job by run_id to update export state
+    const updateData: Record<string, unknown> = {}
+    if (state.exportStatus !== undefined) updateData.export_status = state.exportStatus
+    if (state.exportReady !== undefined) updateData.export_ready = state.exportReady
+    if (state.exportFilePath !== undefined) updateData.export_file_path = state.exportFilePath
+    if (state.exportFileSize !== undefined) updateData.export_file_size = state.exportFileSize
+    if (state.exportFailureReason !== undefined) updateData.export_failure_reason = state.exportFailureReason
+
+    // Increment generation attempts
+    if (state.exportGenerationAttempts !== undefined) {
+      updateData.export_generation_attempts = state.exportGenerationAttempts
+    }
+
+    await sb.from('research_jobs').update(updateData).eq('run_id', runId)
+  } catch {
+    // Non-critical — export still works even if tracking fails
+  }
+}
 
 export const maxDuration = 30
 
@@ -67,11 +101,16 @@ export async function POST(request: NextRequest) {
     if (format === 'docx') {
       // ─── DOCX Generation (server-side, pure JS) ───────────────────────
       log.step('docx', 'Generating DOCX', { requestId, runId })
+
+      // Track export state: generating
+      await trackExportState(runId, { exportStatus: 'generating' })
+
       const buffer = await generateDocxBuffer(result)
       const filename = `verdant-${runId}.docx`
 
       // Try to upload to Supabase Storage
       const sb = getSupabaseAdmin()
+      let uploadedUrl: string | undefined
       if (sb) {
         const { error } = await sb.storage
           .from('reports')
@@ -82,6 +121,7 @@ export async function POST(request: NextRequest) {
 
         if (!error) {
           const { data: urlData } = sb.storage.from('reports').getPublicUrl(`docx/${filename}`)
+          uploadedUrl = urlData.publicUrl
           await saveGeneratedFile({
             run_id: runId,
             file_type: 'docx',
@@ -93,6 +133,15 @@ export async function POST(request: NextRequest) {
           log.warn(`Supabase Storage upload failed: ${error.message}`, { requestId, runId })
         }
       }
+
+      // Track export state: ready (durable)
+      await trackExportState(runId, {
+        exportStatus: 'ready',
+        exportReady: true,
+        exportFilePath: uploadedUrl ?? `docx/${filename}`,
+        exportFileSize: buffer.length,
+      })
+      await logEvent(`export_${runId}`, 'export_completed', 'generating', 'ready', { format: 'docx', fileSize: buffer.length })
 
       log.info(`DOCX generated (${buffer.length} bytes)`, { requestId, runId, durationMs: elapsed() })
 
@@ -169,6 +218,13 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Export generation failed'
     log.error(`Export failed: ${message}`, { requestId, runId, durationMs: elapsed() })
+
+    // Track export failure state (durable)
+    await trackExportState(runId, {
+      exportStatus: 'failed',
+      exportFailureReason: message,
+    })
+    await logEvent(`export_${runId}`, 'export_failed', 'generating', 'failed', { format, error: message })
 
     return NextResponse.json({
       ok: false,

@@ -1,8 +1,9 @@
 // ─── GET /api/research/status/[jobId] — Poll job status ──────────────────────
-// Returns current stage from durable DB. For Analytica, triggers next stage with worker lock.
+// Returns current stage from durable DB. For Analytica/Deep, triggers next
+// stage with worker lock. Includes stale job detection and lock renewal.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getJob, getJobStatus, updateJob, completeJob, failJob, acquireWorkerLock, releaseWorkerLock, savePartialResult, logEvent } from '@/lib/research/jobs'
+import { getJob, getJobStatus, updateJob, completeJob, failJob, acquireWorkerLock, releaseWorkerLock, renewWorkerLock, savePartialResult, logEvent, resumeStaleJob } from '@/lib/research/jobs'
 import { runResearchPipeline } from '@/lib/research/pipeline'
 import { log, generateRequestId } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
@@ -22,6 +23,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(await getJobStatus(jobId))
   }
 
+  // ─── Stale job detection: resume if worker lock expired ────────────────
+  // If a job is in a processing state but its worker lock has expired,
+  // another worker died mid-processing. Resume it.
+  if (job.status !== 'queued' && job.status !== 'retrying') {
+    if (job.workerLockExpiresAt) {
+      const lockExpiry = new Date(job.workerLockExpiresAt).getTime()
+      if (lockExpiry < Date.now()) {
+        log.info(`Stale job detected: ${jobId}, resuming`, {})
+        await resumeStaleJob(jobId)
+        // Return current status — next poll will trigger re-processing
+        return NextResponse.json(await getJobStatus(jobId))
+      }
+    }
+  }
+
   // ─── Deep & Analytica: trigger processing with worker lock ─────────────
   if ((job.mode === 'analytica' || job.mode === 'deep') && (job.status === 'queued' || job.status === 'source_collection')) {
     const requestId = generateRequestId()
@@ -33,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json(await getJobStatus(jobId))
     }
 
-    log.info(`Analytica processing job ${jobId} (worker: ${workerId})`, { requestId })
+    log.info(`Processing job ${jobId} mode=${job.mode} (worker: ${workerId})`, { requestId })
     await updateJob(jobId, {
       status: 'evidence_synthesis',
       stage: 'Synthesizing evidence & findings',
@@ -43,9 +59,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await logEvent(jobId, 'processing_started', 'queued', 'evidence_synthesis', { workerId })
 
     try {
+      // Renew lock before starting the pipeline (extend lease for long-running jobs)
+      await renewWorkerLock(jobId, workerId, 120) // 2 minute lease for pipeline execution
+
       const { result } = await runResearchPipeline({
         query: job.query,
-        mode: 'analytica',
+        mode: job.mode,
         requestId,
         presetId: job.presetId,
       })

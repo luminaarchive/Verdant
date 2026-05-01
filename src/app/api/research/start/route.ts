@@ -1,13 +1,14 @@
 // ─── POST /api/research/start — Create a research job ────────────────────────
 // Returns jobId immediately. Focus/Deep run inline. Analytica queues for async.
 // All job state persisted to Supabase (durable source of truth).
+// Idempotency is DB-backed via research_jobs.idempotency_key.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ResearchRequestSchema } from '@/lib/research/schema'
 import { runResearchPipeline } from '@/lib/research/pipeline'
 import { createJob, completeJob, failJob, updateJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
 import { checkRateLimit } from '@/lib/research/rate-limit'
-import { log, generateRequestId, timer, generateRunId } from '@/lib/research/logger'
+import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
 
 export const maxDuration = 60
@@ -37,19 +38,31 @@ export async function POST(request: NextRequest) {
   const { query, mode, idempotencyKey, presetId } = parsed.data
   const runId = generateRunId()
 
-  // ─── Idempotency: check DB for existing job ────────────────────────────
+  // ─── Idempotency: check DB for existing job (durable, survives restarts) ──
   if (idempotencyKey) {
     const existing = await findByIdempotencyKey(idempotencyKey)
     if (existing) {
       if (existing.status === 'ready' && existing.result) {
         return NextResponse.json({ ok: true, jobId: existing.jobId, status: 'ready', cached: true, result: existing.result })
       }
-      return NextResponse.json({ ok: true, jobId: existing.jobId, status: existing.status, cached: true, async: existing.mode === 'analytica', progress: existing.progress, stage: existing.stage })
+      return NextResponse.json({ ok: true, jobId: existing.jobId, status: existing.status, cached: true, async: existing.mode === 'analytica' || existing.mode === 'deep', progress: existing.progress, stage: existing.stage })
     }
   }
 
-  // Create the durable job
-  const job = await createJob({ query, mode, presetId, runId, idempotencyKey: idempotencyKey ?? undefined })
+  // Create the durable job — DB insert is mandatory
+  let job
+  try {
+    job = await createJob({ query, mode, presetId, runId, idempotencyKey: idempotencyKey ?? undefined })
+  } catch (err) {
+    const msg = (err as Error).message
+    log.error(`Job creation failed (DB unavailable): ${msg}`, { requestId })
+    return NextResponse.json({
+      ok: false,
+      message: 'Research infrastructure temporarily unavailable. Please try again in a moment.',
+      retryable: true,
+    }, { status: 503 })
+  }
+
   log.info(`Job created: ${job.jobId} mode=${mode}`, { requestId, runId })
 
   // ─── Focus: run inline (fits within 60s easily) ────────────────────────

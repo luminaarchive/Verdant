@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ResearchRequestSchema, type ApiError } from '@/lib/research/schema'
 import { runResearchPipeline } from '@/lib/research/pipeline'
-import { checkRateLimit, checkIdempotency, setIdempotency } from '@/lib/research/rate-limit'
+import { checkRateLimit } from '@/lib/research/rate-limit'
+import { findByIdempotencyKey } from '@/lib/research/jobs'
 import { log, generateRequestId, timer } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult, getRunById } from '@/lib/supabase/admin'
 
@@ -53,12 +54,12 @@ export async function POST(request: NextRequest) {
 
   const { query, mode, idempotencyKey, presetId } = parsed.data
 
-  // ─── Idempotency check ────────────────────────────────────────────────
+  // ─── Idempotency check (DB-backed, survives restarts) ─────────────────
   if (idempotencyKey) {
-    const existingRunId = checkIdempotency(idempotencyKey)
-    if (existingRunId) {
-      log.info('Idempotency hit — returning existing run', { requestId, runId: existingRunId })
-      const existing = await getRunById(existingRunId)
+    const existingJob = await findByIdempotencyKey(idempotencyKey)
+    if (existingJob && existingJob.result) {
+      log.info('Idempotency hit — returning existing result', { requestId, runId: existingJob.runId })
+      const existing = await getRunById(existingJob.runId)
       if (existing?.result) {
         return NextResponse.json({ ok: true, ...rebuildResult(existing), pipelineSource: 'cache' })
       }
@@ -97,10 +98,8 @@ export async function POST(request: NextRequest) {
       strategic_follow_ups: result.strategicFollowUps,
     }).catch(e => log.warn(`Supabase result save failed: ${e}`, { requestId, runId: result.runId }))
 
-    // ─── Set idempotency ──────────────────────────────────────────────
-    if (idempotencyKey) {
-      setIdempotency(idempotencyKey, result.runId)
-    }
+    // Idempotency key is now set during job creation (DB-backed)
+    // No need for setIdempotency() — the key is stored in research_jobs table
 
     log.info(`Research complete`, { requestId, runId: result.runId, durationMs: elapsed() })
 

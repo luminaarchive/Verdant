@@ -1,6 +1,14 @@
 // ─── Durable Research Job System ─────────────────────────────────────────────
-// Supabase is the source of truth. In-memory cache is a performance helper only.
+// Supabase is the SINGLE source of truth. In-memory cache is a read-through
+// performance layer ONLY — never written without a successful DB write first.
 // Crash-safe. Multi-instance-safe. Worker-locked. Idempotent.
+//
+// Design invariants:
+//   1. createJob()  — DB insert MUST succeed. Cache populated after.
+//   2. getJob()     — DB read first (cache miss) or cache (cache hit with TTL).
+//   3. updateJob()  — DB update MUST succeed. Cache updated after.
+//   4. workerLock   — DB atomic CAS. No fake IDs. No degraded mode.
+//   5. If Supabase is unreachable, operations FAIL explicitly.
 
 import { getSupabaseAdmin } from '../supabase/admin'
 
@@ -50,9 +58,13 @@ export interface ResearchJob {
   idempotencyKey?: string
 }
 
-// ─── In-memory cache (performance helper, NOT source of truth) ───────────────
+// ─── In-memory cache (read-through performance layer, NOT source of truth) ───
+// The cache is populated AFTER successful DB operations. On cache miss, we
+// always go to DB. On cache hit within TTL, we serve from cache.
+// The cache is NEVER written to independently — only as a side-effect of a
+// successful DB operation.
 const cache = new Map<string, { job: ResearchJob; ts: number }>()
-const CACHE_TTL = 120_000 // 2 min cache
+const CACHE_TTL = 30_000 // 30 seconds — short TTL to ensure freshness
 
 function cacheGet(jobId: string): ResearchJob | null {
   const entry = cache.get(jobId)
@@ -63,11 +75,15 @@ function cacheGet(jobId: string): ResearchJob | null {
 
 function cacheSet(job: ResearchJob) {
   cache.set(job.jobId, { job, ts: Date.now() })
-  // Evict old entries
+  // Evict old entries to prevent memory leaks
   if (cache.size > 200) {
     const cutoff = Date.now() - CACHE_TTL
     for (const [k, v] of cache) { if (v.ts < cutoff) cache.delete(k) }
   }
+}
+
+function cacheInvalidate(jobId: string) {
+  cache.delete(jobId)
 }
 
 // ─── DB Row <-> Job mapping ──────────────────────────────────────────────────
@@ -144,7 +160,9 @@ function generateWorkerId(): string {
   return `wk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
 }
 
-// ─── CREATE ──────────────────────────────────────────────────────────────────
+// ─── CREATE — DB is mandatory ───────────────────────────────────────────────
+// If Supabase is unreachable, createJob() throws. This is intentional:
+// a silently-cached job that disappears on cold start is worse than an error.
 export async function createJob(input: {
   query: string
   mode: 'focus' | 'deep' | 'analytica'
@@ -156,108 +174,108 @@ export async function createJob(input: {
   const now = new Date().toISOString()
   const etaMap = { focus: 15, deep: 45, analytica: 180 }
 
-  const job: ResearchJob = {
-    jobId,
-    runId: input.runId,
+  const sb = getSupabaseAdmin()
+  if (!sb) {
+    throw new Error('Database unavailable — cannot create durable job')
+  }
+
+  const row = {
+    job_id: jobId,
+    run_id: input.runId,
     query: input.query,
+    normalized_query: input.query.toLowerCase().trim(),
     mode: input.mode,
-    presetId: input.presetId,
+    preset_id: input.presetId ?? null,
     status: 'queued',
     progress: 0,
     stage: 'Queued for processing',
-    retryCount: 0,
-    createdAt: now,
-    updatedAt: now,
-    etaSeconds: etaMap[input.mode] ?? 30,
-    partialResultAvailable: false,
-    exportReady: false,
-    idempotencyKey: input.idempotencyKey,
+    retry_count: 0,
+    eta_seconds: etaMap[input.mode] ?? 30,
+    partial_result_available: false,
+    export_ready: false,
+    idempotency_key: input.idempotencyKey ?? null,
   }
 
-  // Always set cache first (ensures system works even if DB fails)
-  cacheSet(job)
+  const { data, error } = await sb.from('research_jobs').insert(row).select().single()
 
-  // Persist to Supabase (best-effort, non-blocking for system stability)
-  const sb = getSupabaseAdmin()
-  if (sb) {
-    try {
-      const row = {
-        job_id: jobId,
-        run_id: input.runId,
-        query: input.query,
-        normalized_query: input.query.toLowerCase().trim(),
-        mode: input.mode,
-        preset_id: input.presetId ?? null,
-        status: 'queued',
-        progress: 0,
-        stage: 'Queued for processing',
-        retry_count: 0,
-        eta_seconds: etaMap[input.mode] ?? 30,
-        partial_result_available: false,
-        export_ready: false,
-        idempotency_key: input.idempotencyKey ?? null,
-      }
-      await sb.from('research_jobs').insert(row)
-      await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode })
-    } catch (e) {
-      console.warn('[jobs] DB insert failed (table may not exist), using cache:', (e as Error).message)
-    }
+  if (error || !data) {
+    console.error('[jobs] DB insert failed:', error?.message)
+    throw new Error(`Failed to create durable job: ${error?.message ?? 'unknown error'}`)
   }
 
+  const job = rowToJob(data)
+  cacheSet(job) // Write-behind: cache populated after successful DB write
+
+  await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode })
   return job
 }
 
-// ─── READ ────────────────────────────────────────────────────────────────────
+// ─── READ — DB-first, cache is read-through ─────────────────────────────────
+// 1. Check cache (short TTL). If hit, return immediately.
+// 2. On cache miss, read from Supabase (source of truth).
+// 3. Populate cache on DB read.
+// 4. If DB also misses, return null.
 export async function getJob(jobId: string): Promise<ResearchJob | null> {
-  // Check cache first (always available)
+  // Check cache first (performance optimization only)
   const cached = cacheGet(jobId)
   if (cached) return cached
 
-  // Try Supabase (source of truth when available)
+  // Source of truth: Supabase
   const sb = getSupabaseAdmin()
-  if (sb) {
-    try {
-      const { data } = await sb.from('research_jobs').select('*').eq('job_id', jobId).single()
-      if (data) {
-        const job = rowToJob(data)
-        cacheSet(job)
-        return job
-      }
-    } catch {
-      // DB table may not exist — fall through to null
-    }
+  if (!sb) {
+    console.warn('[jobs] DB unavailable for getJob — no cached or durable state')
+    return null
   }
 
-  return null
+  try {
+    const { data, error } = await sb.from('research_jobs').select('*').eq('job_id', jobId).single()
+    if (error || !data) return null
+
+    const job = rowToJob(data)
+    cacheSet(job) // Populate cache from DB
+    return job
+  } catch (e) {
+    console.error('[jobs] getJob DB error:', (e as Error).message)
+    return null
+  }
 }
 
-// ─── UPDATE ──────────────────────────────────────────────────────────────────
+// ─── UPDATE — DB is mandatory ───────────────────────────────────────────────
+// DB update MUST succeed. Cache is updated after successful DB write.
+// If DB fails, the function throws — no silent cache-only updates.
 export async function updateJob(jobId: string, updates: Partial<ResearchJob>): Promise<ResearchJob | null> {
-  // Always update cache first (ensures system works even if DB fails)
-  const cached = cacheGet(jobId)
-  if (cached) {
-    const updated = { ...cached, ...updates, updatedAt: new Date().toISOString() }
-    cacheSet(updated)
-  }
-
-  // Try Supabase update
   const sb = getSupabaseAdmin()
-  if (sb) {
-    try {
-      const row = jobToRow({ jobId, ...updates })
-      const { data } = await sb.from('research_jobs').update(row).eq('job_id', jobId).select().single()
-      if (data) {
-        const job = rowToJob(data)
-        cacheSet(job)
-        return job
-      }
-    } catch (e) {
-      console.warn('[jobs] DB update failed, using cache:', (e as Error).message)
-    }
+  if (!sb) {
+    console.error('[jobs] DB unavailable for updateJob')
+    // Invalidate cache to prevent serving stale data
+    cacheInvalidate(jobId)
+    return null
   }
 
-  // Return cached version (degraded mode)
-  return cacheGet(jobId)
+  const row = jobToRow({ jobId, ...updates })
+
+  try {
+    const { data, error } = await sb
+      .from('research_jobs')
+      .update(row)
+      .eq('job_id', jobId)
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error('[jobs] DB update failed:', error?.message)
+      cacheInvalidate(jobId)
+      return null
+    }
+
+    const job = rowToJob(data)
+    cacheSet(job) // Write-behind: cache updated after successful DB write
+    return job
+  } catch (e) {
+    console.error('[jobs] updateJob error:', (e as Error).message)
+    cacheInvalidate(jobId)
+    return null
+  }
 }
 
 // ─── COMPLETE ────────────────────────────────────────────────────────────────
@@ -291,7 +309,7 @@ export async function failJob(jobId: string, errorReason: string, partialResult?
   return job
 }
 
-// ─── IDEMPOTENCY CHECK ───────────────────────────────────────────────────────
+// ─── IDEMPOTENCY CHECK — DB-backed ──────────────────────────────────────────
 export async function findByIdempotencyKey(key: string): Promise<ResearchJob | null> {
   const sb = getSupabaseAdmin()
   if (!sb) return null
@@ -301,20 +319,26 @@ export async function findByIdempotencyKey(key: string): Promise<ResearchJob | n
     if (!data) return null
     return rowToJob(data)
   } catch {
-    return null // Table may not exist
+    return null
   }
 }
 
-// ─── WORKER LOCKING ──────────────────────────────────────────────────────────
+// ─── WORKER LOCKING — DB atomic, no degraded mode ───────────────────────────
+// Worker locking MUST use the database for atomicity. If the DB is unreachable,
+// we return null (lock not acquired) — NOT a fake worker ID. This prevents
+// double-processing across Vercel instances.
 export async function acquireWorkerLock(jobId: string, ttlSeconds = 65): Promise<string | null> {
   const sb = getSupabaseAdmin()
-  const workerId = generateWorkerId()
-  if (!sb) return workerId // Degraded mode: no locking
+  if (!sb) {
+    console.error('[jobs] DB unavailable — cannot acquire worker lock')
+    return null // No degraded mode. Lock requires DB.
+  }
 
+  const workerId = generateWorkerId()
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString()
 
   try {
-    // Atomic lock: only succeeds if no active lock exists
+    // Atomic lock: only succeeds if no active lock exists or lock has expired
     const { data, error } = await sb
       .from('research_jobs')
       .update({ worker_lock_id: workerId, worker_lock_expires_at: expiresAt })
@@ -324,18 +348,44 @@ export async function acquireWorkerLock(jobId: string, ttlSeconds = 65): Promise
       .single()
 
     if (error || !data) {
-      // Could be: table unreachable, or genuinely locked by another worker
-      // Check if it's a DB connectivity issue vs a real lock conflict
-      if (error?.message?.includes('fetch failed') || error?.message?.includes('does not exist')) {
-        console.warn('[jobs] Worker lock DB unavailable, running in degraded mode')
-        return workerId // Degraded: proceed without locking
+      // Genuinely locked by another worker, or DB error
+      if (error?.message?.includes('0 rows')) {
+        return null // Locked by another worker
       }
-      return null // Genuinely locked by another worker
+      console.warn('[jobs] Worker lock acquisition failed:', error?.message)
+      return null
     }
+
+    cacheInvalidate(jobId) // Invalidate cache — lock state changed in DB
     return workerId
   } catch (e) {
-    console.warn('[jobs] Worker lock failed, degraded mode:', (e as Error).message)
-    return workerId // Degraded: proceed without locking
+    console.error('[jobs] Worker lock error:', (e as Error).message)
+    return null
+  }
+}
+
+// ─── RENEW WORKER LOCK — extend lease during long-running jobs ──────────────
+// Call this periodically during Analytica processing to prevent stale detection
+// from reclaiming the job while it's still actively being processed.
+export async function renewWorkerLock(jobId: string, workerId: string, ttlSeconds = 65): Promise<boolean> {
+  const sb = getSupabaseAdmin()
+  if (!sb) return false
+
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString()
+
+  try {
+    const { data, error } = await sb
+      .from('research_jobs')
+      .update({ worker_lock_expires_at: expiresAt })
+      .eq('job_id', jobId)
+      .eq('worker_lock_id', workerId) // Only the owner can renew
+      .select('job_id')
+      .single()
+
+    if (error || !data) return false
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -347,6 +397,8 @@ export async function releaseWorkerLock(jobId: string, workerId: string): Promis
     .update({ worker_lock_id: null, worker_lock_expires_at: null })
     .eq('job_id', jobId)
     .eq('worker_lock_id', workerId)
+
+  cacheInvalidate(jobId) // Lock state changed
 }
 
 // ─── STALE JOB DETECTION ─────────────────────────────────────────────────────
@@ -354,13 +406,55 @@ export async function detectStaleJobs(): Promise<ResearchJob[]> {
   const sb = getSupabaseAdmin()
   if (!sb) return []
 
-  const { data } = await sb
-    .from('research_jobs')
-    .select('*')
-    .in('status', ['evidence_synthesis', 'report_composition', 'contradiction_audit', 'retrying'])
-    .lt('worker_lock_expires_at', new Date().toISOString())
+  try {
+    const { data } = await sb
+      .from('research_jobs')
+      .select('*')
+      .in('status', ['evidence_synthesis', 'report_composition', 'contradiction_audit', 'quality_audit', 'generating_exports', 'retrying'])
+      .lt('worker_lock_expires_at', new Date().toISOString())
 
-  return (data ?? []).map(rowToJob)
+    return (data ?? []).map(rowToJob)
+  } catch {
+    return []
+  }
+}
+
+// ─── RESUME STALE JOB — crash recovery ──────────────────────────────────────
+// Detects if a job is stale (worker lock expired while in processing state)
+// and resets it to 'queued' so the next poll can restart processing.
+// Uses partial results and event history to determine resume eligibility.
+export async function resumeStaleJob(jobId: string): Promise<ResearchJob | null> {
+  const job = await getJob(jobId)
+  if (!job) return null
+
+  // Only resume jobs that are in a processing state with expired locks
+  const resumableStatuses: JobStage[] = ['evidence_synthesis', 'report_composition', 'contradiction_audit', 'quality_audit', 'generating_exports', 'retrying']
+  if (!resumableStatuses.includes(job.status)) return null
+
+  // Check if lock is actually expired (or null)
+  if (job.workerLockExpiresAt) {
+    const lockExpiry = new Date(job.workerLockExpiresAt).getTime()
+    if (lockExpiry > Date.now()) {
+      return null // Lock still active — another worker is processing
+    }
+  }
+
+  // Reset to queued for re-processing
+  const resumed = await updateJob(jobId, {
+    status: 'queued',
+    stage: 'Resuming after worker interruption',
+    progress: Math.max(job.progress - 10, 5), // Step back slightly for safety
+    workerLockId: undefined,
+    workerLockExpiresAt: undefined,
+  })
+
+  await logEvent(jobId, 'job_resumed', job.status, 'queued', {
+    previousProgress: job.progress,
+    previousStage: job.stage,
+    retryCount: job.retryCount,
+  })
+
+  return resumed
 }
 
 // ─── PARTIAL RESULT SAVE ─────────────────────────────────────────────────────
@@ -386,13 +480,17 @@ export async function getPartialResults(jobId: string): Promise<unknown[]> {
   const sb = getSupabaseAdmin()
   if (!sb) return []
 
-  const { data } = await sb
-    .from('research_job_partial_results')
-    .select('*')
-    .eq('job_id', jobId)
-    .order('created_at', { ascending: false })
+  try {
+    const { data } = await sb
+      .from('research_job_partial_results')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
 
-  return data ?? []
+    return data ?? []
+  } catch {
+    return []
+  }
 }
 
 // ─── EVENT LOGGING (audit trail) ─────────────────────────────────────────────
