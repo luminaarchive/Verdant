@@ -10,6 +10,10 @@ import { createJob, completeJob, failJob, updateJob, findByIdempotencyKey, logEv
 import { checkRateLimit } from '@/lib/research/rate-limit'
 import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
+import { validateEnv } from '@/lib/env-check'
+
+// Validate env on module load — logs clear errors to Vercel logs immediately
+validateEnv()
 
 export const maxDuration = 60
 

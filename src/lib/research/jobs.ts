@@ -171,12 +171,17 @@ export async function createJob(input: {
   idempotencyKey?: string
 }): Promise<ResearchJob> {
   const jobId = generateJobId()
-  const now = new Date().toISOString()
   const etaMap = { focus: 15, deep: 45, analytica: 180 }
 
   const sb = getSupabaseAdmin()
   if (!sb) {
-    throw new Error('Database unavailable — cannot create durable job')
+    // Log exactly which env vars are missing for Vercel debugging
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    console.error('[jobs] createJob FAILED - Supabase client is null')
+    console.error(`[jobs]   SUPABASE_URL present: ${!!url}, prefix: ${url?.slice(0, 20) ?? 'N/A'}`)
+    console.error(`[jobs]   SERVICE_KEY present: ${!!key}, length: ${key?.length ?? 0}`)
+    throw new Error('Database unavailable - Supabase env vars may be missing. Check Vercel Environment Variables.')
   }
 
   const row = {
@@ -196,18 +201,31 @@ export async function createJob(input: {
     idempotency_key: input.idempotencyKey ?? null,
   }
 
-  const { data, error } = await sb.from('research_jobs').insert(row).select().single()
+  try {
+    const { data, error } = await sb.from('research_jobs').insert(row).select().single()
 
-  if (error || !data) {
-    console.error('[jobs] DB insert failed:', error?.message)
-    throw new Error(`Failed to create durable job: ${error?.message ?? 'unknown error'}`)
+    if (error || !data) {
+      console.error('[jobs] DB insert failed:', error?.message)
+      console.error(`[jobs]   Error code: ${error?.code}, hint: ${error?.hint}`)
+      console.error(`[jobs]   SUPABASE_URL prefix: ${process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 20) ?? 'N/A'}`)
+      throw new Error(`Failed to create durable job: ${error?.message ?? 'unknown error'}`)
+    }
+
+    const job = rowToJob(data)
+    cacheSet(job) // Write-behind: cache populated after successful DB write
+
+    await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode })
+    return job
+  } catch (e) {
+    const msg = (e as Error).message
+    // If it's our own re-throw, pass through
+    if (msg.startsWith('Failed to create durable job')) throw e
+    // Otherwise it's a network/fetch error
+    console.error(`[jobs] createJob network error: ${msg}`)
+    console.error(`[jobs]   SUPABASE_URL prefix: ${process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 20) ?? 'N/A'}`)
+    console.error(`[jobs]   SERVICE_KEY present: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`)
+    throw new Error(`Failed to create durable job: ${msg}`)
   }
-
-  const job = rowToJob(data)
-  cacheSet(job) // Write-behind: cache populated after successful DB write
-
-  await logEvent(jobId, 'job_created', undefined, 'queued', { mode: input.mode })
-  return job
 }
 
 // ─── READ — DB-first, cache is read-through ─────────────────────────────────

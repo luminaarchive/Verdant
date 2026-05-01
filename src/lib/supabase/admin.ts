@@ -1,10 +1,12 @@
 // ─── Supabase Admin Client ──────────────────────────────────────────────────
 // Uses SERVICE_ROLE_KEY to bypass RLS. Only for server-side API routes.
+// Logs clear diagnostics when env vars are missing (for Vercel log debugging).
 
 import { createClient } from '@supabase/supabase-js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _adminClient: any = null
+let _initAttempted = false
 
 export function getSupabaseAdmin() {
   if (_adminClient) return _adminClient
@@ -13,15 +15,32 @@ export function getSupabaseAdmin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !serviceKey) {
-    return null // Supabase not configured — features degrade gracefully
+    // Only log once to avoid log spam
+    if (!_initAttempted) {
+      _initAttempted = true
+      console.error('[supabase] Admin client initialization FAILED - missing env vars:')
+      console.error(`[supabase]   NEXT_PUBLIC_SUPABASE_URL: ${url ? `present (${url.slice(0, 25)}...)` : 'MISSING'}`)
+      console.error(`[supabase]   SUPABASE_SERVICE_ROLE_KEY: ${serviceKey ? `present (length: ${serviceKey.length})` : 'MISSING'}`)
+      console.error('[supabase]   -> Set these in Vercel: Settings > Environment Variables > Production')
+    }
+    return null
   }
 
-  // Clean keys (remove trailing \n or whitespace from env vars)
+  // Clean keys (remove trailing \n, escaped newlines, or whitespace from env vars)
+  const cleanUrl = url.trim()
   const cleanKey = serviceKey.replace(/\\n/g, '').replace(/\s+/g, '')
 
-  _adminClient = createClient(url, cleanKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  try {
+    _adminClient = createClient(cleanUrl, cleanKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    console.log(`[supabase] Admin client initialized (${cleanUrl.slice(0, 25)}...)`)
+  } catch (e) {
+    console.error(`[supabase] Admin client creation THREW: ${(e as Error).message}`)
+    console.error(`[supabase]   URL used: ${cleanUrl.slice(0, 25)}...`)
+    console.error(`[supabase]   Key length: ${cleanKey.length}`)
+    return null
+  }
 
   return _adminClient
 }
