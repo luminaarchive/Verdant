@@ -113,6 +113,83 @@ CREATE INDEX IF NOT EXISTS idx_failure_logs_created_at ON failure_logs(created_a
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('reports', 'reports', true);
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- DONE. All tables created.
--- Next: configure RLS policies if auth is enabled, or leave open for service_role access.
+-- AUTH & USER PROFILES (Task 1 + Task 7)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─── User Profiles ──────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name        TEXT,
+  subscription_tier   TEXT DEFAULT 'seeds',
+  research_count      INTEGER DEFAULT 0,
+  streak_days         INTEGER DEFAULT 0,
+  streak_last_date    DATE,
+  tree_stage          TEXT DEFAULT 'seedling',
+  email_notifications BOOLEAN DEFAULT false,
+  joined_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── Add user_id to existing tables ─────────────────────────────────────────
+ALTER TABLE research_runs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+
+-- ─── Indexes ────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_research_runs_user_id ON research_runs(user_id);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_user_id ON journal_entries(user_id);
+
+-- ─── RLS Policies ───────────────────────────────────────────────────────────
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+
+-- user_profiles: users can read/write their own row
+CREATE POLICY "Users can view own profile"
+  ON user_profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON user_profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile"
+  ON user_profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+-- research_runs: users can read/write their own rows, service_role bypasses
+CREATE POLICY "Users can view own runs"
+  ON research_runs FOR SELECT
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+CREATE POLICY "Users can insert own runs"
+  ON research_runs FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
+
+-- journal_entries: users can read/write their own rows
+CREATE POLICY "Users can view own journal"
+  ON journal_entries FOR SELECT
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+CREATE POLICY "Users can insert own journal"
+  ON journal_entries FOR INSERT
+  WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
+
+CREATE POLICY "Users can delete own journal"
+  ON journal_entries FOR DELETE
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+-- Allow service_role full access (for API routes)
+CREATE POLICY "Service role full access profiles"
+  ON user_profiles FOR ALL
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access runs"
+  ON research_runs FOR ALL
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access journal"
+  ON journal_entries FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- DONE. All tables and policies created.
 -- ═══════════════════════════════════════════════════════════════════════════

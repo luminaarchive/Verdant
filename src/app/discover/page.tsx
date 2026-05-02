@@ -1,38 +1,124 @@
 'use client'
 
-import React, { useState } from 'react'
-import Link from 'next/link'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/verdant/AppLayout'
+import { RefreshCw, ExternalLink } from 'lucide-react'
 
 const filters = ['Recommended', 'Trending', 'New Papers', 'By Region']
 
-const allCards = [
-  { label: "EDITOR'S PICK", labelColor: '#B45309', tag: 'Recommended', title: 'Deep Ocean Vents and Extremophile Evolution', body: 'Newly discovered extremophiles mapped near the Mariana Trench reveal unexpected biochemistry.', papers: '3 New Papers', query: 'Deep Ocean Vents Extremophile Evolution' },
-  { label: 'NEW RESEARCH',  labelColor: '#2E5D3E', tag: 'New Papers',  title: 'Borneo Peatland Carbon Stocks Reassessed',    body: 'Updated satellite imagery reveals underestimated carbon reserves in Indonesian peatlands.', papers: '5 New Papers', query: 'Borneo Peatland Carbon Stocks' },
-  { label: 'REGIONAL',      labelColor: '#1D4ED8', tag: 'By Region',   title: 'Wallace Line Biodiversity Gradient Study',    body: 'New genomic data challenges existing species distribution models along the Wallace Line.', papers: '12 New Papers', query: 'Wallace Line Biodiversity Gradient' },
-  { label: 'TRENDING',      labelColor: '#6D28D9', tag: 'Trending',    title: 'Global Soil Depletion: Silent Crisis',        body: 'Recent studies reveal a 15% increase in topsoil erosion rates across equatorial farming belts.', papers: '7 New Papers', query: 'Global Soil Depletion Crisis' },
-  { label: 'ARCHIVE',       labelColor: '#737870', tag: 'Recommended', title: 'KITLV Colonial Natural History Records',      body: 'Digitized Dutch colonial botanical surveys from 1880–1920 now fully indexed.', papers: 'Historical', query: 'KITLV Colonial Natural History Records' },
-  { label: 'NEW RESEARCH',  labelColor: '#2E5D3E', tag: 'Trending',    title: 'Coral Triangle Thermal Stress Events',       body: 'Accelerating bleaching events correlated with ENSO intensity over the past decade.', papers: '9 New Papers', query: 'Coral Triangle Thermal Stress' },
-]
+interface Article {
+  id: string
+  label: string
+  labelColor: string
+  category: string
+  categoryColor: string
+  tag: string
+  title: string
+  body: string
+  url: string
+  image: string | null
+  publishedAt: string | null
+  source: string
+  query: string
+}
+
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
+function SkeletonCard() {
+  return (
+    <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      <div style={{ height: '140px', background: 'linear-gradient(135deg, rgba(209,250,229,0.3), rgba(26,47,35,0.05))', animation: 'shimmer 2s infinite' }} />
+      <div style={{ padding: '18px' }}>
+        <div style={{ height: '12px', width: '60%', background: 'rgba(26,47,35,0.08)', borderRadius: '4px', marginBottom: '10px', animation: 'shimmer 2s infinite' }} />
+        <div style={{ height: '10px', width: '90%', background: 'rgba(26,47,35,0.05)', borderRadius: '4px', marginBottom: '6px', animation: 'shimmer 2s infinite' }} />
+        <div style={{ height: '10px', width: '70%', background: 'rgba(26,47,35,0.05)', borderRadius: '4px', animation: 'shimmer 2s infinite' }} />
+      </div>
+    </div>
+  )
+}
 
 export default function DiscoverPage() {
+  const router = useRouter()
   const [activeFilter, setActiveFilter] = useState('Recommended')
+  const [articles, setArticles] = useState<Article[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const filteredCards = activeFilter === 'Recommended'
-    ? allCards
-    : allCards.filter(c => c.tag === activeFilter)
+  const fetchArticles = useCallback(async (filter: string, force = false) => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/discover?filter=${encodeURIComponent(filter)}${force ? '&force=true' : ''}`)
+      const data = await res.json()
+      if (data.ok) {
+        setArticles(data.articles || [])
+        setFetchedAt(data.fetchedAt || null)
+      } else {
+        setError(data.error || 'Failed to load articles')
+        setArticles([])
+      }
+    } catch {
+      setError('Network error. Please check your connection.')
+      setArticles([])
+    }
+    setLoading(false)
+    setRefreshing(false)
+  }, [])
+
+  useEffect(() => { fetchArticles(activeFilter) }, [activeFilter, fetchArticles])
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    fetchArticles(activeFilter, true)
+  }
+
+  const featured = articles[0] || null
+  const gridArticles = articles.slice(1)
 
   return (
     <AppLayout>
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>Discover</h1>
-          <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-            Explore verified research streams and emerging ecological trends.
-          </p>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px', gap: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>Discover</h1>
+              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '0' }}>
+                Explore verified research streams and emerging ecological trends.
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {fetchedAt && (
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Updated {timeAgo(fetchedAt)}
+                </span>
+              )}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="btn btn-ghost"
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', height: '34px', padding: '0 12px' }}
+              >
+                <RefreshCw size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+                Refresh
+              </button>
+            </div>
+          </div>
 
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', marginTop: '18px', flexWrap: 'wrap' }}>
             {filters.map(f => {
               const active = f === activeFilter
               return (
@@ -43,13 +129,9 @@ export default function DiscoverPage() {
                     background: active ? '#1A2F23' : '#FFFFFF',
                     color: active ? '#FFFFFF' : 'var(--text-secondary)',
                     border: active ? '1px solid #1A2F23' : '1px solid var(--border-strong)',
-                    borderRadius: '20px',
-                    padding: '6px 16px',
-                    fontSize: '13px',
+                    borderRadius: '20px', padding: '6px 16px', fontSize: '13px',
                     fontFamily: "'Inter', system-ui, sans-serif",
-                    fontWeight: active ? '600' : '400',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    fontWeight: active ? '600' : '400', cursor: 'pointer', transition: 'all 0.2s ease',
                   }}
                   onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.color = '#1A2F23' } }}
                   onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' } }}
@@ -60,53 +142,118 @@ export default function DiscoverPage() {
             })}
           </div>
 
-          {/* Featured Banner */}
-          <Link href="/research?q=Global+Soil+Depletion+Crisis" style={{ textDecoration: 'none', display: 'block', marginBottom: '20px' }}>
-            <div
-              className="card card-lift"
-              style={{
-                padding: '28px 32px',
-                display: 'flex',
-                gap: '28px',
-                alignItems: 'stretch',
-                cursor: 'pointer',
-                overflow: 'hidden',
-              }}
-            >
-              <div style={{ flex: '0 0 65%', minWidth: 0 }}>
-                <p style={{ fontSize: '10px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--green-mid)', fontWeight: '600', marginBottom: '10px' }}>TRENDING</p>
-                <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.3', marginBottom: '12px' }}>Global Soil Depletion: The Silent Crisis Beneath Our Feet</h2>
-                <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '20px' }}>Recent studies reveal a 15% increase in topsoil erosion rates across equatorial farming belts, threatening global food security.</p>
-                <span style={{ fontSize: '12.5px', fontFamily: "'Inter', system-ui, sans-serif", color: '#1A2F23', textDecoration: 'none', fontWeight: '600', letterSpacing: '0.03em' }}>Begin Research →</span>
-              </div>
-              <div style={{ flex: 1, background: 'linear-gradient(135deg, #D1FAE5 0%, #1A2F23 100%)', borderRadius: '10px', minHeight: '140px' }} />
+          {/* Loading */}
+          {loading && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+              <SkeletonCard /><SkeletonCard /><SkeletonCard />
             </div>
-          </Link>
+          )}
 
-          {/* Grid */}
-          {filteredCards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontSize: '14px' }}>
-              No results for this filter. Try another category.
+          {/* Error */}
+          {!loading && error && (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--text-muted)', marginBottom: '12px', display: 'block' }}>cloud_off</span>
+              <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#1A2F23', marginBottom: '8px' }}>Could not load articles</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{error}</p>
+              <button onClick={() => fetchArticles(activeFilter, true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <RefreshCw size={13} /> Retry
+              </button>
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', paddingBottom: '24px' }}>
-              {filteredCards.map(card => (
-                <Link key={card.title} href={`/research?q=${encodeURIComponent(card.query)}`} style={{ textDecoration: 'none' }}>
-                  <div
-                    className="card card-lift"
-                    style={{ padding: '22px', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }}
-                  >
-                    <p style={{ fontSize: '10px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: '0.1em', color: card.labelColor, fontWeight: '600', marginBottom: '10px' }}>{card.label}</p>
-                    <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4', marginBottom: '10px', flex: 1 }}>{card.title}</h3>
-                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>{card.body}</p>
-                    <span style={{ fontSize: '11.5px', background: 'rgba(26,47,35,0.07)', color: 'var(--green-mid)', borderRadius: '10px', padding: '3px 10px', alignSelf: 'flex-start', fontFamily: "'Inter', sans-serif", fontWeight: '500' }}>{card.papers}</span>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <>
+              {/* Featured */}
+              {featured && (
+                <div
+                  onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
+                  className="card card-lift"
+                  style={{ padding: '0', display: 'flex', gap: '0', cursor: 'pointer', overflow: 'hidden', marginBottom: '20px' }}
+                >
+                  <div style={{ flex: '0 0 65%', padding: '28px 32px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <p style={{ fontSize: '10px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: '0.1em', color: featured.labelColor, fontWeight: '600', marginBottom: '10px' }}>{featured.label}</p>
+                    <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.3', marginBottom: '12px' }}>{featured.title}</h2>
+                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '14px' }}>{featured.body}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '12.5px', fontFamily: "'Inter', system-ui, sans-serif", color: '#1A2F23', fontWeight: '600', letterSpacing: '0.03em' }}>Begin Research →</span>
+                      {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
+                    </div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                  <div style={{
+                    flex: 1,
+                    background: featured.image ? `url(${featured.image}) center/cover no-repeat` : 'linear-gradient(135deg, #D1FAE5 0%, #1A2F23 100%)',
+                    minHeight: '180px',
+                  }} />
+                </div>
+              )}
+
+              {/* Grid */}
+              {gridArticles.length === 0 && !featured && (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontSize: '14px' }}>
+                  No articles found for this filter. Try another category.
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', paddingBottom: '24px' }}>
+                {gridArticles.map(article => (
+                  <div
+                    key={article.id}
+                    className="card card-lift"
+                    style={{ padding: '0', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                    onClick={() => router.push('/research?q=' + encodeURIComponent(article.title))}
+                  >
+                    {/* Image */}
+                    <div style={{ position: 'relative', height: '140px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: '100%', height: '100%',
+                        background: article.image ? `url(${article.image}) center/cover no-repeat` : 'linear-gradient(135deg, #D1FAE5 0%, rgba(26,47,35,0.3) 100%)',
+                      }} />
+                      <span style={{
+                        position: 'absolute', top: '10px', left: '10px',
+                        fontSize: '9px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase',
+                        letterSpacing: '0.1em', color: '#FFFFFF', fontWeight: '600',
+                        background: article.labelColor, padding: '3px 8px', borderRadius: '4px',
+                      }}>
+                        {article.label}
+                      </span>
+                    </div>
+                    {/* Body */}
+                    <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4', marginBottom: '8px', flex: 1 }}>{article.title}</h3>
+                      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>{article.body}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', background: 'rgba(26,47,35,0.07)', color: article.categoryColor, borderRadius: '10px', padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontWeight: '500' }}>{article.category}</span>
+                          {article.publishedAt && <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{timeAgo(article.publishedAt)}</span>}
+                        </div>
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <p style={{ textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                Sources pulled live from global environmental media.
+              </p>
+            </>
           )}
         </div>
       </div>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes shimmer { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+      `}</style>
     </AppLayout>
   )
 }

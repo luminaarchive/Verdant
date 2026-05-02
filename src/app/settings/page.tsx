@@ -5,25 +5,84 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { useToast } from '@/components/verdant/Toast'
 import { ChevronRight } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type SearchMode = 'focus' | 'deep' | 'analytica'
+
+const TIER_LABELS: Record<string, string> = {
+  seeds: 'Seeds Free',
+  sapling: 'Sapling',
+  forest_keeper: 'Forest Keeper',
+}
 
 export default function SettingsPage() {
   const { toast } = useToast()
   const [model, setModel] = useState<SearchMode>('focus')
   const [emailNotifs, setEmailNotifs] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  // Real user data
+  const [email, setEmail] = useState('')
+  const [tier, setTier] = useState('Seeds Free')
+  const [joinedDate, setJoinedDate] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('verdant-search-mode') as SearchMode | null
-    if (saved) setModel(saved)
+    async function load() {
+      // Load search mode from localStorage
+      const saved = localStorage.getItem('verdant-search-mode') as SearchMode | null
+      if (saved) setModel(saved)
+
+      // Load real user data
+      const sb = createClient()
+      const { data: { user } } = await sb.auth.getUser()
+      if (user) {
+        setEmail(user.email || '')
+        setUserId(user.id)
+
+        const { data: profile } = await sb
+          .from('user_profiles')
+          .select('subscription_tier, joined_at, email_notifications')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          setTier(TIER_LABELS[profile.subscription_tier] || 'Seeds Free')
+          setJoinedDate(new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+          setEmailNotifs(profile.email_notifications ?? false)
+        }
+      }
+      setLoading(false)
+    }
+    load()
   }, [])
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true)
+    // Save search mode to localStorage
     localStorage.setItem('verdant-search-mode', model)
+
+    // Save email notifications to Supabase
+    if (userId) {
+      const sb = createClient()
+      const { error } = await sb
+        .from('user_profiles')
+        .update({ email_notifications: emailNotifs })
+        .eq('id', userId)
+
+      if (error) {
+        toast('Failed to save notification preferences', { type: 'error' })
+        setSaving(false)
+        return
+      }
+    }
+
     setShowSaved(true)
     toast('Settings saved successfully', { icon: 'check_circle' })
     setTimeout(() => setShowSaved(false), 2500)
+    setSaving(false)
   }
 
   return (
@@ -52,15 +111,19 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                   <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)' }}>Email Address</p>
-                  <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>researcher@verdant.org</p>
+                  <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>
+                    {loading ? '...' : (email || 'Not signed in')}
+                  </p>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                   <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)' }}>Subscription</p>
-                  <span className="badge badge-green">Academic Pro</span>
+                  <span className="badge badge-green">{loading ? '...' : tier}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
                   <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)' }}>Member since</p>
-                  <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>April 2026</p>
+                  <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)' }}>
+                    {loading ? '...' : (joinedDate || 'Unknown')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -154,10 +217,11 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={handleSave}
+                disabled={saving}
                 className="btn btn-primary"
-                style={{ minWidth: '140px', height: '40px' }}
+                style={{ minWidth: '140px', height: '40px', opacity: saving ? 0.6 : 1 }}
               >
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

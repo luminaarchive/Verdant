@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense, useState } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
@@ -75,6 +75,14 @@ function HomeContent() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [signalIndex] = useState(() => Math.floor(Math.random() * SIGNALS.length))
   const [returnSummary, setReturnSummary] = useState<{ urgentCount: number; importantCount: number; totalSignals: number; staleReports: number; message: string } | null>(null)
+
+  // Sync category from URL param (TopBar pushes ?category=X)
+  useEffect(() => {
+    const cat = searchParams.get('category')
+    if (cat && TEMPLATE_CATEGORIES.some(c => c.id === cat)) {
+      setSelectedCategory(cat)
+    }
+  }, [searchParams])
 
   useState(() => {
     if (typeof window !== 'undefined') {

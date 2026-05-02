@@ -1,10 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
+import { getStreak } from '@/lib/streak/client'
 
 const navMain = [
   { label: 'Home',       icon: Home,       href: '/' },
@@ -76,6 +77,18 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen } = useAppLayout()
+  const [streakDays, setStreakDays] = useState(0)
+  const [streakStage, setStreakStage] = useState('Seedling')
+  const [streakProgress, setStreakProgress] = useState(0)
+  const [daysToNext, setDaysToNext] = useState(3)
+
+  useEffect(() => {
+    const streak = getStreak()
+    setStreakDays(streak.days)
+    setStreakStage(streak.stage)
+    setStreakProgress(streak.progress)
+    setDaysToNext(streak.daysToNext)
+  }, [])
 
   const isActive = (href: string) =>
     href === '/'
@@ -235,7 +248,7 @@ export function Sidebar() {
                     letterSpacing: '0.1em',
                   }}
                 >
-                  14 day streak
+                  {streakDays} day streak
                 </span>
               </div>
             </div>
@@ -262,7 +275,7 @@ export function Sidebar() {
               </div>
               <div className="flex-1 flex flex-col gap-1.5" style={{ minWidth: 0 }}>
                 <span style={{ fontSize: '13px', fontFamily: 'Georgia, serif', color: '#1A2F23', lineHeight: '1' }}>
-                  Sapling
+                  {streakStage}
                 </span>
                 <div
                   className="w-full rounded-full overflow-hidden"
@@ -270,7 +283,7 @@ export function Sidebar() {
                 >
                   <div
                     className="h-full rounded-full overflow-hidden relative"
-                    style={{ width: '35%', background: '#1A2F23' }}
+                    style={{ width: `${Math.max(5, streakProgress)}%`, background: '#1A2F23' }}
                   >
                     <div
                       style={{
@@ -283,7 +296,7 @@ export function Sidebar() {
                   </div>
                 </div>
                 <span style={{ fontSize: '10px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
-                  3 days to next level
+                  {daysToNext > 0 ? `${daysToNext} days to next level` : 'Maximum level reached!'}
                 </span>
               </div>
             </div>

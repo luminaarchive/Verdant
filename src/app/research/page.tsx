@@ -9,6 +9,7 @@ import { useToast } from '@/components/verdant/Toast'
 import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, ThumbsUp, ThumbsDown, Share2, ChevronDown, ChevronUp, Shield, AlertTriangle, ArrowRight, Eye } from 'lucide-react'
 import { TEMPLATES } from '@/lib/research/templates'
 import { addWatchlistItem } from '@/lib/retention/watchlists'
+import { recordActivity } from '@/lib/streak/client'
 
 interface ExecSummary {
   whatMattersMost?: string
@@ -536,6 +537,7 @@ function ResearchContent() {
           setResult({ error: data.message || data.error, raw: data.message || data.error })
         } else {
           setResult(data)
+          recordActivity()
         }
         setStatus('success')
         return
@@ -570,6 +572,7 @@ function ResearchContent() {
               const resultData = await resultRes.json()
               if (resultData.ok && resultData.result) {
                 setResult(resultData.result as ResearchResult)
+                recordActivity()
               } else {
                 setResult({ error: 'Failed to retrieve completed report', raw: '' })
               }
