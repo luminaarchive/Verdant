@@ -7,10 +7,10 @@ import { useLanguage } from '@/components/providers/LanguageProvider'
 
 type SearchMode = 'focus' | 'deep' | 'analytica'
 
-const MODES: { id: SearchMode; icon: React.ElementType; label: string; desc: string }[] = [
-  { id: 'focus',     icon: Crosshair,   label: 'Focus',       desc: 'Fast, concise analysis' },
-  { id: 'deep',      icon: FlaskConical, label: 'Deep',        desc: 'Thorough multi-source research' },
-  { id: 'analytica', icon: BarChart2,   label: 'Analytica',   desc: 'Statistical & data-heavy output' },
+const MODES: { id: SearchMode; icon: React.ElementType; label: string; desc: string; time: string }[] = [
+  { id: 'focus',     icon: Crosshair,   label: 'Focus',       desc: 'Quick decision brief', time: 'fast' },
+  { id: 'deep',      icon: FlaskConical, label: 'Deep',        desc: 'Consulting-grade research', time: 'medium' },
+  { id: 'analytica', icon: BarChart2,   label: 'Analytica',   desc: 'Journal-grade institutional report', time: 'long / 3–10+ mins' },
 ]
 
 interface SearchBoxProps {
@@ -39,6 +39,15 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
   }, [autoFocus])
 
   const handleModeChange = (m: SearchMode) => {
+    if (m === 'analytica') {
+      const analyticaCount = parseInt(localStorage.getItem('verdant-analytica-count') ?? '0', 10)
+      if (analyticaCount >= 1) { // Free tier limit for Analytica mockup is 1
+        const ev = new CustomEvent('verdant_paywall_open', { detail: { source: 'analytica' } })
+        window.dispatchEvent(ev)
+        return
+      }
+      localStorage.setItem('verdant-analytica-count', (analyticaCount + 1).toString())
+    }
     setMode(m)
     localStorage.setItem('verdant-search-mode', m)
   }
@@ -96,63 +105,78 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
           style={{ borderTop: '1px solid var(--border-section)', paddingTop: '6px' }}
         >
           {/* Modes and Language */}
-          <div className="flex items-center gap-3">
-            {/* Mode Pills */}
-            <div className="flex items-center gap-1">
-              {MODES.map(m => {
-                const isActive = mode === m.id
-                const Icon = m.icon
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => handleModeChange(m.id)}
-                    title={m.desc}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontFamily: "'Inter', system-ui, sans-serif",
-                      fontSize: '12.5px',
-                      fontWeight: isActive ? '600' : '400',
-                      background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
-                      color: isActive ? 'var(--green-dark)' : 'var(--text-muted)',
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      border: isActive ? '1px solid rgba(46,93,62,0.15)' : '1px solid transparent',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--border-section)' }}
-                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                  >
-                    <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
-                    {t.research[`${m.id}Mode` as keyof typeof t.research] || m.label}
-                  </button>
-                )
-              })}
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              {/* Mode Pills */}
+              <div className="flex items-center gap-1">
+                {MODES.map(m => {
+                  const isActive = mode === m.id
+                  const Icon = m.icon
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => handleModeChange(m.id)}
+                      title={`${m.desc} (${m.time})`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: "'Inter', system-ui, sans-serif",
+                        fontSize: '12.5px',
+                        fontWeight: isActive ? '600' : '400',
+                        background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
+                        color: isActive ? 'var(--green-dark)' : 'var(--text-muted)',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: isActive ? '1px solid rgba(46,93,62,0.15)' : '1px solid transparent',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--border-section)' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    >
+                      <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
+                      {t.research[`${m.id}Mode` as keyof typeof t.research] || m.label}
+                    </button>
+                  )
+                })}
+              </div>
 
-            {/* Language Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{t.research.outputLanguage}:</span>
-              <select
-                value={language}
-                onChange={e => setLanguage(e.target.value as 'en' | 'id')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '11.5px',
-                  fontFamily: "'Inter', sans-serif",
-                  fontWeight: '600',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                <option value="en">English</option>
-                <option value="id">Bahasa Indonesia</option>
-              </select>
+              {/* Language Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{t.research.outputLanguage}:</span>
+                <select
+                  value={language}
+                  onChange={e => setLanguage(e.target.value as 'en' | 'id')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '11.5px',
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: '600',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="en">English</option>
+                  <option value="id">Bahasa Indonesia</option>
+                </select>
+              </div>
             </div>
+            
+            {/* Active Mode Description */}
+            {!compact && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '4px', marginTop: '2px' }}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>
+                  {MODES.find(m => m.id === mode)?.desc}
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--border)' }}>•</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '500', color: 'var(--green-mid)' }}>
+                  Est: {MODES.find(m => m.id === mode)?.time}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Submit */}

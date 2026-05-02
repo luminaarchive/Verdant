@@ -99,9 +99,12 @@ export default function WatchlistsPage() {
           <div className="card-premium slide-up stagger-1" style={{ padding: '48px 24px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--green-mid)', marginBottom: '12px', display: 'block' }}>visibility</span>
             <p className="heading-card" style={{ fontSize: '20px', marginBottom: '8px' }}>No items being watched</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.6' }}>
-              Add species, ecosystems, policies, or research topics to monitor. Verdant will track environmental changes and alert you to meaningful shifts.
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto 20px', lineHeight: '1.6' }}>
+              Add species, ecosystems, policies, or research topics to monitor. Verdant will automatically track environmental changes and alert you to meaningful shifts.
             </p>
+            <button onClick={() => setShowAdd(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Plus size={14} /> Start monitoring
+            </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} className="slide-up stagger-1">

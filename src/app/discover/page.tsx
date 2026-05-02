@@ -39,6 +39,8 @@ interface Article {
   publishedAt: string | null
   source: string
   query: string
+  impactStatement?: string
+  priorityScore?: number
 }
 
 function timeAgo(dateStr: string | null): string {
@@ -183,14 +185,23 @@ export default function DiscoverPage() {
                   <div style={{ flex: '0 0 65%', padding: '28px 32px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <p className="label-system" style={{ color: featured.labelColor, marginBottom: '12px' }}>{featured.label}</p>
                     <h2 className="heading-card" style={{ fontSize: '22px', marginBottom: '12px', lineHeight: '1.3' }}>{featured.title}</h2>
+                    
+                    {/* Impact Statement */}
+                    <div style={{ background: 'var(--bg-elevated)', borderRadius: '6px', padding: '10px 12px', marginBottom: '14px', borderLeft: '2px solid var(--green-mid)' }}>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
+                        <strong style={{ color: 'var(--green-dark)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Why this matters</strong>
+                        {featured.impactStatement || 'Ecosystem signal → Alters baseline environmental intelligence'}
+                      </p>
+                    </div>
+
                     <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '14px' }}>{featured.body}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <button
                         onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
                         className="btn btn-primary"
-                        style={{ height: '32px', padding: '0 16px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+                        style={{ height: '36px', padding: '0 20px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', background: 'var(--green-light)', color: 'var(--green-dark)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                       >
-                        Investigate with Verdant
+                        Build Executive Intelligence Report
                       </button>
                       {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
                     </div>
@@ -218,35 +229,49 @@ export default function DiscoverPage() {
                     style={{ padding: '0', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
                   >
                     {/* Hover Overlay Button */}
-                    <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200" style={{ background: 'rgba(26,47,35,0.4)', backdropFilter: 'blur(2px)' }}>
+                    <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200" style={{ background: 'rgba(26,47,35,0.65)', backdropFilter: 'blur(2px)' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); router.push('/research?q=' + encodeURIComponent(article.title)) }}
                         className="btn btn-primary"
-                        style={{ padding: '8px 20px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+                        style={{ padding: '10px 24px', borderRadius: '24px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', background: 'var(--green-light)', color: 'var(--green-dark)' }}
                       >
-                        Investigate with Verdant
+                        Build Executive Intelligence Report
                       </button>
                     </div>
 
                     {/* Image */}
-                    <div style={{ position: 'relative', height: '140px', overflow: 'hidden' }}>
+                    <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
                       <div style={{
                         width: '100%', height: '100%',
                         background: article.image ? `url(${article.image}) center/cover no-repeat` : 'linear-gradient(135deg, #D1FAE5 0%, rgba(26,47,35,0.3) 100%)',
                       }} />
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(0deg, rgba(26,47,35,0.8) 0%, transparent 60%)'
+                      }} />
                       <span style={{
-                        position: 'absolute', top: '10px', left: '10px',
+                        position: 'absolute', top: '12px', left: '12px',
                         fontSize: '9px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase',
                         letterSpacing: '0.1em', color: '#FFFFFF', fontWeight: '600',
-                        background: article.labelColor, padding: '3px 8px', borderRadius: '4px',
+                        background: article.labelColor, padding: '4px 10px', borderRadius: '4px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                       }}>
                         {article.label}
                       </span>
                     </div>
                     {/* Body */}
-                    <div style={{ padding: '18px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4', marginBottom: '8px', flex: 1 }}>{article.title}</h3>
-                      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '14px' }}>{article.body}</p>
+                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '16.5px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4', marginBottom: '8px', flex: 1 }}>{article.title}</h3>
+                      
+                      {/* Impact Statement */}
+                      <div style={{ background: 'var(--bg-elevated)', borderRadius: '6px', padding: '10px 12px', marginBottom: '14px', borderLeft: '2px solid var(--green-mid)' }}>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
+                          <strong style={{ color: 'var(--green-dark)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Why this matters</strong>
+                          {article.impactStatement || 'Ecosystem signal → Alters baseline environmental intelligence'}
+                        </p>
+                      </div>
+
+                      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>{article.body}</p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '11px', background: 'rgba(26,47,35,0.07)', color: article.categoryColor, borderRadius: '10px', padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontWeight: '500' }}>{article.category}</span>

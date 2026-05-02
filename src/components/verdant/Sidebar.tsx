@@ -45,15 +45,16 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
-        padding: '8px 12px',
+        gap: '12px',
+        padding: '9px 14px',
         borderRadius: '10px',
         textDecoration: 'none',
         position: 'relative',
         transition: 'all 0.2s ease',
         color: isActive ? 'var(--green-dark)' : 'var(--text-secondary)',
-        fontWeight: isActive ? 600 : 400,
+        fontWeight: isActive ? 600 : 500,
         background: isActive ? 'var(--border-section)' : 'transparent',
+        boxShadow: isActive ? 'inset 0 1px 3px rgba(26,47,35,0.04)' : 'none',
       }}
       onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--border-section)' }}
       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
@@ -63,22 +64,22 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
           style={{
             position: 'absolute',
             left: 0,
-            top: '22%',
-            bottom: '22%',
-            width: '3px',
+            top: '20%',
+            bottom: '20%',
+            width: '3.5px',
             background: 'linear-gradient(180deg, var(--green-dark), var(--green-mid))',
-            borderRadius: '0 3px 3px 0',
+            borderRadius: '0 4px 4px 0',
           }}
         />
       )}
       <Icon
-        size={16}
-        strokeWidth={isActive ? 2.2 : 1.6}
+        size={17}
+        strokeWidth={isActive ? 2.2 : 1.8}
         style={{ flexShrink: 0 }}
       />
       <span
         style={{
-          fontSize: '13px',
+          fontSize: '14.5px',
           fontFamily: "'Inter', system-ui, sans-serif",
           letterSpacing: '0.01em',
         }}
@@ -211,13 +212,13 @@ export function Sidebar() {
         style={{
           background: 'transparent',
           color: '#1A2F23',
-          border: '1px solid rgba(26,47,35,0.18)',
+          border: '1.5px solid rgba(26,47,35,0.2)',
           borderRadius: '10px',
-          padding: '9px 16px',
-          marginBottom: '12px',
-          fontSize: '13px',
+          padding: '10px 16px',
+          marginBottom: '16px',
+          fontSize: '14px',
           fontFamily: "'Inter', system-ui, sans-serif",
-          fontWeight: '500',
+          fontWeight: '600',
           letterSpacing: '0.01em',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
@@ -297,6 +298,17 @@ export function Sidebar() {
               {t.sidebar[`theme${mode.charAt(0).toUpperCase() + mode.slice(1)}` as keyof typeof t.sidebar]}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Trust Capsule */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'rgba(209,250,229,0.25)', borderRadius: '8px', border: '1px solid rgba(52,211,153,0.2)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#059669' }}>verified_user</span>
+          <div>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1' }}>Verdant Intelligence</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: '1' }}>Zero-hallucination enforced</p>
+          </div>
         </div>
       </div>
 
@@ -405,6 +417,29 @@ export function Sidebar() {
             </div>
           </div>
         </div>
+
+        {/* Upgrade CTA (Phase 9) */}
+        <button
+          onClick={() => {
+            const ev = new CustomEvent('verdant_paywall_open', { detail: { source: 'sidebar' } })
+            window.dispatchEvent(ev)
+          }}
+          className="btn btn-primary mt-3 w-full"
+          style={{
+            background: 'linear-gradient(135deg, #1A2F23, #2E5D3E)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            fontSize: '12px',
+            padding: '10px',
+            borderRadius: '10px'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#D1FAE5' }}>workspace_premium</span>
+          <span style={{ color: '#D1FAE5', fontWeight: '600', letterSpacing: '0.02em' }}>Upgrade to Institutional</span>
+        </button>
       </div>
     </nav>
   )

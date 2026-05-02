@@ -165,8 +165,28 @@ function HomeContent() {
       </div>
 
       {/* Search */}
-      <div style={{ width: '100%', maxWidth: '680px', marginBottom: '28px' }} className="slide-up stagger-1">
+      <div style={{ width: '100%', maxWidth: '680px', marginBottom: '16px' }} className="slide-up stagger-1">
         <SearchBox autoFocus />
+      </div>
+
+      {/* Guided Example Prompts (Phase 0.3) */}
+      <div style={{ width: '100%', maxWidth: '680px', marginBottom: '28px', display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }} className="slide-up stagger-1">
+        {[
+          { text: 'Coral reef collapse risk in Indonesia', mode: 'deep' },
+          { text: 'Orangutan extinction impact', mode: 'focus' },
+          { text: 'Mangrove restoration funding opportunities', mode: 'deep' },
+          { text: 'Climate adaptation strategy for coastal regions', mode: 'analytica' }
+        ].map((example, i) => (
+          <Link
+            key={i}
+            href={`/research?q=${encodeURIComponent(example.text)}&mode=${example.mode}`}
+            className="chip"
+            style={{ fontSize: '11px', padding: '4px 10px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(26,47,35,0.03)' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '12px', color: 'var(--green-mid)' }}>lightbulb</span>
+            {example.text}
+          </Link>
+        ))}
       </div>
 
       {/* Status Layer */}

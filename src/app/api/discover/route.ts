@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+interface TavilyResult {
+  title: string
+  url: string
+  content: string
+  raw_content?: string
+  score: number
+  published_date?: string
+  source?: string
+  image_url?: string
+}
+
 // ─── Curated fallback articles from real environmental sources ──────────────
 interface CuratedArticle {
   title: string; body: string; url: string; category: string; source: string; date: string
@@ -83,17 +94,83 @@ const LABEL_MAP: Record<string, { label: string; color: string }> = {
   'By Region': { label: 'REGIONAL', color: '#1D4ED8' },
 }
 
-// ─── In-memory cache ────────────────────────────────────────────────────────
-const cache = new Map<string, { data: unknown; ts: number }>()
-const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
+// ─── Premium Fallback Images ────────────────────────────────────────────────
+const FALLBACK_IMAGES: Record<string, string[]> = {
+  Oceanography: [
+    'https://images.unsplash.com/photo-1582967788606-a171c1080cb0?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1546026423-cc46426ba658?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1610061596564-909772bf2016?q=80&w=1000&auto=format&fit=crop'
+  ],
+  Ecology: [
+    'https://images.unsplash.com/photo-1511497584788-876760111969?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?q=80&w=1000&auto=format&fit=crop'
+  ],
+  Biodiversity: [
+    'https://images.unsplash.com/photo-1564619443657-3f305cfcdbb8?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1586520786968-07cc80b4352f?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1616110825700-1d4285b5e408?q=80&w=1000&auto=format&fit=crop'
+  ],
+  Botany: [
+    'https://images.unsplash.com/photo-1508344928928-7165b67de128?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=1000&auto=format&fit=crop'
+  ],
+  Geology: [
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1518365050014-70fe7232897f?q=80&w=1000&auto=format&fit=crop'
+  ],
+  Mycology: [
+    'https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?q=80&w=1000&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1586041981140-1cbba205ebf3?q=80&w=1000&auto=format&fit=crop'
+  ]
+}
 
-interface TavilyResult {
-  title: string
-  url: string
-  content: string
-  published_date?: string
-  image_url?: string
-  source?: string
+function getFallbackImage(category: string): string {
+  const images = FALLBACK_IMAGES[category] || FALLBACK_IMAGES['Ecology']
+  return images[Math.floor(Math.random() * images.length)]
+}
+
+// ─── Priority & Impact Engine ───────────────────────────────────────────────
+function calculatePriorityScore(r: TavilyResult): number {
+  let score = 0
+  
+  // 1. Freshness (up to 40 pts)
+  if (r.published_date) {
+    const hours = (Date.now() - new Date(r.published_date).getTime()) / 3600000
+    if (hours < 24) score += 40
+    else if (hours < 72) score += 30
+    else if (hours < 168) score += 20
+    else score += 10
+  }
+  
+  // 2. Source Authority (up to 30 pts)
+  const source = (r.source || r.url).toLowerCase()
+  if (source.includes('nature') || source.includes('science') || source.includes('cell')) score += 30
+  else if (source.includes('gov') || source.includes('edu') || source.includes('unep') || source.includes('iucn')) score += 25
+  else if (source.includes('mongabay') || source.includes('carbonbrief') || source.includes('reuters')) score += 20
+  else score += 10
+  
+  // 3. Environmental Urgency (up to 20 pts)
+  const text = (r.title + ' ' + r.content).toLowerCase()
+  if (text.match(/crisis|emergency|collapse|extinction|bleaching|catastroph/)) score += 20
+  else if (text.match(/alert|warning|threat|decline|loss/)) score += 15
+  else if (text.match(/discovery|breakthrough|policy|funding|protect/)) score += 10
+  
+  // 4. User Relevance (Random Rotation Factor 0-10) to make feed feel alive on refresh
+  score += Math.floor(Math.random() * 10)
+  
+  return score
+}
+
+function generateImpactStatement(title: string, category: string, text: string): string {
+  const t = text.toLowerCase()
+  if (t.includes('policy') || t.includes('law') || t.includes('regulation')) return 'Potential policy impact → May trigger regulatory review'
+  if (t.includes('fund') || t.includes('grant') || t.includes('finance')) return 'Economic signal → Could shift regional conservation funding'
+  if (t.includes('extinct') || t.includes('endanger')) return 'Critical urgency → Affects IUCN Red List threat assessments'
+  if (t.includes('climate') || t.includes('warm')) return 'Systemic risk → Intersects with global climate adaptation goals'
+  if (category === 'Oceanography') return 'Marine alert → Implications for ocean ecosystem resilience'
+  if (category === 'Biodiversity') return 'Biodiversity signal → Affects regional species conservation targets'
+  return 'Ecosystem signal → Alters baseline environmental intelligence'
 }
 
 import * as cheerio from 'cheerio'
@@ -103,23 +180,17 @@ export async function GET(request: NextRequest) {
   const force = request.nextUrl.searchParams.get('force') === 'true'
 
   const queries = FILTER_QUERIES[filter] || FILTER_QUERIES.Recommended
-  const cacheKey = filter
-
-  // Check cache
-  if (!force) {
-    const cached = cache.get(cacheKey)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      return NextResponse.json(cached.data)
-    }
-  }
 
   const apiKey = process.env.TAVILY_API_KEY
   if (!apiKey) {
-    // Return curated environmental intelligence when Tavily is unavailable
     const labelInfo = LABEL_MAP[filter] || LABEL_MAP.Recommended
     const curated = CURATED_ARTICLES[filter] || CURATED_ARTICLES.Recommended
-    const articles = curated.map((a, i) => ({
-      id: `curated-${filter}-${i}`,
+    
+    // Shuffle curated articles on force refresh to simulate live rotation
+    const shuffled = force ? [...curated].sort(() => Math.random() - 0.5) : curated
+    
+    const articles = shuffled.map((a, i) => ({
+      id: `curated-${filter}-${i}-${Math.random()}`,
       label: labelInfo.label,
       labelColor: labelInfo.color,
       category: a.category,
@@ -128,10 +199,12 @@ export async function GET(request: NextRequest) {
       title: a.title,
       body: a.body,
       url: a.url,
-      image: null,
+      image: getFallbackImage(a.category),
       publishedAt: a.date,
       source: a.source,
       query: a.title,
+      impactStatement: generateImpactStatement(a.title, a.category, a.title + ' ' + a.body),
+      priorityScore: 100 - i
     }))
     return NextResponse.json({ ok: true, articles, filter, fetchedAt: new Date().toISOString(), curated: true })
   }
@@ -139,7 +212,6 @@ export async function GET(request: NextRequest) {
   try {
     const allResults: TavilyResult[] = []
 
-    // Fetch from Tavily with max_results: 8 to ensure we get enough after dropping imageless ones
     for (const query of queries) {
       try {
         const res = await fetch('https://api.tavily.com/search', {
@@ -150,7 +222,7 @@ export async function GET(request: NextRequest) {
             query,
             search_depth: 'basic',
             include_images: true,
-            max_results: 8,
+            max_results: 10,
             topic: 'news',
           }),
           signal: AbortSignal.timeout(10_000),
@@ -166,7 +238,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Deduplicate by URL
     const seen = new Set<string>()
     const unique = allResults.filter(r => {
       if (seen.has(r.url)) return false
@@ -174,25 +245,26 @@ export async function GET(request: NextRequest) {
       return true
     })
 
-    const labelInfo = LABEL_MAP[filter] || LABEL_MAP.Recommended
     const validArticles = []
+    const labelInfo = LABEL_MAP[filter] || LABEL_MAP.Recommended
 
     for (const r of unique) {
-      if (validArticles.length >= 9) break
+      if (validArticles.length >= 12) break // Fetch a bit more to sort
 
       let imageUrl = r.image_url || null
 
-      // Scrape for og:image if Tavily didn't provide one
       if (!imageUrl) {
         try {
-          const pageRes = await fetch(r.url, { signal: AbortSignal.timeout(4000) })
+          const pageRes = await fetch(r.url, { signal: AbortSignal.timeout(3000) })
           if (pageRes.ok) {
             const html = await pageRes.text()
             const $ = cheerio.load(html)
-            const ogImage = $('meta[property="og:image"]').attr('content')
-            const twitterImage = $('meta[name="twitter:image"]').attr('content')
-            const articleImg = $('article img').first().attr('src')
-            const fallbacks = [ogImage, twitterImage, articleImg].filter(Boolean)
+            const fallbacks = [
+              $('meta[property="og:image"]').attr('content'),
+              $('meta[name="twitter:image"]').attr('content'),
+              $('article img').first().attr('src')
+            ].filter(Boolean)
+            
             if (fallbacks.length > 0) {
               const urlMatch = fallbacks[0]
               if (urlMatch && !urlMatch.startsWith('data:')) {
@@ -200,17 +272,18 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        } catch {
-          // Scrape failed
-        }
+        } catch { }
       }
 
-      // NO PLACEHOLDER ALLOWED. If we STILL don't have an image, we drop this article.
-      if (!imageUrl) continue
-
       const category = detectCategory(r.title, r.content)
+      
+      // Strict Rule: Never show empty boxes. Always use fallback if image missing.
+      if (!imageUrl) {
+        imageUrl = getFallbackImage(category)
+      }
+
       validArticles.push({
-        id: `${filter}-${validArticles.length}`,
+        id: `${filter}-${validArticles.length}-${Math.random()}`,
         label: labelInfo.label,
         labelColor: labelInfo.color,
         category,
@@ -223,11 +296,18 @@ export async function GET(request: NextRequest) {
         publishedAt: r.published_date || null,
         source: r.source || new URL(r.url).hostname.replace('www.', ''),
         query: r.title,
+        impactStatement: generateImpactStatement(r.title, category, r.title + ' ' + r.content),
+        priorityScore: calculatePriorityScore(r)
       })
     }
 
-    const response = { ok: true, articles: validArticles, filter, fetchedAt: new Date().toISOString() }
-    cache.set(cacheKey, { data: response, ts: Date.now() })
+    // Sort by dynamic priority engine
+    validArticles.sort((a, b) => b.priorityScore - a.priorityScore)
+    
+    // Return top 9 articles
+    const finalArticles = validArticles.slice(0, 9)
+
+    const response = { ok: true, articles: finalArticles, filter, fetchedAt: new Date().toISOString() }
     return NextResponse.json(response)
   } catch {
     return NextResponse.json({ ok: false, articles: [], error: 'Failed to fetch from Tavily' })

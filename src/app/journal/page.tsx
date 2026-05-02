@@ -11,6 +11,8 @@ interface JournalEntry {
   query: string
   title: string
   summary?: string
+  confidenceScore?: number
+  hasActionable?: boolean
   savedAt: string
 }
 
@@ -68,20 +70,62 @@ export default function JournalPage() {
           </div>
 
           {entries.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '80px 24px' }} className="slide-up stagger-1">
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <BookOpen size={28} style={{ color: 'var(--text-muted)' }} />
+            <div className="card-premium slide-up stagger-1" style={{ textAlign: 'center', padding: '60px 24px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(26,47,35,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <BookOpen size={28} style={{ color: 'var(--green-mid)' }} />
               </div>
-              <p className="heading-card" style={{ fontSize: '20px', marginBottom: '10px' }}>Your journal is empty</p>
-              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6', maxWidth: '380px', margin: '0 auto 24px' }}>
-                Save research results to your journal from the research page. Use the &quot;Save&quot; button after completing an analysis.
+              <p className="heading-card" style={{ fontSize: '22px', marginBottom: '10px' }}>Your Institutional Journal is empty</p>
+              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto 24px' }}>
+                Save completed research reports here to build your academic repository, export to PDF, and increase your institutional reputation score over time.
               </p>
-              <Link href="/" className="btn btn-primary" style={{ display: 'inline-flex', textDecoration: 'none' }}>
-                Start Researching
+              <Link href="/" className="btn btn-primary" style={{ display: 'inline-flex', textDecoration: 'none', padding: '10px 24px', borderRadius: '24px' }}>
+                Start your first investigation
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} className="slide-up stagger-1">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} className="slide-up stagger-1">
+              
+              {/* Journal Metrics Header (Phase 6.5) */}
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <div style={{ flex: 1, minWidth: '220px', background: 'var(--bg-elevated)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--green-mid)' }}>workspace_premium</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Journal Quality</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontFamily: 'Georgia, serif', fontSize: '32px', color: '#1A2F23', lineHeight: '1' }}>
+                      {Math.round(entries.reduce((acc, e) => acc + (e.confidenceScore || 85), 0) / entries.length)}
+                    </span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>/100</span>
+                  </div>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>Average integrity score across {entries.length} reports</p>
+                </div>
+
+                <div style={{ flex: 1, minWidth: '220px', background: 'var(--bg-elevated)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#B8860B' }}>fact_check</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actionability</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#B8860B', lineHeight: '1' }}>
+                      {entries.filter(e => !e.hasActionable).length}
+                    </span>
+                  </div>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>reports missing actionable recommendations</p>
+                </div>
+
+                <div style={{ flex: 1, minWidth: '220px', background: 'var(--bg-elevated)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--green-dark)' }}>trending_up</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submission Targets</span>
+                  </div>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Need <strong style={{ color: 'var(--green-dark)' }}>{Math.max(0, 10 - entries.length)}</strong> more Deep Researches to reach Analyst Tier.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {entries.map(entry => (
                 <div key={entry.id} className="card-premium" style={{ padding: '20px 22px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
@@ -137,6 +181,7 @@ export default function JournalPage() {
                   </p>
                 </div>
               ))}
+            </div>
             </div>
           )}
         </div>

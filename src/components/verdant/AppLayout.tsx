@@ -1,8 +1,10 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import { OnboardingModal } from './OnboardingModal'
+import { PaywallModal } from './PaywallModal'
 
 interface AppLayoutContextValue {
   sidebarOpen: boolean
@@ -78,6 +80,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
+      <OnboardingModal />
+      <PaywallModal />
     </AppLayoutContext.Provider>
   )
 }

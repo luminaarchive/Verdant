@@ -161,11 +161,13 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
   const [showUncertainty, setShowUncertainty] = useState(false)
   const [feedbackSent, setFeedbackSent] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [simplify, setSimplify] = useState(false)
 
   const saveToJournal = () => {
     const entries = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
     const localSummary = typeof result.executiveSummary === 'object' ? (result.executiveSummary?.whatMattersMost ?? '') : (result.executiveSummary ?? result.raw ?? '')
-    const entry = { id: Date.now(), query, title: result.title ?? query, summary: localSummary, savedAt: new Date().toISOString() }
+    const hasActionable = result.decisionRecommendations && result.decisionRecommendations.length > 0
+    const entry = { id: Date.now(), query, title: result.title ?? query, summary: localSummary, confidenceScore: result.confidenceScore || 85, hasActionable, savedAt: new Date().toISOString() }
     entries.unshift(entry)
     localStorage.setItem('verdant-journal', JSON.stringify(entries.slice(0, 50)))
     const summaryStr = typeof result.executiveSummary === 'object' ? (result.executiveSummary?.whatMattersMost ?? '') : (result.executiveSummary ?? '')
@@ -210,29 +212,44 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} className="fade-up">
       {/* Living Report Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        {/* Living report badge */}
-        <span className="badge-live" style={{ fontSize: '9px' }}>Living Report</span>
-        {/* Version Badge */}
-        {(() => {
-          if (typeof window === 'undefined') return null
-          let v = 1
-          try {
-            const versionsStr = localStorage.getItem('verdant-query-versions') || '{}'
-            const versions = JSON.parse(versionsStr)
-            v = versions[query] || 1
-          } catch {}
-          return <span className="chip" style={{ fontWeight: '600' }}>v{v}.0</span>
-        })()}
-        {/* Confidence badge */}
-        {result.confidenceScore !== undefined && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: result.confidenceScore >= 70 ? 'rgba(209,250,229,0.4)' : 'rgba(255,193,7,0.12)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-            <Shield size={12} style={{ color: result.confidenceScore >= 70 ? '#1A2F23' : '#B8860B' }} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '600', color: '#1A2F23' }}>Confidence: {result.confidenceScore}/100</span>
-          </div>
-        )}
-        {result.pipelineSource && <span className="chip">{result.pipelineSource}</span>}
-        {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Living report badge */}
+          <span className="badge-live" style={{ fontSize: '9px' }}>Living Report</span>
+          {/* Version Badge */}
+          {(() => {
+            if (typeof window === 'undefined') return null
+            let v = 1
+            try {
+              const versionsStr = localStorage.getItem('verdant-query-versions') || '{}'
+              const versions = JSON.parse(versionsStr)
+              v = versions[query] || 1
+            } catch {}
+            return <span className="chip" style={{ fontWeight: '600' }}>v{v}.0</span>
+          })()}
+          {/* Confidence badge */}
+          {result.confidenceScore !== undefined && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: result.confidenceScore >= 70 ? 'rgba(209,250,229,0.4)' : 'rgba(255,193,7,0.12)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <Shield size={12} style={{ color: result.confidenceScore >= 70 ? '#1A2F23' : '#B8860B' }} />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '600', color: '#1A2F23' }}>Confidence: {result.confidenceScore}/100</span>
+            </div>
+          )}
+          {result.pipelineSource && <span className="chip">{result.pipelineSource}</span>}
+          {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
+        </div>
+        
+        {/* Simplify Report Toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border)', transition: 'all 0.2s' }}>
+          <input 
+            type="checkbox" 
+            checked={simplify} 
+            onChange={(e) => setSimplify(e.target.checked)}
+            style={{ width: '14px', height: '14px', accentColor: 'var(--green-dark)', cursor: 'pointer' }}
+          />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: simplify ? 'var(--green-dark)' : 'var(--text-secondary)' }}>
+            Simplify for Executives
+          </span>
+        </label>
       </div>
 
       {/* What Changed Since Last Visit */}
@@ -474,7 +491,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       </div>
 
       {/* Evidence Panel */}
-      {result.evidenceItems && result.evidenceItems.length > 0 && (
+      {!simplify && result.evidenceItems && result.evidenceItems.length > 0 && (
         <ResultCard>
           <button onClick={() => setShowEvidence(!showEvidence)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <SectionLabel>Evidence Panel ({result.evidenceItems.length})</SectionLabel>
@@ -495,7 +512,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       )}
 
       {/* Contradictions */}
-      {result.contradictions && result.contradictions.length > 0 && (
+      {!simplify && result.contradictions && result.contradictions.length > 0 && (
         <ResultCard>
           <SectionLabel>Contradictions Detected ({result.contradictions.length})</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -514,7 +531,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       )}
 
       {/* Uncertainty Notes */}
-      {result.uncertaintyNotes && result.uncertaintyNotes.length > 0 && (
+      {!simplify && result.uncertaintyNotes && result.uncertaintyNotes.length > 0 && (
         <ResultCard>
           <button onClick={() => setShowUncertainty(!showUncertainty)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <SectionLabel>Uncertainty &amp; Limitations ({result.uncertaintyNotes.length})</SectionLabel>
@@ -568,7 +585,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       )}
 
       {/* Contradiction Radar */}
-      {result.contradictions && result.contradictions.length > 0 && (
+      {!simplify && result.contradictions && result.contradictions.length > 0 && (
         <div className="card-signal" style={{ padding: '20px 22px', borderColor: 'rgba(184,134,11,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
             <AlertTriangle size={16} style={{ color: '#B8860B' }} />
@@ -614,7 +631,7 @@ function RawResult({ text, query }: { text: string; query: string }) {
   const { toast } = useToast()
   const saveToJournal = () => {
     const entries = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
-    entries.unshift({ id: Date.now(), query, title: query, summary: text, savedAt: new Date().toISOString() })
+    entries.unshift({ id: Date.now(), query, title: query, summary: text, confidenceScore: 60, hasActionable: false, savedAt: new Date().toISOString() })
     localStorage.setItem('verdant-journal', JSON.stringify(entries.slice(0, 50)))
     toast('Saved to Journal', { icon: 'bookmark_added' })
   }
