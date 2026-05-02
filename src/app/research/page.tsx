@@ -188,6 +188,8 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       const a = document.createElement('a'); a.href = url; a.download = `verdant-${result.runId}.docx`; a.click()
       URL.revokeObjectURL(url)
       toast('DOCX downloaded', { icon: 'download' })
+      // Track export count for profile stats
+      try { const c = parseInt(localStorage.getItem('verdant-exports-count') ?? '0', 10); localStorage.setItem('verdant-exports-count', String(c + 1)) } catch { /* ignore */ }
     } catch { toast('Export failed. Try again.', { type: 'error' }) }
     setExporting(false)
   }

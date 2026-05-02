@@ -8,43 +8,60 @@ function AuthForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
-  const supabase = createClient()
 
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [organization, setOrganization] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState('')
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: '8px',
+    border: '1px solid var(--border, rgba(0,0,0,0.08))',
+    background: 'var(--bg-elevated, #F3F1EB)',
+    fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: '#1A2F23',
+    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box' as const,
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     try {
+      const supabase = createClient()
+
       if (isSignUp) {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { display_name: displayName } },
+          options: {
+            data: {
+              display_name: displayName || email.split('@')[0],
+              organization: organization || null,
+            },
+          },
         })
-        if (signUpError) { setError(signUpError.message); setLoading(false); return }
-        if (data.user) {
-          // Create user profile
-          await supabase.from('user_profiles').insert({
-            id: data.user.id,
-            display_name: displayName || email.split('@')[0],
-            subscription_tier: 'seeds',
-            research_count: 0,
-            streak_days: 0,
-            tree_stage: 'seedling',
-          })
-          router.push(redirect)
+        if (signUpError) {
+          setError(signUpError.message)
+          setLoading(false)
+          return
         }
+        // Profile is auto-created by the database trigger handle_new_user()
+        // No manual INSERT needed — this prevents "Database error saving new user"
+        setSuccess('Account created! Signing you in...')
+        setTimeout(() => router.push(redirect), 1200)
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInError) { setError(signInError.message); setLoading(false); return }
+        if (signInError) {
+          setError(signInError.message)
+          setLoading(false)
+          return
+        }
         router.push(redirect)
       }
     } catch {
@@ -84,27 +101,40 @@ function AuthForm() {
           </div>
         )}
 
+        {success && (
+          <div style={{ background: 'rgba(46,93,62,0.06)', border: '1px solid rgba(46,93,62,0.15)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
+            <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12.5px', color: '#2E5D3E', lineHeight: '1.5' }}>{success}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {isSignUp && (
-            <div>
-              <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary, rgba(26,47,35,0.7))', display: 'block', marginBottom: '6px' }}>Display Name</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                placeholder="Your name"
-                style={{
-                  width: '100%', padding: '10px 14px', borderRadius: '8px',
-                  border: '1px solid var(--border, rgba(0,0,0,0.08))',
-                  background: 'var(--bg-elevated, #F3F1EB)',
-                  fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: '#1A2F23',
-                  outline: 'none', transition: 'border-color 0.15s',
-                  boxSizing: 'border-box',
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border, rgba(0,0,0,0.08))')}
-              />
-            </div>
+            <>
+              <div>
+                <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary, rgba(26,47,35,0.7))', display: 'block', marginBottom: '6px' }}>Full Name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder="Dr. Jane Wilson"
+                  style={inputStyle}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--border, rgba(0,0,0,0.08))')}
+                />
+              </div>
+              <div>
+                <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary, rgba(26,47,35,0.7))', display: 'block', marginBottom: '6px' }}>Organization <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>(optional)</span></label>
+                <input
+                  type="text"
+                  value={organization}
+                  onChange={e => setOrganization(e.target.value)}
+                  placeholder="e.g. WWF, Stanford, UNEP"
+                  style={inputStyle}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--border, rgba(0,0,0,0.08))')}
+                />
+              </div>
+            </>
           )}
 
           <div>
@@ -113,16 +143,9 @@ function AuthForm() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="you@institution.edu"
               required
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: '8px',
-                border: '1px solid var(--border, rgba(0,0,0,0.08))',
-                background: 'var(--bg-elevated, #F3F1EB)',
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: '#1A2F23',
-                outline: 'none', transition: 'border-color 0.15s',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
               onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
               onBlur={e => (e.currentTarget.style.borderColor = 'var(--border, rgba(0,0,0,0.08))')}
             />
@@ -137,14 +160,7 @@ function AuthForm() {
               placeholder="••••••••"
               required
               minLength={6}
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: '8px',
-                border: '1px solid var(--border, rgba(0,0,0,0.08))',
-                background: 'var(--bg-elevated, #F3F1EB)',
-                fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: '#1A2F23',
-                outline: 'none', transition: 'border-color 0.15s',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
               onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
               onBlur={e => (e.currentTarget.style.borderColor = 'var(--border, rgba(0,0,0,0.08))')}
             />
@@ -162,7 +178,7 @@ function AuthForm() {
 
         <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
           <button
-            onClick={() => { setIsSignUp(!isSignUp); setError('') }}
+            onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess('') }}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px',

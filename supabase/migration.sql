@@ -141,14 +141,24 @@ CREATE TRIGGER on_auth_user_created
 CREATE TABLE IF NOT EXISTS user_profiles (
   id                  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name        TEXT,
+  organization        TEXT,
+  role                TEXT,
+  research_focus      TEXT,
   subscription_tier   TEXT DEFAULT 'seeds',
   research_count      INTEGER DEFAULT 0,
   streak_days         INTEGER DEFAULT 0,
   streak_last_date    DATE,
   tree_stage          TEXT DEFAULT 'seedling',
   email_notifications BOOLEAN DEFAULT false,
-  joined_at           TIMESTAMPTZ DEFAULT NOW()
+  joined_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add new columns if table already exists (idempotent)
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS organization TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS research_focus TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ─── Add user_id to existing tables ─────────────────────────────────────────
 ALTER TABLE research_runs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);

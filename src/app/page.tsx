@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { SearchBox } from '@/components/verdant/SearchBox'
 import { ArrowRight } from 'lucide-react'
-import { TEMPLATES, TEMPLATE_CATEGORIES, type EnvironmentalTemplate } from '@/lib/research/templates'
+import { TEMPLATES, TEMPLATE_CATEGORIES, type EnvironmentalTemplate, type TemplateDomain } from '@/lib/research/templates'
 import { PRESETS } from '@/lib/research/presets'
 import { getReturnVisitSummary } from '@/lib/retention/signals'
 import { getWatchlists } from '@/lib/retention/watchlists'
@@ -61,26 +61,58 @@ function PresetPill({ preset, selected, onClick }: { preset: typeof PRESETS[0]; 
   )
 }
 
-// ─── Intelligence Signal ────────────────────────────────────────────────────
-const SIGNALS = [
-  { icon: 'warning', text: 'IUCN Red List updated — 3,291 species moved to higher threat categories', tag: 'Biodiversity Alert' },
-  { icon: 'thermostat', text: 'Global ocean temperatures exceeded 1.5°C above pre-industrial baseline for 12 consecutive months', tag: 'Climate Signal' },
-  { icon: 'gavel', text: 'EU Deforestation Regulation enforcement begins — supply chain compliance deadline approaching', tag: 'Regulatory' },
-  { icon: 'eco', text: 'Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss', tag: 'Ecosystem Risk' },
-]
+// ─── Intelligence Signals per domain ────────────────────────────────────────
+const DOMAIN_SIGNALS: Record<string, { icon: string; text: string; tag: string }[]> = {
+  all: [
+    { icon: 'warning', text: 'IUCN Red List updated — 3,291 species moved to higher threat categories', tag: 'Biodiversity Alert' },
+    { icon: 'thermostat', text: 'Global ocean temperatures exceeded 1.5°C above pre-industrial baseline for 12 consecutive months', tag: 'Climate Signal' },
+    { icon: 'gavel', text: 'EU Deforestation Regulation enforcement begins — supply chain compliance deadline approaching', tag: 'Regulatory' },
+    { icon: 'eco', text: 'Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss', tag: 'Ecosystem Risk' },
+  ],
+  ecology: [
+    { icon: 'eco', text: 'Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss', tag: 'Ecosystem Risk' },
+    { icon: 'forest', text: 'Global Forest Watch reports 4.1M hectares of primary forest lost in 2024', tag: 'Deforestation' },
+  ],
+  biodiversity: [
+    { icon: 'warning', text: 'IUCN Red List updated — 3,291 species moved to higher threat categories', tag: 'Species Crisis' },
+    { icon: 'pest_control', text: 'Global insect biomass declined 27% in monitored regions over past decade', tag: 'Invertebrate Alert' },
+  ],
+  botany: [
+    { icon: 'grass', text: 'Kew Gardens State of the World\'s Plants: 2 in 5 plant species now face extinction', tag: 'Flora Alert' },
+    { icon: 'park', text: 'New study identifies 7,000+ undescribed plant species awaiting formal taxonomy', tag: 'Discovery' },
+  ],
+  mycology: [
+    { icon: 'hub', text: 'Mycorrhizal network mapping reveals "mother tree" networks span up to 30 hectares', tag: 'Network Science' },
+    { icon: 'science', text: 'New fungal species discovered with potential to break down microplastics', tag: 'Mycoremediation' },
+  ],
+  geology: [
+    { icon: 'landslide', text: 'USGS updated seismic hazard maps — 43 regions reclassified to higher risk zones', tag: 'Seismic Alert' },
+    { icon: 'thermostat', text: 'Permafrost thaw accelerating: methane emissions 40% higher than 2020 projections', tag: 'Cryosphere' },
+  ],
+  oceanography: [
+    { icon: 'scuba_diving', text: 'Great Barrier Reef mass bleaching event confirmed — 5th in 8 years', tag: 'Coral Crisis' },
+    { icon: 'water_drop', text: 'Ocean acidification reaching levels unseen in 14 million years — pH 8.04 average', tag: 'Acidification' },
+  ],
+}
+
+// Valid domain names from TopBar category pills
+const DOMAIN_NAMES = ['ecology', 'biodiversity', 'botany', 'mycology', 'geology', 'oceanography']
 
 function HomeContent() {
   const searchParams = useSearchParams()
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  const [selectedDomain, setSelectedDomain] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [signalIndex] = useState(() => Math.floor(Math.random() * SIGNALS.length))
   const [returnSummary, setReturnSummary] = useState<{ urgentCount: number; importantCount: number; totalSignals: number; staleReports: number; message: string } | null>(null)
 
-  // Sync category from URL param (TopBar pushes ?category=X)
+  // Sync domain from URL param (TopBar pushes ?category=ecology etc.)
   useEffect(() => {
     const cat = searchParams.get('category')
-    if (cat && TEMPLATE_CATEGORIES.some(c => c.id === cat)) {
-      setSelectedCategory(cat)
+    if (cat && DOMAIN_NAMES.includes(cat)) {
+      setSelectedDomain(cat)
+      setSelectedCategory('all') // Reset template-type filter when switching domain
+    } else if (!cat) {
+      setSelectedDomain('all')
     }
   }, [searchParams])
 
@@ -91,9 +123,10 @@ function HomeContent() {
     }
   })
 
-  const filteredTemplates = selectedCategory === 'all'
-    ? TEMPLATES
-    : TEMPLATES.filter(t => t.category === selectedCategory)
+  // Dual filtering: TopBar domain + inline template-type category
+  const filteredTemplates = TEMPLATES
+    .filter(t => selectedDomain === 'all' || t.domain.includes(selectedDomain as TemplateDomain))
+    .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
 
   // If a preset is selected, prioritize its suggested templates
   const displayTemplates = selectedPreset
@@ -113,7 +146,9 @@ function HomeContent() {
       })()
     : filteredTemplates
 
-  const signal = SIGNALS[signalIndex]
+  // Domain-specific signal
+  const domainSignals = DOMAIN_SIGNALS[selectedDomain] || DOMAIN_SIGNALS.all
+  const signal = domainSignals[Math.floor(Math.random() * domainSignals.length)]
 
   return (
     <div style={{ padding: '40px 32px 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
