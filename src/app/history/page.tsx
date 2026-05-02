@@ -118,9 +118,9 @@ export default function HistoryPage() {
     <AppLayout>
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }} className="slide-up">
             <div>
-              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>History</h1>
+              <h1 className="heading-page" style={{ marginBottom: '6px' }}>History</h1>
               <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>
                 Your research sessions and reading history.
               </p>
@@ -128,23 +128,15 @@ export default function HistoryPage() {
           </div>
 
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }} className="slide-up stagger-1">
             {timeFilters.map(f => {
               const active = f === activeFilter
               return (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
-                  style={{
-                    background: active ? '#1A2F23' : '#FFFFFF',
-                    color: active ? '#FFFFFF' : 'var(--text-secondary)',
-                    border: active ? '1px solid #1A2F23' : '1px solid var(--border-strong)',
-                    borderRadius: '20px', padding: '6px 16px', fontSize: '13px',
-                    fontFamily: "'Inter', system-ui, sans-serif",
-                    fontWeight: active ? '600' : '400', cursor: 'pointer', transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23' } }}
-                  onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)' } }}
+                  className={active ? 'chip chip-active' : 'chip'}
+                  style={{ padding: '6px 16px', fontSize: '12.5px', cursor: 'pointer' }}
                 >
                   {f}
                 </button>
@@ -161,8 +153,8 @@ export default function HistoryPage() {
 
           {/* Error */}
           {!loading && error && (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#1A2F23', marginBottom: '8px' }}>Something went wrong</p>
+            <div style={{ textAlign: 'center', padding: '60px 0' }} className="slide-up stagger-2">
+              <p className="heading-card" style={{ fontSize: '20px', marginBottom: '8px' }}>Something went wrong</p>
               <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{error}</p>
               <button onClick={fetchHistory} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <RefreshCw size={13} /> Retry
@@ -172,9 +164,9 @@ export default function HistoryPage() {
 
           {/* Empty */}
           {!loading && !error && filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontSize: '14px' }}>
+            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontSize: '14px' }} className="slide-up stagger-2">
               <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--green-mid)', display: 'block', marginBottom: '12px' }}>science</span>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#1A2F23', marginBottom: '8px' }}>No sessions found</p>
+              <p className="heading-card" style={{ fontSize: '20px', marginBottom: '8px' }}>No sessions found</p>
               <p style={{ marginBottom: '16px' }}>No research sessions for this time period.</p>
               <Link href="/" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 Start Researching
@@ -190,7 +182,7 @@ export default function HistoryPage() {
               return (
                 <div key={label} style={{ marginBottom: '32px' }}>
                   <p style={{ fontSize: '10px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '10px' }}>{label}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} className="slide-up stagger-2">
                     {groupSessions.map(s => {
                       const category = detectCategory(s.query)
                       return (
@@ -200,16 +192,14 @@ export default function HistoryPage() {
                           style={{ textDecoration: 'none' }}
                         >
                           <div
-                            className="card"
-                            style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)' }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#FFFFFF' }}
+                            className="card-premium"
+                            style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }}
                           >
                             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--green-mid)' }}>history</span>
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontFamily: 'Georgia, serif', fontSize: '14.5px', color: '#1A2F23', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.query}</p>
+                              <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '18px', color: '#1A2F23', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.2' }}>{s.query}</p>
                               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '11px', color: catColors[category] ?? 'var(--text-muted)', background: 'rgba(26,47,35,0.06)', borderRadius: '10px', padding: '2px 8px', fontFamily: "'Inter', sans-serif", fontWeight: '500' }}>{category}</span>
                                 {s.duration_ms && <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{formatDuration(s.duration_ms)}</span>}

@@ -9,6 +9,8 @@ import { Settings, LogOut, Flame, BookOpen, Search, FileText, Eye, Download } fr
 import { createClient } from '@/lib/supabase/client'
 import { getStreak } from '@/lib/streak/client'
 import { getTopSpecializations, getMemory } from '@/lib/intelligence/memory'
+import { getStatusInsights } from '@/lib/intelligence/status'
+import { getPrestigeLevel } from '@/lib/intelligence/prestige'
 
 interface UserProfile {
   display_name: string | null
@@ -197,9 +199,9 @@ export default function ProfilePage() {
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }} className="slide-up">
             <div>
-              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>Profile</h1>
+              <h1 className="heading-page" style={{ marginBottom: '6px' }}>Profile</h1>
               <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>Your Verdant researcher profile.</p>
             </div>
             <button
@@ -213,13 +215,13 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile Card */}
-          <div className="card" style={{ padding: '28px', marginBottom: '16px' }}>
+          <div className="card-premium slide-up stagger-1" style={{ padding: '28px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '20px' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #D1FAE5, #1A2F23)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#FFFFFF' }}>{initial}</span>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#1A2F23', marginBottom: '4px' }}>{displayName}</p>
+                <p className="heading-card" style={{ fontSize: '24px', marginBottom: '4px' }}>{displayName}</p>
                 <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '2px' }}>
                   {profile?.role || 'Environmental Researcher'}
                   {profile?.organization && <span> · {profile.organization}</span>}
@@ -241,7 +243,7 @@ export default function ProfilePage() {
                   <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Icon size={14} style={{ color: 'var(--green-mid)' }} />
-                      <p style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2F23', lineHeight: '1' }}>{s.value}</p>
+                      <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '28px', fontWeight: '400', color: '#1A2F23', lineHeight: '1' }}>{s.value}</p>
                     </div>
                     <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{s.label}</p>
                   </div>
@@ -287,10 +289,36 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Status Layer Insights */}
+          {(() => {
+            if (typeof window === 'undefined') return null
+            const insights = getStatusInsights(journalCount, streakDays, journalCount, watchlistCount)
+            if (insights.length === 0) return null
+            return (
+              <div className="slide-up stagger-2" style={{ marginBottom: '16px' }}>
+                <div className="section-frame">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>bar_chart</span>
+                    <h3 className="heading-section" style={{ margin: 0 }}>Researcher Status</h3>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {insights.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(209,250,229,0.15)', border: '1px solid rgba(46,93,62,0.08)' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: s.color }}>{s.icon}</span>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{s.text}</span>
+                      <span className="chip" style={{ fontSize: '10px' }}>{s.metric}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Research Profile Section */}
-          <div className="card" style={{ padding: '24px', marginBottom: '16px' }}>
+          <div className="card-premium slide-up stagger-3" style={{ padding: '24px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p className="section-label" style={{ marginBottom: 0 }}>Research Profile</p>
+              <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Research Profile</p>
               {!editing ? (
                 <button
                   onClick={() => setEditing(true)}
@@ -358,9 +386,9 @@ export default function ProfilePage() {
             const mem = typeof window !== 'undefined' ? getMemory() : null
             if (specializations.length === 0) return null
             return (
-              <div className="card" style={{ padding: '24px', marginBottom: '16px' }}>
+              <div className="card-premium slide-up stagger-4" style={{ padding: '24px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <p className="section-label" style={{ marginBottom: 0 }}>Environmental Memory</p>
+                  <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Environmental Memory</p>
                   {mem?.specialization && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', background: 'rgba(209,250,229,0.4)', color: '#1A2F23', padding: '3px 10px', borderRadius: '10px', fontWeight: '500' }}>Specialization: {mem.specialization}</span>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -382,8 +410,19 @@ export default function ProfilePage() {
           })()}
 
           {/* Reputation Protocol */}
-          <div className="card" style={{ padding: '24px', marginBottom: '16px' }}>
-            <p className="section-label">Research Reputation</p>
+          {(() => {
+            const prestige = typeof window !== 'undefined' ? getPrestigeLevel(journalCount, streakDays) : null
+            return (
+              <div className="card-premium slide-up stagger-5" style={{ padding: '24px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Research Reputation</p>
+                  {prestige && prestige.id !== 'observer' && (
+                    <div className="prestige-badge">
+                      <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{prestige.icon}</span>
+                      {prestige.title}
+                    </div>
+                  )}
+                </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
               {[
                 { label: 'Research Consistency', value: researchCount > 5 ? 'High' : researchCount > 0 ? 'Moderate' : 'New', color: researchCount > 5 ? '#2E5D3E' : '#B45309' },
@@ -391,17 +430,19 @@ export default function ProfilePage() {
                 { label: 'Trust Status', value: streakDays > 7 ? 'Established' : streakDays > 0 ? 'Building' : 'New', color: streakDays > 7 ? '#2E5D3E' : '#B45309' },
               ].map(r => (
                 <div key={r.label} style={{ padding: '10px', borderRadius: '8px', background: 'var(--bg-main)', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: '400', color: r.color, marginBottom: '4px' }}>{r.value}</p>
+                  <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '20px', fontWeight: '400', color: r.color, marginBottom: '4px' }}>{r.value}</p>
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>{r.label}</p>
                 </div>
               ))}
             </div>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>Your reputation is computed from research consistency, source quality, and platform engagement.</p>
-          </div>
+              </div>
+            )
+          })()}
 
           {/* Recent Activity */}
-          <div className="card" style={{ padding: '24px' }}>
-            <p className="section-label">Recent Activity</p>
+          <div className="card-premium slide-up stagger-6" style={{ padding: '24px' }}>
+            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>Recent Activity</p>
             {recentActivity.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {recentActivity.map(a => {
@@ -414,7 +455,7 @@ export default function ProfilePage() {
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                       >
                         <div>
-                          <p style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: '#1A2F23', marginBottom: '2px' }}>{a.query}</p>
+                          <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '18px', color: '#1A2F23', marginBottom: '4px', lineHeight: '1.2' }}>{a.query}</p>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{category}</span>
                             {a.mode && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', fontWeight: '600', textTransform: 'uppercase' }}>{a.mode}</span>}

@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Menu, Clock } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
 
 const categories = ['All', 'Ecology', 'Biodiversity', 'Botany', 'Mycology', 'Geology', 'Oceanography']
@@ -37,22 +37,35 @@ function CategoryPills() {
               background: active ? '#1A2F23' : 'transparent',
               color: active ? '#F9F8F4' : 'var(--text-muted)',
               borderRadius: '20px',
-              padding: '4px 14px',
-              fontSize: '12.5px',
+              padding: '5px 14px',
+              fontSize: '12px',
               fontFamily: "'Inter', system-ui, sans-serif",
               fontWeight: active ? '600' : '400',
-              letterSpacing: '0.03em',
+              letterSpacing: '0.04em',
               textTransform: 'uppercase',
               border: 'none',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
+              transition: 'all 0.2s ease',
               flexShrink: 0,
+              position: 'relative',
             }}
-            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.06)' }}
+            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.05)' }}
             onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
             {cat}
+            {active && (
+              <span style={{
+                position: 'absolute',
+                bottom: '-1px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: '#D1FAE5',
+              }} />
+            )}
           </button>
         )
       })}
@@ -70,10 +83,10 @@ function CategoryPillsSkeleton() {
           style={{
             background: cat === 'All' ? '#1A2F23' : 'transparent',
             color: cat === 'All' ? '#F9F8F4' : 'var(--text-muted)',
-            borderRadius: '20px', padding: '4px 14px',
-            fontSize: '12.5px', fontFamily: "'Inter', system-ui, sans-serif",
+            borderRadius: '20px', padding: '5px 14px',
+            fontSize: '12px', fontFamily: "'Inter', system-ui, sans-serif",
             fontWeight: cat === 'All' ? '600' : '400',
-            letterSpacing: '0.03em', textTransform: 'uppercase',
+            letterSpacing: '0.04em', textTransform: 'uppercase',
             border: 'none', cursor: 'default', whiteSpace: 'nowrap',
           }}
         >
@@ -92,15 +105,16 @@ export function TopBar() {
     <header
       className="w-full sticky top-0 z-50 flex items-center gap-3 px-5"
       style={{
-        height: '48px',
-        background: 'rgba(249,248,244,0.92)',
-        borderBottom: '1px solid rgba(0,0,0,0.05)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        height: '52px',
+        background: 'rgba(249,248,244,0.94)',
+        borderBottom: 'none',
+        boxShadow: 'inset 0 -1px 0 rgba(26,47,35,0.06)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         flexShrink: 0,
       }}
     >
-      {/* Mobile hamburger — hidden on desktop via CSS */}
+      {/* Mobile hamburger */}
       <button
         className="topbar-hamburger"
         onClick={() => setSidebarOpen(true)}
@@ -128,17 +142,20 @@ export function TopBar() {
         <button
           onClick={() => router.push('/history')}
           style={{
-            fontSize: '12.5px',
+            fontSize: '12px',
             fontFamily: "'Inter', system-ui, sans-serif",
             fontWeight: '500',
             color: 'var(--text-muted)',
             border: '1px solid var(--border-strong)',
-            padding: '3px 10px',
-            borderRadius: '6px',
+            padding: '4px 12px',
+            borderRadius: '8px',
             background: '#FFFFFF',
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
+            transition: 'all 0.2s ease',
             letterSpacing: '0.01em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
           onMouseEnter={e => {
             ;(e.currentTarget as HTMLElement).style.background = '#1A2F23'
@@ -151,6 +168,7 @@ export function TopBar() {
             ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'
           }}
         >
+          <Clock size={12} />
           Archive
         </button>
 
@@ -161,7 +179,7 @@ export function TopBar() {
               border: 'none',
               cursor: 'pointer',
               color: 'var(--text-muted)',
-              transition: 'color 0.15s, transform 0.15s',
+              transition: 'color 0.15s, transform 0.2s',
               padding: '2px',
               borderRadius: '50%',
               display: 'flex',

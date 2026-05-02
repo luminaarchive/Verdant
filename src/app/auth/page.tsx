@@ -73,22 +73,20 @@ function AuthForm() {
   return (
     <div style={{ width: '100%', maxWidth: '440px' }}>
       {/* Logo */}
-      <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '36px', fontWeight: '400', color: '#1A2F23', letterSpacing: '-1px', marginBottom: '6px' }}>verdant</h1>
+      <div style={{ textAlign: 'center', marginBottom: '36px' }} className="slide-up">
+        <h1 className="heading-display" style={{ fontSize: '42px', letterSpacing: '-1px', marginBottom: '6px' }}>verdant</h1>
         <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted, rgba(26,47,35,0.5))' }}>Environmental Intelligence Platform</p>
       </div>
 
       {/* Card */}
       <div
-        className="card"
+        className="card-premium slide-up stagger-1"
         style={{
           padding: '32px',
           background: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border, rgba(0,0,0,0.08))',
-          borderRadius: 'var(--radius-md, 12px)',
         }}
       >
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '400', color: '#1A2F23', marginBottom: '4px' }}>
+        <h2 className="heading-card" style={{ fontSize: '24px', marginBottom: '4px' }}>
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
         <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>

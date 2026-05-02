@@ -12,6 +12,8 @@ import { addWatchlistItem } from '@/lib/retention/watchlists'
 import { recordActivity } from '@/lib/streak/client'
 import { recordQuery, getRelatedPriorWork } from '@/lib/intelligence/memory'
 import { computeReportScores, computeProofOfWork } from '@/lib/intelligence/scores'
+import { getReportFreshness, recordReportView, getReportDeltas } from '@/lib/intelligence/living-reports'
+import { getSourceReliability } from '@/lib/intelligence/source-reliability'
 
 interface ExecSummary {
   whatMattersMost?: string
@@ -103,7 +105,7 @@ function ErrorState({ onRetry, message }: { onRetry: () => void; message?: strin
         <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#C0392B' }}>error_outline</span>
       </div>
       <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-        <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>
+        <p className="heading-card" style={{ marginBottom: '8px' }}>
           Research pipeline unreachable
         </p>
         <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
@@ -126,7 +128,7 @@ function EmptyState() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '16px', padding: '60px 24px', textAlign: 'center' }}>
       <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--green-mid)' }}>eco</span>
-      <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: 'var(--text-main)' }}>No results returned</p>
+      <p className="heading-card" style={{ marginBottom: '4px' }}>No results returned</p>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', maxWidth: '400px', lineHeight: '1.6' }}>
         The intelligence pipeline returned an empty response. Try an environmental research template or rephrase your query.
       </p>
@@ -207,17 +209,43 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} className="fade-up">
-      {/* Confidence badge */}
-      {result.confidenceScore !== undefined && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      {/* Living Report Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Living report badge */}
+        {(() => {
+          const freshness = getReportFreshness(new Date().toISOString())
+          return <span className="badge-live" style={{ fontSize: '9px' }}>Living Report</span>
+        })()}
+        {/* Confidence badge */}
+        {result.confidenceScore !== undefined && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: result.confidenceScore >= 70 ? 'rgba(209,250,229,0.4)' : 'rgba(255,193,7,0.12)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
             <Shield size={12} style={{ color: result.confidenceScore >= 70 ? '#1A2F23' : '#B8860B' }} />
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '600', color: '#1A2F23' }}>Confidence: {result.confidenceScore}/100</span>
           </div>
-          {result.pipelineSource && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{result.pipelineSource}</span>}
-          {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
-        </div>
-      )}
+        )}
+        {result.pipelineSource && <span className="chip">{result.pipelineSource}</span>}
+        {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
+      </div>
+
+      {/* What Changed Since Last Visit */}
+      {(() => {
+        if (typeof window === 'undefined') return null
+        const deltas = getReportDeltas(query)
+        if (deltas.length === 0) return null
+        return (
+          <div className="card-editorial" style={{ padding: '14px 18px' }}>
+            <p className="label-system" style={{ color: 'var(--green-mid)', marginBottom: '10px' }}>Since Your Last Visit</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {deltas.map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: d.color }}>{d.icon}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)' }}>{d.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Environmental Scores */}
       {(() => {
@@ -507,14 +535,68 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       )}
 
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '4px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <CheckCircle2 size={13} style={{ color: 'var(--green-mid)' }} />
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)' }}>Analysis complete</p>
+      {/* Source Reliability Rankings */}
+      {result.sources && result.sources.length > 0 && (
+        <ResultCard>
+          <SectionLabel>Source Reliability Index</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {result.sources.slice(0, 8).map((src, i) => {
+              const rel = getSourceReliability(src.title, src.url)
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: '700', color: rel.color, background: rel.bgColor, padding: '2px 7px', borderRadius: '4px', flexShrink: 0, minWidth: '28px', textAlign: 'center' }}>{rel.tier}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', flex: 1 }}>
+                    {src.url ? <a href={src.url} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>{src.title}</a> : src.title}
+                  </span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-faint)' }}>{rel.label}</span>
+                </div>
+              )
+            })}
+          </div>
+        </ResultCard>
+      )}
+
+      {/* Contradiction Radar */}
+      {result.contradictions && result.contradictions.length > 0 && (
+        <div className="card-signal" style={{ padding: '20px 22px', borderColor: 'rgba(184,134,11,0.2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <AlertTriangle size={16} style={{ color: '#B8860B' }} />
+            <span className="label-system" style={{ color: '#B8860B' }}>Scientific Disagreement Detected</span>
+            <span className="badge-gold" style={{ marginLeft: 'auto' }}>{result.contradictions.length} conflict{result.contradictions.length > 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {result.contradictions.map((c, i) => (
+              <div key={i} style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(184,134,11,0.03)', border: '1px solid rgba(184,134,11,0.1)' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '500', color: 'var(--text-main)', marginBottom: '6px' }}>{c.conflict}</p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>Source A: {c.sourceA}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>Source B: {c.sourceB}</span>
+                </div>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{c.implication}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        {result.costBreakdown && (
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>Cost: ${result.costBreakdown.costUsd.toFixed(6)} · {result.costBreakdown.inputTokens + result.costBreakdown.outputTokens} tokens</p>
-        )}
+      )}
+
+      {/* Report Signature */}
+      <div className="protocol-stamp" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--green-mid)' }}>verified</span>
+          <div>
+            <span style={{ fontWeight: '600', color: 'var(--text-secondary)', fontSize: '11px' }}>Verdant Intelligence Protocol v3.2</span>
+            <span style={{ display: 'block', fontSize: '9.5px', marginTop: '1px', color: 'var(--text-faint)' }}>Evidence Integrity Score: {result.confidenceScore ?? '—'} · Multi-agent verified</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {result.costBreakdown && (
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-faint)' }}>${result.costBreakdown.costUsd.toFixed(6)} · {result.costBreakdown.inputTokens + result.costBreakdown.outputTokens} tokens</span>
+          )}
+          <Link href="/protocol" style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', textDecoration: 'none', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Protocol →</Link>
+        </div>
       </div>
     </div>
   )
@@ -596,7 +678,7 @@ function ResearchContent() {
         } else {
           setResult(data)
           recordActivity()
-          if (queryString) recordQuery(queryString)
+          if (queryString) { recordQuery(queryString); recordReportView(queryString) }
         }
         setStatus('success')
         return
@@ -707,11 +789,9 @@ function ResearchContent() {
 
         {/* Query title */}
         <h1
+          className="heading-display"
           style={{
-            fontFamily: 'Georgia, serif',
             fontSize: '30px',
-            fontWeight: '400',
-            color: '#1A2F23',
             lineHeight: '1.3',
             letterSpacing: '-0.5px',
             marginBottom: '28px',

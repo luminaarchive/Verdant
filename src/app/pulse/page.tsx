@@ -15,10 +15,10 @@ export default function PulsePage() {
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           {/* Header */}
-          <div style={{ marginBottom: '32px' }}>
+          <div style={{ marginBottom: '32px' }} className="slide-up">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--green-mid)' }}>satellite_alt</span>
-              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23' }}>Planet Pulse</h1>
+              <h1 className="heading-page">Planet Pulse</h1>
             </div>
             <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', maxWidth: '560px' }}>
               Real-time environmental signals from authoritative monitoring systems. The state of the planet, at a glance.
@@ -26,21 +26,26 @@ export default function PulsePage() {
           </div>
 
           {/* Live Metrics */}
-          <div style={{ marginBottom: '36px' }}>
-            <p className="section-label">Environmental Vital Signs</p>
+          <div style={{ marginBottom: '36px' }} className="slide-up stagger-1">
+            <div className="section-frame">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>vital_signs</span>
+                <h3 className="heading-section" style={{ margin: 0 }}>Environmental Vital Signs</h3>
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               {pulse.map(p => (
                 <Link key={p.id} href={`/research?q=${encodeURIComponent(p.metric + ' ' + p.region + ' current status analysis')}`} style={{ textDecoration: 'none' }}>
-                  <div className="card" style={{ padding: '18px', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                  <div className="card-premium" style={{ padding: '18px', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(26,47,35,0.06)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.boxShadow = '' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '16px', color: DIRECTION_COLORS[p.direction] }}>{p.icon}</span>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '500' }}>{p.metric}</span>
+                      <span className="label-system">{p.metric}</span>
                     </div>
-                    <p style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: '#1A2F23', lineHeight: '1', marginBottom: '6px' }}>
-                      {p.value}<span style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '3px' }}>{p.unit}</span>
+                    <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '32px', color: '#1A2F23', lineHeight: '1', marginBottom: '6px' }}>
+                      {p.value}<span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginLeft: '4px' }}>{p.unit}</span>
                     </p>
                     <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: DIRECTION_COLORS[p.direction], fontWeight: '600', marginBottom: '8px' }}>{p.change}</p>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -54,27 +59,32 @@ export default function PulsePage() {
           </div>
 
           {/* Nature Index */}
-          <div style={{ marginBottom: '36px' }}>
-            <p className="section-label">Verdant Nature Index</p>
+          <div style={{ marginBottom: '36px' }} className="slide-up stagger-2">
+            <div className="section-frame">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>public</span>
+                <h3 className="heading-section" style={{ margin: 0 }}>Verdant Nature Index</h3>
+              </div>
+            </div>
             <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.6' }}>
               Proprietary environmental indices computed from global monitoring data. Each index aggregates multiple indicators into a single actionable score.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {indices.map(idx => (
                 <Link key={idx.id} href={`/research?q=${encodeURIComponent(idx.name + ' detailed analysis')}`} style={{ textDecoration: 'none' }}>
-                  <div className="card" style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center', transition: 'border-color 0.15s' }}
+                  <div className="card-premium" style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
                   >
                     <div style={{ flexShrink: 0, width: '64px', textAlign: 'center' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '22px', color: idx.color, display: 'block', marginBottom: '4px' }}>{idx.icon}</span>
-                      <p style={{ fontFamily: 'Georgia, serif', fontSize: '28px', color: idx.color, lineHeight: '1' }}>{idx.score}</p>
+                      <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '32px', color: idx.color, lineHeight: '1' }}>{idx.score}</p>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'var(--text-muted)' }}>/{idx.maxScore}</p>
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: '600', color: '#1A2F23' }}>{idx.name}</p>
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', color: idx.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{TREND_LABELS[idx.trend]}</span>
+                        <p className="heading-card" style={{ fontSize: '18px', color: '#1A2F23' }}>{idx.name}</p>
+                        <span className="label-system" style={{ color: idx.color }}>{TREND_LABELS[idx.trend]}</span>
                       </div>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '8px' }}>{idx.description}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -91,8 +101,8 @@ export default function PulsePage() {
           </div>
 
           {/* Signal Forecasting */}
-          <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
-            <p className="section-label">Nature Signal Forecasting</p>
+          <div className="card-premium slide-up stagger-3" style={{ padding: '24px', marginBottom: '20px' }}>
+            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>Nature Signal Forecasting</p>
             <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.6' }}>
               Projected environmental signals based on current trajectories and historical patterns.
             </p>
@@ -114,7 +124,7 @@ export default function PulsePage() {
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: '#1A2F23', lineHeight: '1.4' }}>{f.signal}</p>
                     </div>
                     <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                      <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', color: f.color }}>{f.confidence}%</p>
+                      <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '20px', color: f.color }}>{f.confidence}%</p>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Confidence</p>
                     </div>
                   </div>
@@ -124,8 +134,8 @@ export default function PulsePage() {
           </div>
 
           {/* Conservation Opportunity Radar */}
-          <div className="card" style={{ padding: '24px' }}>
-            <p className="section-label">Conservation Opportunity Radar</p>
+          <div className="card-premium slide-up stagger-4" style={{ padding: '24px' }}>
+            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>Conservation Opportunity Radar</p>
             <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.6' }}>
               High-leverage intervention opportunities detected from current environmental intelligence.
             </p>

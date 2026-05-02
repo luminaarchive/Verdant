@@ -110,9 +110,9 @@ export default function DiscoverPage() {
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px', gap: '16px', flexWrap: 'wrap' }} className="slide-up">
             <div>
-              <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '34px', fontWeight: '400', color: '#1A2F23', marginBottom: '6px' }}>Discover</h1>
+              <h1 className="heading-page" style={{ marginBottom: '6px' }}>Discover</h1>
               <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '0' }}>
                 Explore verified research streams and emerging ecological trends.
               </p>
@@ -136,23 +136,15 @@ export default function DiscoverPage() {
           </div>
 
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', marginTop: '18px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', marginTop: '18px', flexWrap: 'wrap' }} className="slide-up stagger-1">
             {filters.map(f => {
               const active = f === activeFilter
               return (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
-                  style={{
-                    background: active ? '#1A2F23' : '#FFFFFF',
-                    color: active ? '#FFFFFF' : 'var(--text-secondary)',
-                    border: active ? '1px solid #1A2F23' : '1px solid var(--border-strong)',
-                    borderRadius: '20px', padding: '6px 16px', fontSize: '13px',
-                    fontFamily: "'Inter', system-ui, sans-serif",
-                    fontWeight: active ? '600' : '400', cursor: 'pointer', transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'; (e.currentTarget as HTMLElement).style.color = '#1A2F23' } }}
-                  onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)' } }}
+                  className={active ? 'chip chip-active' : 'chip'}
+                  style={{ padding: '7px 16px', fontSize: '12.5px', cursor: 'pointer' }}
                 >
                   {f}
                 </button>
@@ -186,15 +178,15 @@ export default function DiscoverPage() {
               {featured && (
                 <div
                   onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
-                  className="card card-lift"
+                  className="card-premium"
                   style={{ padding: '0', display: 'flex', gap: '0', cursor: 'pointer', overflow: 'hidden', marginBottom: '20px' }}
                 >
                   <div style={{ flex: '0 0 65%', padding: '28px 32px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <p style={{ fontSize: '10px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase', letterSpacing: '0.1em', color: featured.labelColor, fontWeight: '600', marginBottom: '10px' }}>{featured.label}</p>
-                    <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.3', marginBottom: '12px' }}>{featured.title}</h2>
-                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '14px' }}>{featured.body}</p>
+                    <p className="label-system" style={{ color: featured.labelColor, marginBottom: '12px' }}>{featured.label}</p>
+                    <h2 className="heading-card" style={{ fontSize: '22px', marginBottom: '12px', lineHeight: '1.3' }}>{featured.title}</h2>
+                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '14px' }}>{featured.body}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '12.5px', fontFamily: "'Inter', system-ui, sans-serif", color: '#1A2F23', fontWeight: '600', letterSpacing: '0.03em' }}>Begin Research →</span>
+                      <span className="label-system" style={{ color: '#1A2F23', letterSpacing: '0.06em', fontSize: '10.5px' }}>Begin Research →</span>
                       {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
                     </div>
                   </div>
@@ -217,7 +209,7 @@ export default function DiscoverPage() {
                 {gridArticles.map(article => (
                   <div
                     key={article.id}
-                    className="card card-lift"
+                    className="card-premium"
                     style={{ padding: '0', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                     onClick={() => router.push('/research?q=' + encodeURIComponent(article.title))}
                   >

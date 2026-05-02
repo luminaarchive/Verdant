@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox, Activity } from 'lucide-react'
+import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox, Activity, FileText } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
 import { getStreak } from '@/lib/streak/client'
+import { getPrestigeLevel } from '@/lib/intelligence/prestige'
 
 const navMain = [
   { label: 'Home',       icon: Home,       href: '/' },
@@ -19,6 +20,7 @@ const navMain = [
 ]
 
 const navFooter = [
+  { label: 'Protocol',icon: FileText,   href: '/protocol' },
   { label: 'About',   icon: Info,       href: '/about' },
   { label: 'Help',    icon: HelpCircle, href: '/help' },
 ]
@@ -37,9 +39,20 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg relative transition-all duration-200 group ${isActive ? 'text-[#1A2F23] font-semibold' : 'text-[rgba(26,47,35,0.6)]'}`}
-      style={isActive ? { background: 'rgba(209,250,229,0.35)' } : {}}
-      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.05)' }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '8px 12px',
+        borderRadius: '10px',
+        textDecoration: 'none',
+        position: 'relative',
+        transition: 'all 0.2s ease',
+        color: isActive ? '#1A2F23' : 'rgba(26,47,35,0.55)',
+        fontWeight: isActive ? 600 : 400,
+        background: isActive ? 'rgba(209,250,229,0.3)' : 'transparent',
+      }}
+      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.04)' }}
       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
     >
       {isActive && (
@@ -47,25 +60,24 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
           style={{
             position: 'absolute',
             left: 0,
-            top: '20%',
-            bottom: '20%',
+            top: '22%',
+            bottom: '22%',
             width: '3px',
-            background: '#1A2F23',
+            background: 'linear-gradient(180deg, #1A2F23, #2E5D3E)',
             borderRadius: '0 3px 3px 0',
           }}
         />
       )}
       <Icon
-        size={17}
+        size={16}
         strokeWidth={isActive ? 2.2 : 1.6}
         style={{ flexShrink: 0 }}
       />
       <span
         style={{
-          fontSize: '13.5px',
+          fontSize: '13px',
           fontFamily: "'Inter', system-ui, sans-serif",
           letterSpacing: '0.01em',
-          transition: 'opacity 0.15s',
         }}
       >
         {label}
@@ -82,6 +94,9 @@ export function Sidebar() {
   const [streakStage, setStreakStage] = useState('Seedling')
   const [streakProgress, setStreakProgress] = useState(0)
   const [daysToNext, setDaysToNext] = useState(3)
+  const [sessions, setSessions] = useState(0)
+  const [prestigeTitle, setPrestigeTitle] = useState('Observer')
+  const [prestigeIcon, setPrestigeIcon] = useState('visibility')
 
   useEffect(() => {
     const streak = getStreak()
@@ -89,7 +104,17 @@ export function Sidebar() {
     setStreakStage(streak.stage)
     setStreakProgress(streak.progress)
     setDaysToNext(streak.daysToNext)
-  }, [])
+    
+    // Session count from journal
+    try {
+      const journal = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
+      setSessions(journal.length)
+    } catch { /* ignore */ }
+    
+    const prestige = getPrestigeLevel(sessions, streak.days)
+    setPrestigeTitle(prestige.title)
+    setPrestigeIcon(prestige.icon)
+  }, [sessions])
 
   const isActive = (href: string) =>
     href === '/'
@@ -106,19 +131,29 @@ export function Sidebar() {
       className={`sidebar-nav h-screen fixed left-0 top-0 flex flex-col flex-shrink-0 z-40 ${sidebarOpen ? 'open' : ''}`}
       style={{
         width: 'var(--sidebar-w)',
-        background: 'rgba(249,248,244,0.96)',
+        background: 'rgba(249,248,244,0.97)',
         borderRight: '1px solid rgba(0,0,0,0.05)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        paddingTop: '24px',
-        paddingBottom: '20px',
-        paddingLeft: '16px',
-        paddingRight: '16px',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        paddingTop: '0',
+        paddingBottom: '16px',
+        paddingLeft: '14px',
+        paddingRight: '14px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
+        gap: '2px',
       }}
     >
+      {/* Accent line */}
+      <div style={{
+        height: '2px',
+        background: 'linear-gradient(90deg, #1A2F23, #2E5D3E, #34D399, transparent)',
+        marginBottom: '0',
+        marginLeft: '-14px',
+        marginRight: '-14px',
+        opacity: 0.7,
+      }} />
+
       {/* Mobile close */}
       <button
         className="absolute top-4 right-4 lg:hidden"
@@ -129,19 +164,37 @@ export function Sidebar() {
       </button>
 
       {/* Logo */}
-      <div style={{ paddingLeft: '12px', paddingRight: '12px', marginBottom: '24px', paddingTop: '4px' }}>
-        <h1
-          style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: '21px',
-            fontWeight: '400',
-            color: '#1A2F23',
-            letterSpacing: '-0.3px',
-          }}
-        >
-          verdant
-        </h1>
-        <p style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '2px', letterSpacing: '0.02em' }}>
+      <div style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '22px', paddingBottom: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '26px', height: '26px', borderRadius: '7px',
+            background: 'linear-gradient(135deg, #1A2F23, #2E5D3E)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 3px rgba(26,47,35,0.2)',
+          }}>
+            <svg fill="none" height="14" viewBox="0 0 50 70" width="10" xmlns="http://www.w3.org/2000/svg">
+              <path d="M25 70V15" stroke="#D1FAE5" strokeLinecap="round" strokeWidth="3"/>
+              <ellipse cx="25" cy="12" fill="#D1FAE5" fillOpacity="0.9" rx="7" ry="14"/>
+              <ellipse cx="38" cy="22" fill="#D1FAE5" fillOpacity="0.7" rx="5" ry="10" transform="rotate(45 38 22)"/>
+              <ellipse cx="12" cy="32" fill="#D1FAE5" fillOpacity="0.7" rx="5" ry="9" transform="rotate(-30 12 32)"/>
+            </svg>
+          </div>
+          <div>
+            <h1
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: '20px',
+                fontWeight: '400',
+                color: '#1A2F23',
+                letterSpacing: '-0.3px',
+                lineHeight: '1',
+              }}
+            >
+              verdant
+            </h1>
+          </div>
+        </div>
+        <p style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '6px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: '500', paddingLeft: '34px' }}>
           Environmental Intelligence
         </p>
       </div>
@@ -153,11 +206,11 @@ export function Sidebar() {
         style={{
           background: 'transparent',
           color: '#1A2F23',
-          border: '1px solid rgba(26,47,35,0.22)',
+          border: '1px solid rgba(26,47,35,0.18)',
           borderRadius: '10px',
           padding: '9px 16px',
-          marginBottom: '16px',
-          fontSize: '13.5px',
+          marginBottom: '12px',
+          fontSize: '13px',
           fontFamily: "'Inter', system-ui, sans-serif",
           fontWeight: '500',
           letterSpacing: '0.01em',
@@ -166,22 +219,24 @@ export function Sidebar() {
           flexShrink: 0,
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLElement).style.background = '#1A2F23'
-          ;(e.currentTarget as HTMLElement).style.color = '#FFFFFF'
-          ;(e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'
+          (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #1A2F23, #253d2c)';
+          (e.currentTarget as HTMLElement).style.color = '#FFFFFF';
+          (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23';
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(26,47,35,0.15)'
         }}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLElement).style.background = 'transparent'
-          ;(e.currentTarget as HTMLElement).style.color = '#1A2F23'
-          ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.22)'
+          (e.currentTarget as HTMLElement).style.background = 'transparent';
+          (e.currentTarget as HTMLElement).style.color = '#1A2F23';
+          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.18)';
+          (e.currentTarget as HTMLElement).style.boxShadow = 'none'
         }}
       >
-        <Plus size={16} strokeWidth={2} style={{ transition: 'transform 0.25s ease' }} className="group-hover:rotate-90" />
+        <Plus size={15} strokeWidth={2} style={{ transition: 'transform 0.25s ease' }} className="group-hover:rotate-90" />
         New Thread
       </button>
 
       {/* Main Nav */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flex: 1 }}>
         {navMain.map(item => (
           <NavItem
             key={item.label}
@@ -194,8 +249,11 @@ export function Sidebar() {
         ))}
       </div>
 
+      {/* Section divider */}
+      <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(26,47,35,0.08), transparent)', margin: '4px 8px' }} />
+
       {/* Footer Nav */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '8px' }}>
         {navFooter.map(item => (
           <NavItem
             key={item.label}
@@ -208,40 +266,50 @@ export function Sidebar() {
         ))}
       </div>
 
-      {/* Sapling Card */}
-      <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '12px' }}>
+      {/* Prestige + Streak Card */}
+      <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '10px' }}>
         <div
           onClick={() => { setSidebarOpen(false); router.push('/profile') }}
           className="cursor-pointer group"
         >
           <div
-            className="flex flex-col gap-3 p-3.5 rounded-xl transition-all duration-300"
             style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              transition: 'all 0.3s ease',
               background: '#FFFFFF',
-              border: '1px solid rgba(0,0,0,0.05)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.8)',
+              border: '1px solid rgba(0,0,0,0.04)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.8)',
             }}
             onMouseEnter={e => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow = '0 6px 16px rgba(26,47,35,0.08), inset 0 1px 0 rgba(255,255,255,0.8)'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.12)'
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(26,47,35,0.06), inset 0 1px 0 rgba(255,255,255,0.8)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.1)'
             }}
             onMouseLeave={e => {
-              ;(e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.8)'
-              ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.05)'
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.8)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.04)'
             }}
           >
-            <div className="flex items-center justify-between">
+            {/* Prestige Title */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="prestige-badge">
+                <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{prestigeIcon}</span>
+                {prestigeTitle}
+              </div>
               <div
                 className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
                 style={{ background: '#1A2F23' }}
               >
                 <div
                   className="rounded-full"
-                  style={{ width: '5px', height: '5px', background: '#D1FAE5', animation: 'pulse 2s ease-in-out infinite' }}
+                  style={{ width: '4px', height: '4px', background: '#D1FAE5', animation: 'pulse 2s ease-in-out infinite' }}
                 />
                 <span
                   style={{
-                    fontSize: '9px',
+                    fontSize: '8.5px',
                     fontFamily: "'Inter', system-ui, sans-serif",
                     fontWeight: '600',
                     color: '#F9F8F4',
@@ -249,42 +317,42 @@ export function Sidebar() {
                     letterSpacing: '0.1em',
                   }}
                 >
-                  {streakDays} day streak
+                  {streakDays}d
                 </span>
               </div>
             </div>
+            
+            {/* Growth Bar */}
             <div className="flex gap-2.5 items-center">
               <div
-                className="flex items-center justify-center rounded-lg group-hover:scale-105 transition-transform duration-300"
                 style={{
-                  width: '42px',
-                  height: '42px',
-                  background: '#F3F1EB',
-                  border: '1px solid rgba(26,47,35,0.10)',
+                  width: '34px', height: '34px', borderRadius: '9px',
+                  background: 'linear-gradient(135deg, #F3F1EB, #E8E6DE)',
+                  border: '1px solid rgba(26,47,35,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}
               >
-                <svg fill="none" height="26" viewBox="0 0 50 70" width="18" xmlns="http://www.w3.org/2000/svg">
+                <svg fill="none" height="20" viewBox="0 0 50 70" width="14" xmlns="http://www.w3.org/2000/svg">
                   <path d="M25 70V15" stroke="#1A2F23" strokeLinecap="round" strokeWidth="2.5"/>
                   <path d="M25 45Q35 35 38 25" fill="none" stroke="#1A2F23" strokeLinecap="round" strokeWidth="1.5"/>
                   <path d="M25 50Q15 45 12 35" fill="none" stroke="#1A2F23" strokeLinecap="round" strokeWidth="1.5"/>
                   <ellipse cx="25" cy="12" fill="#1A2F23" fillOpacity="0.9" rx="7" ry="14"/>
                   <ellipse cx="38" cy="22" fill="#1A2F23" fillOpacity="0.8" rx="5" ry="10" transform="rotate(45 38 22)"/>
                   <ellipse cx="12" cy="32" fill="#1A2F23" fillOpacity="0.8" rx="5" ry="9" transform="rotate(-30 12 32)"/>
-                  <ellipse cx="30" cy="38" fill="#1A2F23" fillOpacity="0.7" rx="4" ry="7" transform="rotate(20 30 38)"/>
                 </svg>
               </div>
-              <div className="flex-1 flex flex-col gap-1.5" style={{ minWidth: 0 }}>
-                <span style={{ fontSize: '13px', fontFamily: 'Georgia, serif', color: '#1A2F23', lineHeight: '1' }}>
+              <div className="flex-1 flex flex-col gap-1" style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '12px', fontFamily: "'Instrument Serif', Georgia, serif", color: '#1A2F23', lineHeight: '1' }}>
                   {streakStage}
                 </span>
                 <div
                   className="w-full rounded-full overflow-hidden"
-                  style={{ height: '3px', background: 'rgba(26,47,35,0.10)' }}
+                  style={{ height: '3px', background: 'rgba(26,47,35,0.08)' }}
                 >
                   <div
                     className="h-full rounded-full overflow-hidden relative"
-                    style={{ width: `${Math.max(5, streakProgress)}%`, background: '#1A2F23' }}
+                    style={{ width: `${Math.max(5, streakProgress)}%`, background: 'linear-gradient(90deg, #1A2F23, #2E5D3E)' }}
                   >
                     <div
                       style={{
@@ -296,8 +364,8 @@ export function Sidebar() {
                     />
                   </div>
                 </div>
-                <span style={{ fontSize: '10px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
-                  {daysToNext > 0 ? `${daysToNext} days to next level` : 'Maximum level reached!'}
+                <span style={{ fontSize: '9.5px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                  {daysToNext > 0 ? `${daysToNext}d to next level` : 'Maximum reached'}
                 </span>
               </div>
             </div>

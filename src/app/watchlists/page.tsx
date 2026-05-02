@@ -47,13 +47,13 @@ export default function WatchlistsPage() {
     <AppLayout>
       <div style={{ padding: '28px 32px 60px', maxWidth: '800px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: '400', color: '#1A2F23', letterSpacing: '-0.5px', marginBottom: '4px' }}>Environmental Watchlists</h1>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>
-              {items.length} tracked · {activeSignals} active signal{activeSignals !== 1 ? 's' : ''}
-            </p>
-          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }} className="slide-up">
+            <div>
+              <h1 className="heading-page" style={{ marginBottom: '4px' }}>Environmental Watchlists</h1>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>
+                {items.length} tracked · {activeSignals} active signal{activeSignals !== 1 ? 's' : ''}
+              </p>
+            </div>
           <button onClick={() => setShowAdd(!showAdd)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Plus size={14} /> Add Watch Item
           </button>
@@ -61,8 +61,8 @@ export default function WatchlistsPage() {
 
         {/* Add form */}
         {showAdd && (
-          <div className="card fade-up" style={{ padding: '20px', marginBottom: '20px' }}>
-            <p className="section-label">New Watch Item</p>
+          <div className="card-premium fade-up" style={{ padding: '20px', marginBottom: '20px' }}>
+            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>New Watch Item</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {WATCHLIST_TYPES.map(t => (
@@ -96,27 +96,27 @@ export default function WatchlistsPage() {
 
         {/* Watchlist items */}
         {items.length === 0 ? (
-          <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <div className="card-premium slide-up stagger-1" style={{ padding: '48px 24px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--green-mid)', marginBottom: '12px', display: 'block' }}>visibility</span>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>No items being watched</p>
+            <p className="heading-card" style={{ fontSize: '20px', marginBottom: '8px' }}>No items being watched</p>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.6' }}>
               Add species, ecosystems, policies, or research topics to monitor. Verdant will track environmental changes and alert you to meaningful shifts.
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} className="slide-up stagger-1">
             {items.map(item => {
               const undismissed = item.signals.filter(s => !s.dismissed)
               const typeInfo = WATCHLIST_TYPES.find(t => t.id === item.type)
               return (
-                <div key={item.id} className="card" style={{ padding: '18px', opacity: item.status === 'paused' ? 0.6 : 1 }}>
+                <div key={item.id} className="card-premium" style={{ padding: '18px', opacity: item.status === 'paused' ? 0.6 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: undismissed.length > 0 ? '12px' : '0' }}>
                     <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--green-mid)', flexShrink: 0, marginTop: '2px' }}>{typeInfo?.icon ?? 'visibility'}</span>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: '600', color: 'var(--text-main)' }}>{item.title}</span>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '2px 6px', borderRadius: '4px', background: `${PRIORITY_COLORS[item.priority]}15`, color: PRIORITY_COLORS[item.priority] }}>{item.priority}</span>
+                          <span className="heading-card" style={{ fontSize: '18px' }}>{item.title}</span>
+                          <span className="label-system" style={{ background: `${PRIORITY_COLORS[item.priority]}15`, color: PRIORITY_COLORS[item.priority] }}>{item.priority}</span>
                           {item.status === 'paused' && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>PAUSED</span>}
                         </div>
                         {item.description && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{item.description}</p>}

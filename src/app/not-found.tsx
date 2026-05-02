@@ -50,16 +50,7 @@ export default function NotFound() {
       >
         404 — Not Found
       </p>
-      <h1
-        style={{
-          fontFamily: 'Georgia, serif',
-          fontSize: '32px',
-          fontWeight: '400',
-          color: '#1A2F23',
-          marginBottom: '12px',
-          letterSpacing: '-0.3px',
-        }}
-      >
+      <h1 className="heading-display" style={{ marginBottom: '12px' }}>
         This path leads nowhere
       </h1>
       <p
