@@ -8,35 +8,35 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 const faqs = [
   {
     q: 'How does Verdant work?',
-    a: 'Verdant uses an AI research pipeline connected to an n8n workflow that queries multiple scientific databases and synthesizes findings into structured reports. You simply type your research question, choose a mode (Focus, Deep, or Analytica), and the system returns organized findings with citations.',
+    a: 'Type any environmental topic in the search box. Verdant\'s AI pipeline queries multiple scientific databases (arXiv, PubMed, GBIF, IUCN, NOAA) and synthesizes a structured intelligence report with findings, sources, and recommendations.',
   },
   {
     q: 'What research modes are available?',
-    a: 'Focus Mode provides fast, concise analysis. Deep Research performs thorough multi-source synthesis for complex topics. Analytica generates statistical and data-heavy structured output. Choose your mode in the search box or in Settings.',
+    a: 'Focus Mode (fast, concise), Deep Research (thorough multi-source), Analytica (statistical, data-heavy). Select your mode in Settings or from the search box on the homepage.',
   },
   {
     q: 'What topics does Verdant cover?',
-    a: 'Verdant specializes in environmental science: Ecology, Biodiversity, Botany, Mycology, Geology, and Oceanography. It draws from authoritative sources including GBIF, IUCN Red List, NOAA, FAO, arXiv, PubMed, and KITLV archives.',
+    a: 'Ecology, biodiversity, botany, mycology, geology, and oceanography. Verdant is built specifically for natural sciences — not physics or chemistry.',
   },
   {
     q: 'How do I save my research?',
-    a: 'After running a research query, you\'ll see a "Save" button at the top of the results. This saves the analysis to your Journal (stored locally in your browser). Access saved entries any time from the Journal page in the sidebar.',
+    a: 'After completing a research session, click the "Save" button in the action bar. Saved entries appear in your Journal at /journal.',
   },
   {
     q: 'What are Spaces?',
-    a: 'Spaces are collections that help you organize related research threads. For example, you might create a "Coral Reef Dynamics" Space to group all your research about reef ecosystems. Click "New Space" on the Spaces page to create one.',
+    a: 'Spaces are curated collections of research threads organized by topic. Create a Space to group related research sessions together.',
   },
   {
     q: 'How does the streak system work?',
-    a: 'Your research streak tracks how many consecutive days you\'ve used Verdant. Each research session counts as daily activity. Maintain your streak to grow your virtual Sapling — visible in the sidebar.',
+    a: 'Complete a research session each day to grow your streak. Miss one day and your tree wilts. Miss three or more days and your tree dies and streak resets to zero.',
   },
   {
     q: 'Why is the analysis slow sometimes?',
-    a: 'Deep Research and Analytica modes involve querying multiple data sources and synthesizing complex information. Analyses may take up to 60 seconds for thorough results. A progress indicator keeps you informed.',
+    a: 'Deep Research and Analytica modes query multiple sources and perform multi-step synthesis. This can take 30-60 seconds. Focus mode is fastest.',
   },
   {
     q: 'Can I export my research?',
-    a: 'You can copy the research page link using the "Copy Link" button. Journal entries can be accessed at any time. Full PDF export is on our roadmap for a future update.',
+    a: 'Yes. Click "DOCX" in the action bar after completing research to download a formatted Word document.',
   },
 ]
 

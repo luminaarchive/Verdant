@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { ChevronRight } from 'lucide-react'
+import { addSpace } from '@/app/spaces/page'
+
+const CATEGORIES = ['Ecology', 'Biodiversity', 'Botany', 'Mycology', 'Geology', 'Oceanography']
 
 export default function NewSpacePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
+  const [category, setCategory] = useState('Ecology')
   const [isCreating, setIsCreating] = useState(false)
 
   const handleCreate = (e: React.FormEvent) => {
@@ -17,7 +21,8 @@ export default function NewSpacePage() {
     if (!title.trim()) return
     setIsCreating(true)
     const slug = title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    setTimeout(() => router.push(`/spaces/${slug}`), 400)
+    addSpace({ name: title.trim(), description: desc.trim(), category, slug })
+    setTimeout(() => router.push('/spaces'), 300)
   }
 
   return (
@@ -73,6 +78,31 @@ export default function NewSpacePage() {
                   className="input"
                   style={{ resize: 'vertical', minHeight: '80px' }}
                 />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', fontWeight: '600', color: '#1A2F23' }}>
+                  Category
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {CATEGORIES.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCategory(c)}
+                      style={{
+                        padding: '6px 14px', borderRadius: '16px', cursor: 'pointer',
+                        fontSize: '12px', fontFamily: "'Inter', sans-serif", fontWeight: '500',
+                        border: category === c ? '1px solid #1A2F23' : '1px solid var(--border)',
+                        background: category === c ? '#1A2F23' : 'transparent',
+                        color: category === c ? '#FFFFFF' : 'var(--text-muted)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
