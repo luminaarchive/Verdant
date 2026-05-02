@@ -3,7 +3,7 @@
 
 /* ─── Verdant Design Tokens ──────────────────────────────────────────────── */
 :root {
-  /* Colors */
+  /* Colors - Light Theme */
   --bg-main:        #F9F8F4;
   --bg-surface:     #FFFFFF;
   --bg-elevated:    #F3F1EB;
@@ -25,6 +25,34 @@
   --warning:        #D97706;
   --success:        #2E5D3E;
   --gold:           #B8860B;
+}
+
+/* Dark Theme - Bloomberg Terminal x Arc Browser Vibe */
+.dark {
+  --bg-main:        #0E1110;
+  --bg-surface:     #151917;
+  --bg-elevated:    #1C221F;
+  --bg-panel:       #191E1C;
+  --bg-terminal:    #000000;
+  --green-dark:     #E5EAE7;
+  --green-mid:      #4ADE80;
+  --green-light:    #064E3B;
+  --green-accent:   #34D399;
+  --text-main:      #E5EAE7;
+  --text-secondary: #A3A89E;
+  --text-muted:     #737870;
+  --text-faint:     #434841;
+  --border:         rgba(255, 255, 255, 0.06);
+  --border-strong:  rgba(255, 255, 255, 0.12);
+  --border-section: rgba(255, 255, 255, 0.04);
+  --highlight:      #064E3B;
+  --destructive:    #EF4444;
+  --warning:        #F59E0B;
+  --success:        #4ADE80;
+  --gold:           #FBBF24;
+}
+
+:root {
 
   /* Spacing */
   --space-1: 4px;
@@ -65,6 +93,17 @@
 
   /* Sidebar */
   --sidebar-w: 260px;
+}
+
+.dark {
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg:  0 8px 30px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-xl:  0 12px 40px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-elevated: 0 4px 20px rgba(0,0,0,0.6), 0 1px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  --shadow-inset: inset 0 1px 3px rgba(0,0,0,0.6);
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────── */

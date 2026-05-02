@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowUp, Loader2, Crosshair, FlaskConical, BarChart2 } from 'lucide-react'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
 type SearchMode = 'focus' | 'deep' | 'analytica'
 
@@ -18,6 +19,7 @@ interface SearchBoxProps {
 }
 
 export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps) {
+  const { language, setLanguage, t } = useLanguage()
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState<SearchMode>('focus')
   const [isLoading, setIsLoading] = useState(false)
@@ -72,7 +74,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder="Ask anything about ecology, biodiversity, geology..."
+          placeholder={t.research.newQueryPlaceholder}
           rows={compact ? 1 : 2}
           style={{
             width: '100%',
@@ -91,41 +93,66 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
 
         <div
           className="flex items-center justify-between px-2 pb-1"
-          style={{ borderTop: '1px solid rgba(26,47,35,0.07)', paddingTop: '6px' }}
+          style={{ borderTop: '1px solid var(--border-section)', paddingTop: '6px' }}
         >
-          {/* Mode Pills */}
-          <div className="flex items-center gap-1">
-            {MODES.map(m => {
-              const isActive = mode === m.id
-              const Icon = m.icon
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => handleModeChange(m.id)}
-                  title={m.desc}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontFamily: "'Inter', system-ui, sans-serif",
-                    fontSize: '12.5px',
-                    fontWeight: isActive ? '600' : '400',
-                    background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
-                    color: isActive ? '#1A2F23' : 'var(--text-muted)',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    border: isActive ? '1px solid rgba(26,47,35,0.15)' : '1px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.04)' }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                >
-                  <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
-                  {m.label}
-                </button>
-              )
-            })}
+          {/* Modes and Language */}
+          <div className="flex items-center gap-3">
+            {/* Mode Pills */}
+            <div className="flex items-center gap-1">
+              {MODES.map(m => {
+                const isActive = mode === m.id
+                const Icon = m.icon
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => handleModeChange(m.id)}
+                    title={m.desc}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                      fontSize: '12.5px',
+                      fontWeight: isActive ? '600' : '400',
+                      background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
+                      color: isActive ? 'var(--green-dark)' : 'var(--text-muted)',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      border: isActive ? '1px solid rgba(46,93,62,0.15)' : '1px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--border-section)' }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                  >
+                    <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
+                    {t.research[`${m.id}Mode` as keyof typeof t.research] || m.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Language Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{t.research.outputLanguage}:</span>
+              <select
+                value={language}
+                onChange={e => setLanguage(e.target.value as 'en' | 'id')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '11.5px',
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="en">English</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </div>
           </div>
 
           {/* Submit */}

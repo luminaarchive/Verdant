@@ -3,11 +3,13 @@
 import React, { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
 function AuthForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
+  const { language, setLanguage, t } = useLanguage()
 
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -20,9 +22,9 @@ function AuthForm() {
 
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: '8px',
-    border: '1px solid var(--border, rgba(0,0,0,0.08))',
-    background: 'var(--bg-elevated, #F3F1EB)',
-    fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: '#1A2F23',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-main)',
     outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box' as const,
   }
 
@@ -51,9 +53,7 @@ function AuthForm() {
           setLoading(false)
           return
         }
-        // Profile is auto-created by the database trigger handle_new_user()
-        // No manual INSERT needed — this prevents "Database error saving new user"
-        setSuccess('Account created! Signing you in...')
+        setSuccess(language === 'id' ? 'Akun berhasil dibuat! Mengalihkan...' : 'Account created! Signing you in...')
         setTimeout(() => router.push(redirect), 1200)
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -65,32 +65,41 @@ function AuthForm() {
         router.push(redirect)
       }
     } catch {
-      setError('An unexpected error occurred. Please try again.')
+      setError(language === 'id' ? 'Terjadi kesalahan tak terduga. Silakan coba lagi.' : 'An unexpected error occurred. Please try again.')
     }
     setLoading(false)
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: '440px' }}>
+    <div style={{ width: '100%', maxWidth: '440px', position: 'relative' }}>
+      {/* Language Toggle */}
+      <div className="absolute top-0 right-0 slide-up" style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+        <button
+          onClick={() => setLanguage('en')}
+          style={{ background: language === 'en' ? 'var(--bg-surface)' : 'transparent', color: language === 'en' ? 'var(--text-main)' : 'var(--text-muted)', border: 'none', padding: '4px 8px', fontSize: '11px', fontWeight: language === 'en' ? '600' : '500', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s', boxShadow: language === 'en' ? 'var(--shadow-sm)' : 'none' }}
+        >EN</button>
+        <button
+          onClick={() => setLanguage('id')}
+          style={{ background: language === 'id' ? 'var(--bg-surface)' : 'transparent', color: language === 'id' ? 'var(--text-main)' : 'var(--text-muted)', border: 'none', padding: '4px 8px', fontSize: '11px', fontWeight: language === 'id' ? '600' : '500', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s', boxShadow: language === 'id' ? 'var(--shadow-sm)' : 'none' }}
+        >ID</button>
+      </div>
+
       {/* Logo */}
-      <div style={{ textAlign: 'center', marginBottom: '36px' }} className="slide-up">
+      <div style={{ textAlign: 'center', marginBottom: '36px', paddingTop: '20px' }} className="slide-up">
         <h1 className="heading-display" style={{ fontSize: '42px', letterSpacing: '-1px', marginBottom: '6px' }}>verdant</h1>
-        <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted, rgba(26,47,35,0.5))' }}>Environmental Intelligence Platform</p>
+        <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>{language === 'id' ? 'Platform Intelijen Lingkungan' : 'Environmental Intelligence Platform'}</p>
       </div>
 
       {/* Card */}
       <div
         className="card-premium slide-up stagger-1"
-        style={{
-          padding: '32px',
-          background: 'var(--bg-card, #FFFFFF)',
-        }}
+        style={{ padding: '32px' }}
       >
         <h2 className="heading-card" style={{ fontSize: '24px', marginBottom: '4px' }}>
-          {isSignUp ? 'Create Account' : 'Welcome Back'}
+          {isSignUp ? t.auth.createAccount : t.auth.welcome}
         </h2>
         <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-          {isSignUp ? 'Join the environmental research community.' : 'Sign in to continue your research.'}
+          {isSignUp ? t.auth.join : (language === 'id' ? 'Masuk untuk melanjutkan riset Anda.' : 'Sign in to continue your research.')}
         </p>
 
         {error && (

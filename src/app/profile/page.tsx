@@ -11,6 +11,7 @@ import { getStreak } from '@/lib/streak/client'
 import { getTopSpecializations, getMemory } from '@/lib/intelligence/memory'
 import { getStatusInsights } from '@/lib/intelligence/status'
 import { getPrestigeLevel } from '@/lib/intelligence/prestige'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
 interface UserProfile {
   display_name: string | null
@@ -59,6 +60,7 @@ function timeAgo(dateStr: string): string {
 export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { language, setLanguage } = useLanguage()
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -359,6 +361,13 @@ export default function ProfilePage() {
                   <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Research Focus</label>
                   <input type="text" value={editFocus} onChange={e => setEditFocus(e.target.value)} placeholder="e.g. Coral reef ecology, mycorrhizal networks" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Preferred Intelligence Language</label>
+                  <select value={language} onChange={e => setLanguage(e.target.value as 'en' | 'id')} style={inputStyle}>
+                    <option value="en">English (US)</option>
+                    <option value="id">Bahasa Indonesia</option>
+                  </select>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -366,6 +375,7 @@ export default function ProfilePage() {
                   { label: 'Organization', value: profile?.organization || '—', icon: FileText },
                   { label: 'Role', value: profile?.role || '—', icon: Search },
                   { label: 'Research Focus', value: profile?.research_focus || '—', icon: BookOpen },
+                  { label: 'Preferred Language', value: language === 'id' ? 'Bahasa Indonesia' : 'English', icon: Eye },
                   { label: 'Email', value: email, icon: FileText },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

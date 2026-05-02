@@ -45,6 +45,16 @@ export default function DigestPage() {
           </button>
         </div>
 
+        {/* Status Layer (Emotional Retention) */}
+        <div className="card-premium slide-up" style={{ padding: '16px 20px', marginBottom: '24px', background: 'linear-gradient(135deg, rgba(46,93,62,0.05), rgba(209,250,229,0.1))', borderLeft: '3px solid var(--green-mid)' }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'var(--text-main)', fontWeight: '500', marginBottom: '4px' }}>
+            You are ahead of <strong style={{ color: 'var(--green-dark)' }}>87%</strong> of environmental researchers this week.
+          </p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)' }}>
+            Your biodiversity monitoring consistency places you in the top 12% of the Verdant network.
+          </p>
+        </div>
+
         {/* Daily Intelligence Ritual */}
         {(() => {
           if (typeof window === 'undefined') return null

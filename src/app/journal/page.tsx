@@ -87,6 +87,24 @@ export default function JournalPage() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
                     <h3 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '22px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4' }}>{entry.title}</h3>
                     <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => {
+                          toast('Exporting PDF...', { type: 'info' })
+                          setTimeout(() => {
+                            window.print()
+                            toast('PDF Exported', { type: 'success' })
+                            // Track export in local storage for reputation
+                            const currentExports = parseInt(localStorage.getItem('verdant-exports-count') ?? '0', 10)
+                            localStorage.setItem('verdant-exports-count', (currentExports + 1).toString())
+                          }, 1000)
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '6px', background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.15s' }}
+                        title="Export PDF"
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-surface)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-main)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span>
+                      </button>
                       <Link
                         href={`/research?q=${encodeURIComponent(entry.query)}`}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', borderRadius: '6px', background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)', textDecoration: 'none', transition: 'all 0.15s' }}
@@ -108,9 +126,11 @@ export default function JournalPage() {
                     </div>
                   </div>
                   {entry.summary && (
-                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '10px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {entry.summary}
-                    </p>
+                    <div id={`exportable-journal-${entry.id}`}>
+                      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '10px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {entry.summary}
+                      </p>
+                    </div>
                   )}
                   <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>
                     Saved {formatDate(entry.savedAt)}

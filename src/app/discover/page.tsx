@@ -177,16 +177,21 @@ export default function DiscoverPage() {
               {/* Featured */}
               {featured && (
                 <div
-                  onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
-                  className="card-premium"
-                  style={{ padding: '0', display: 'flex', gap: '0', cursor: 'pointer', overflow: 'hidden', marginBottom: '20px' }}
+                  className="card-premium group"
+                  style={{ padding: '0', display: 'flex', gap: '0', overflow: 'hidden', marginBottom: '20px', position: 'relative' }}
                 >
                   <div style={{ flex: '0 0 65%', padding: '28px 32px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <p className="label-system" style={{ color: featured.labelColor, marginBottom: '12px' }}>{featured.label}</p>
                     <h2 className="heading-card" style={{ fontSize: '22px', marginBottom: '12px', lineHeight: '1.3' }}>{featured.title}</h2>
                     <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '14px' }}>{featured.body}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span className="label-system" style={{ color: '#1A2F23', letterSpacing: '0.06em', fontSize: '10.5px' }}>Begin Research →</span>
+                      <button
+                        onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
+                        className="btn btn-primary"
+                        style={{ height: '32px', padding: '0 16px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+                      >
+                        Investigate with Verdant
+                      </button>
                       {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
                     </div>
                   </div>
@@ -209,10 +214,20 @@ export default function DiscoverPage() {
                 {gridArticles.map(article => (
                   <div
                     key={article.id}
-                    className="card-premium"
-                    style={{ padding: '0', cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                    onClick={() => router.push('/research?q=' + encodeURIComponent(article.title))}
+                    className="card-premium group"
+                    style={{ padding: '0', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
                   >
+                    {/* Hover Overlay Button */}
+                    <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200" style={{ background: 'rgba(26,47,35,0.4)', backdropFilter: 'blur(2px)' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push('/research?q=' + encodeURIComponent(article.title)) }}
+                        className="btn btn-primary"
+                        style={{ padding: '8px 20px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+                      >
+                        Investigate with Verdant
+                      </button>
+                    </div>
+
                     {/* Image */}
                     <div style={{ position: 'relative', height: '140px', overflow: 'hidden' }}>
                       <div style={{
@@ -242,7 +257,7 @@ export default function DiscoverPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={e => e.stopPropagation()}
-                          style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                          style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', position: 'relative', zIndex: 20 }}
                         >
                           <ExternalLink size={13} />
                         </a>

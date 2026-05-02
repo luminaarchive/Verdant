@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/components/verdant/Toast'
 
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { LanguageProvider } from '@/components/providers/LanguageProvider'
+import { themeInitScript } from '@/lib/ui/theme'
+
 export const metadata: Metadata = {
   title: 'Verdant — AI Environmental Research',
   description: 'AI-powered environmental research platform. Ask anything academic about ecology, biodiversity, botany, mycology, geology, and oceanography.',
@@ -16,8 +20,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -30,9 +35,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

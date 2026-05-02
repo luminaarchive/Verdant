@@ -212,9 +212,17 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       {/* Living Report Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         {/* Living report badge */}
+        <span className="badge-live" style={{ fontSize: '9px' }}>Living Report</span>
+        {/* Version Badge */}
         {(() => {
-          const freshness = getReportFreshness(new Date().toISOString())
-          return <span className="badge-live" style={{ fontSize: '9px' }}>Living Report</span>
+          if (typeof window === 'undefined') return null
+          let v = 1
+          try {
+            const versionsStr = localStorage.getItem('verdant-query-versions') || '{}'
+            const versions = JSON.parse(versionsStr)
+            v = versions[query] || 1
+          } catch {}
+          return <span className="chip" style={{ fontWeight: '600' }}>v{v}.0</span>
         })()}
         {/* Confidence badge */}
         {result.confidenceScore !== undefined && (
@@ -678,7 +686,15 @@ function ResearchContent() {
         } else {
           setResult(data)
           recordActivity()
-          if (queryString) { recordQuery(queryString); recordReportView(queryString) }
+          if (queryString) { 
+            recordQuery(queryString)
+            recordReportView(queryString) 
+            try {
+              const vs = JSON.parse(localStorage.getItem('verdant-query-versions') || '{}')
+              vs[queryString] = (vs[queryString] || 0) + 1
+              localStorage.setItem('verdant-query-versions', JSON.stringify(vs))
+            } catch {}
+          }
         }
         setStatus('success')
         return
@@ -714,7 +730,15 @@ function ResearchContent() {
               if (resultData.ok && resultData.result) {
                 setResult(resultData.result as ResearchResult)
                 recordActivity()
-                if (queryString) recordQuery(queryString)
+                if (queryString) {
+                  recordQuery(queryString)
+                  recordReportView(queryString)
+                  try {
+                    const vs = JSON.parse(localStorage.getItem('verdant-query-versions') || '{}')
+                    vs[queryString] = (vs[queryString] || 0) + 1
+                    localStorage.setItem('verdant-query-versions', JSON.stringify(vs))
+                  } catch {}
+                }
               } else {
                 setResult({ error: 'Failed to retrieve completed report', raw: '' })
               }

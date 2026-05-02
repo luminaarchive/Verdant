@@ -8,21 +8,24 @@ import { useAppLayout } from './AppLayout'
 import { getStreak } from '@/lib/streak/client'
 import { getPrestigeLevel } from '@/lib/intelligence/prestige'
 
-const navMain = [
-  { label: 'Home',       icon: Home,       href: '/' },
-  { label: 'Discover',   icon: Compass,    href: '/discover' },
-  { label: 'Watchlists', icon: Eye,        href: '/watchlists' },
-  { label: 'Digest',     icon: Inbox,      href: '/digest' },
-  { label: 'Pulse',      icon: Activity,   href: '/pulse' },
-  { label: 'Spaces',     icon: FolderOpen, href: '/spaces' },
-  { label: 'History',    icon: Clock,      href: '/history' },
-  { label: 'Journal',    icon: BookOpen,   href: '/journal' },
+import { useTheme } from '@/components/providers/ThemeProvider'
+import { useLanguage } from '@/components/providers/LanguageProvider'
+
+const navMainKeys = [
+  { key: 'home', icon: Home, href: '/' },
+  { key: 'discover', icon: Compass, href: '/discover' },
+  { key: 'watchlists', icon: Eye, href: '/watchlists' },
+  { key: 'digest', icon: Inbox, href: '/digest' },
+  { key: 'pulse', icon: Activity, href: '/pulse' },
+  { key: 'spaces', icon: FolderOpen, href: '/spaces' },
+  { key: 'history', icon: Clock, href: '/history' },
+  { key: 'journal', icon: BookOpen, href: '/journal' },
 ]
 
-const navFooter = [
-  { label: 'Protocol',icon: FileText,   href: '/protocol' },
-  { label: 'About',   icon: Info,       href: '/about' },
-  { label: 'Help',    icon: HelpCircle, href: '/help' },
+const navFooterKeys = [
+  { key: 'protocol', icon: FileText, href: '/protocol' },
+  { key: 'about', icon: Info, href: '/about' },
+  { key: 'help', icon: HelpCircle, href: '/help' },
 ]
 
 interface NavItemProps {
@@ -48,11 +51,11 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
         textDecoration: 'none',
         position: 'relative',
         transition: 'all 0.2s ease',
-        color: isActive ? '#1A2F23' : 'rgba(26,47,35,0.55)',
+        color: isActive ? 'var(--green-dark)' : 'var(--text-secondary)',
         fontWeight: isActive ? 600 : 400,
-        background: isActive ? 'rgba(209,250,229,0.3)' : 'transparent',
+        background: isActive ? 'var(--border-section)' : 'transparent',
       }}
-      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(26,47,35,0.04)' }}
+      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--border-section)' }}
       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
     >
       {isActive && (
@@ -63,7 +66,7 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
             top: '22%',
             bottom: '22%',
             width: '3px',
-            background: 'linear-gradient(180deg, #1A2F23, #2E5D3E)',
+            background: 'linear-gradient(180deg, var(--green-dark), var(--green-mid))',
             borderRadius: '0 3px 3px 0',
           }}
         />
@@ -90,6 +93,8 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen } = useAppLayout()
+  const { t } = useLanguage()
+  const { theme, setTheme } = useTheme()
   const [streakDays, setStreakDays] = useState(0)
   const [streakStage, setStreakStage] = useState('Seedling')
   const [streakProgress, setStreakProgress] = useState(0)
@@ -237,11 +242,11 @@ export function Sidebar() {
 
       {/* Main Nav */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flex: 1 }}>
-        {navMain.map(item => (
+        {navMainKeys.map(item => (
           <NavItem
-            key={item.label}
+            key={item.key}
             href={item.href}
-            label={item.label}
+            label={t.sidebar[item.key as keyof typeof t.sidebar] as string}
             icon={item.icon}
             isActive={isActive(item.href)}
             onClick={() => setSidebarOpen(false)}
@@ -254,16 +259,45 @@ export function Sidebar() {
 
       {/* Footer Nav */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '8px' }}>
-        {navFooter.map(item => (
+        {navFooterKeys.map(item => (
           <NavItem
-            key={item.label}
+            key={item.key}
             href={item.href}
-            label={item.label}
+            label={t.sidebar[item.key as keyof typeof t.sidebar] as string}
             icon={item.icon}
             isActive={isActive(item.href)}
             onClick={() => setSidebarOpen(false)}
           />
         ))}
+      </div>
+
+      {/* Theme Toggle */}
+      <div style={{ display: 'flex', padding: '4px 12px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', padding: '4px', width: '100%', border: '1px solid var(--border)' }}>
+          {(['light', 'dark', 'system'] as const).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setTheme(mode)}
+              style={{
+                flex: 1,
+                padding: '4px 0',
+                fontSize: '11px',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: theme === mode ? 600 : 500,
+                color: theme === mode ? 'var(--text-main)' : 'var(--text-muted)',
+                background: theme === mode ? 'var(--bg-surface)' : 'transparent',
+                borderRadius: '6px',
+                border: 'none',
+                boxShadow: theme === mode ? 'var(--shadow-sm)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {mode === 'light' ? '☀ ' : mode === 'dark' ? '🌙 ' : '◐ '}
+              {t.sidebar[`theme${mode.charAt(0).toUpperCase() + mode.slice(1)}` as keyof typeof t.sidebar]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Prestige + Streak Card */}

@@ -96,6 +96,8 @@ interface TavilyResult {
   source?: string
 }
 
+import * as cheerio from 'cheerio'
+
 export async function GET(request: NextRequest) {
   const filter = request.nextUrl.searchParams.get('filter') || 'Recommended'
   const force = request.nextUrl.searchParams.get('force') === 'true'
@@ -137,6 +139,7 @@ export async function GET(request: NextRequest) {
   try {
     const allResults: TavilyResult[] = []
 
+    // Fetch from Tavily with max_results: 8 to ensure we get enough after dropping imageless ones
     for (const query of queries) {
       try {
         const res = await fetch('https://api.tavily.com/search', {
@@ -147,7 +150,7 @@ export async function GET(request: NextRequest) {
             query,
             search_depth: 'basic',
             include_images: true,
-            max_results: 4,
+            max_results: 8,
             topic: 'news',
           }),
           signal: AbortSignal.timeout(10_000),
@@ -172,10 +175,42 @@ export async function GET(request: NextRequest) {
     })
 
     const labelInfo = LABEL_MAP[filter] || LABEL_MAP.Recommended
-    const articles = unique.slice(0, 9).map((r, i) => {
+    const validArticles = []
+
+    for (const r of unique) {
+      if (validArticles.length >= 9) break
+
+      let imageUrl = r.image_url || null
+
+      // Scrape for og:image if Tavily didn't provide one
+      if (!imageUrl) {
+        try {
+          const pageRes = await fetch(r.url, { signal: AbortSignal.timeout(4000) })
+          if (pageRes.ok) {
+            const html = await pageRes.text()
+            const $ = cheerio.load(html)
+            const ogImage = $('meta[property="og:image"]').attr('content')
+            const twitterImage = $('meta[name="twitter:image"]').attr('content')
+            const articleImg = $('article img').first().attr('src')
+            const fallbacks = [ogImage, twitterImage, articleImg].filter(Boolean)
+            if (fallbacks.length > 0) {
+              const urlMatch = fallbacks[0]
+              if (urlMatch && !urlMatch.startsWith('data:')) {
+                imageUrl = new URL(urlMatch, r.url).href
+              }
+            }
+          }
+        } catch {
+          // Scrape failed
+        }
+      }
+
+      // NO PLACEHOLDER ALLOWED. If we STILL don't have an image, we drop this article.
+      if (!imageUrl) continue
+
       const category = detectCategory(r.title, r.content)
-      return {
-        id: `${filter}-${i}`,
+      validArticles.push({
+        id: `${filter}-${validArticles.length}`,
         label: labelInfo.label,
         labelColor: labelInfo.color,
         category,
@@ -184,14 +219,14 @@ export async function GET(request: NextRequest) {
         title: r.title,
         body: (r.content || '').slice(0, 160) + (r.content?.length > 160 ? '...' : ''),
         url: r.url,
-        image: r.image_url || null,
+        image: imageUrl,
         publishedAt: r.published_date || null,
         source: r.source || new URL(r.url).hostname.replace('www.', ''),
         query: r.title,
-      }
-    })
+      })
+    }
 
-    const response = { ok: true, articles, filter, fetchedAt: new Date().toISOString() }
+    const response = { ok: true, articles: validArticles, filter, fetchedAt: new Date().toISOString() }
     cache.set(cacheKey, { data: response, ts: Date.now() })
     return NextResponse.json(response)
   } catch {

@@ -6,6 +6,8 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Menu, Clock } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
 
+import { useTheme } from '@/components/providers/ThemeProvider'
+
 const categories = ['All', 'Ecology', 'Biodiversity', 'Botany', 'Mycology', 'Geology', 'Oceanography']
 
 function CategoryPills() {
@@ -100,6 +102,7 @@ function CategoryPillsSkeleton() {
 export function TopBar() {
   const router = useRouter()
   const { setSidebarOpen } = useAppLayout()
+  const { activeTheme, setTheme } = useTheme()
 
   return (
     <header
@@ -139,6 +142,21 @@ export function TopBar() {
       </Suspense>
 
       <div className="flex items-center gap-3" style={{ flexShrink: 0 }}>
+        <button
+          onClick={() => setTheme(activeTheme === 'light' ? 'dark' : 'light')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '4px', borderRadius: '50%', transition: 'color 0.2s, background 0.2s'
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--border-section)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-main)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)' }}
+          title="Toggle Theme"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+            {activeTheme === 'dark' ? 'light_mode' : 'dark_mode'}
+          </span>
+        </button>
         <button
           onClick={() => router.push('/history')}
           style={{
