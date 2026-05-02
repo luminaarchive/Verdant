@@ -10,6 +10,8 @@ import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, Thumb
 import { TEMPLATES } from '@/lib/research/templates'
 import { addWatchlistItem } from '@/lib/retention/watchlists'
 import { recordActivity } from '@/lib/streak/client'
+import { recordQuery, getRelatedPriorWork } from '@/lib/intelligence/memory'
+import { computeReportScores, computeProofOfWork } from '@/lib/intelligence/scores'
 
 interface ExecSummary {
   whatMattersMost?: string
@@ -216,6 +218,60 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
           {result.durationMs && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>{(result.durationMs / 1000).toFixed(1)}s</span>}
         </div>
       )}
+
+      {/* Environmental Scores */}
+      {(() => {
+        const scores = computeReportScores({ query, findings: result.findings || [], sources: result.sources || [], contradictions: result.contradictions, uncertaintyNotes: result.uncertaintyNotes, evidenceItems: result.evidenceItems, confidenceScore: result.confidenceScore })
+        const pow = computeProofOfWork({ sources: result.sources, findings: result.findings, contradictions: result.contradictions, uncertaintyNotes: result.uncertaintyNotes, evidenceItems: result.evidenceItems, durationMs: result.durationMs })
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }} className="hide-scrollbar">
+              {scores.slice(0, 4).map(s => (
+                <div key={s.id} style={{ flexShrink: 0, padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: '#FFFFFF', minWidth: '130px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px', color: s.color }}>{s.icon}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '500' }}>{s.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px', marginBottom: '4px' }}>
+                    <span style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: s.color, lineHeight: '1' }}>{s.score}</span>
+                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>/{s.maxScore}</span>
+                  </div>
+                  <div style={{ width: '100%', height: '3px', borderRadius: '2px', background: 'rgba(26,47,35,0.08)' }}>
+                    <div style={{ width: `${(s.score / s.maxScore) * 100}%`, height: '100%', borderRadius: '2px', background: s.color, transition: 'width 0.5s ease' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Proof of Work */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>verified</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                {pow.sourcesAnalyzed} sources · {pow.claimsVerified} claims · {pow.contradictionsDetected} contradictions · {pow.uncertaintiesNoted} uncertainties · {pow.methodologySteps.length}-step methodology
+              </span>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Related Prior Work */}
+      {(() => {
+        if (typeof window === 'undefined') return null
+        const related = getRelatedPriorWork(query)
+        if (related.length === 0) return null
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(209,250,229,0.2)', border: '1px solid rgba(46,93,62,0.1)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--green-mid)' }}>psychology</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)', flex: 1 }}>
+              Related to your prior research on <strong>{related[0].topic}</strong>
+            </span>
+            {related[0].priorQueries.slice(0, 1).map((pq, i) => (
+              <Link key={i} href={`/research?q=${encodeURIComponent(pq)}`} style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--green-mid)', textDecoration: 'none', fontWeight: '500' }}>
+                Compare →
+              </Link>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* Action bar */}
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '4px' }}>
@@ -540,6 +596,7 @@ function ResearchContent() {
         } else {
           setResult(data)
           recordActivity()
+          if (queryString) recordQuery(queryString)
         }
         setStatus('success')
         return
@@ -575,6 +632,7 @@ function ResearchContent() {
               if (resultData.ok && resultData.result) {
                 setResult(resultData.result as ResearchResult)
                 recordActivity()
+                if (queryString) recordQuery(queryString)
               } else {
                 setResult({ error: 'Failed to retrieve completed report', raw: '' })
               }

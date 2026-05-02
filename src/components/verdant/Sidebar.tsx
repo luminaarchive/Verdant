@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox } from 'lucide-react'
+import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox, Activity } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
 import { getStreak } from '@/lib/streak/client'
 
@@ -12,6 +12,7 @@ const navMain = [
   { label: 'Discover',   icon: Compass,    href: '/discover' },
   { label: 'Watchlists', icon: Eye,        href: '/watchlists' },
   { label: 'Digest',     icon: Inbox,      href: '/digest' },
+  { label: 'Pulse',      icon: Activity,   href: '/pulse' },
   { label: 'Spaces',     icon: FolderOpen, href: '/spaces' },
   { label: 'History',    icon: Clock,      href: '/history' },
   { label: 'Journal',    icon: BookOpen,   href: '/journal' },
@@ -141,7 +142,7 @@ export function Sidebar() {
           verdant
         </h1>
         <p style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '2px', letterSpacing: '0.02em' }}>
-          AI Research Platform
+          Environmental Intelligence
         </p>
       </div>
 

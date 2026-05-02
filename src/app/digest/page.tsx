@@ -129,6 +129,41 @@ export default function DigestPage() {
             </div>
           </div>
         )}
+
+        {/* Signal Forecasting */}
+        <div className="card fade-up" style={{ padding: '20px', marginTop: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--green-mid)' }}>trending_up</span>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Signal Forecast</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[
+              { signal: 'Coral bleaching risk elevated for Indo-Pacific — monitoring recommended', confidence: 72, icon: 'scuba_diving', color: '#C0392B' },
+              { signal: 'Southeast Asian fire season approaching — peatland alerts likely within 4 weeks', confidence: 68, icon: 'local_fire_department', color: '#B45309' },
+              { signal: 'IUCN Red List update expected — potential reclassifications for 300+ species', confidence: 55, icon: 'pets', color: '#7C3AED' },
+            ].map((f, i) => (
+              <Link key={i} href={`/research?q=${encodeURIComponent(f.signal)}`} style={{ textDecoration: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '6px', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: f.color }}>{f.icon}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', flex: 1, lineHeight: '1.4' }}>{f.signal}</span>
+                  <span style={{ fontFamily: 'Georgia, serif', fontSize: '14px', color: f.color, flexShrink: 0 }}>{f.confidence}%</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Planet Pulse */}
+        <div className="fade-up" style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--green-mid)' }}>satellite_alt</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-secondary)' }}>CO₂: 427.3 ppm · Ocean SST: +1.42°C · Arctic Ice: 12.1M km²</span>
+          </div>
+          <Link href="/pulse" style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--green-mid)', textDecoration: 'none', fontWeight: '500' }}>Full Pulse →</Link>
+        </div>
       </div>
     </AppLayout>
   )

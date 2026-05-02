@@ -10,6 +10,9 @@ import { TEMPLATES, TEMPLATE_CATEGORIES, type EnvironmentalTemplate, type Templa
 import { PRESETS } from '@/lib/research/presets'
 import { getReturnVisitSummary } from '@/lib/retention/signals'
 import { getWatchlists } from '@/lib/retention/watchlists'
+import { getPlanetPulse, DIRECTION_COLORS } from '@/lib/intelligence/pulse'
+import { getWorldNatureIndex, TREND_LABELS } from '@/lib/intelligence/nature-index'
+import { getMemory } from '@/lib/intelligence/memory'
 
 // ─── Template Card ──────────────────────────────────────────────────────────
 function TemplateCard({ t }: { t: EnvironmentalTemplate }) {
@@ -275,11 +278,94 @@ function HomeContent() {
         </div>
       </div>
 
+      {/* ─── Planet Pulse Strip ─── */}
+      <div style={{ width: '100%', maxWidth: '760px', marginTop: '36px' }} className="fade-up">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--green-mid)' }}>satellite_alt</span>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Planet Pulse</h3>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)', marginLeft: 'auto' }}>Real-time environmental signals</span>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }} className="hide-scrollbar">
+          {getPlanetPulse().slice(0, 6).map(p => (
+            <Link key={p.id} href={`/research?q=${encodeURIComponent(p.metric + ' ' + p.region + ' analysis')}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <div className="card" style={{ padding: '12px 16px', minWidth: '155px', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: DIRECTION_COLORS[p.direction] }}>{p.icon}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '500' }}>{p.metric}</span>
+                </div>
+                <p style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#1A2F23', lineHeight: '1', marginBottom: '4px' }}>{p.value}<span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '2px' }}>{p.unit}</span></p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: DIRECTION_COLORS[p.direction], fontWeight: '600' }}>{p.change} · {p.source}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── World Nature Index ─── */}
+      <div style={{ width: '100%', maxWidth: '760px', marginTop: '28px' }} className="fade-up">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--text-muted)' }}>public</span>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Verdant Nature Index</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+          {getWorldNatureIndex().slice(0, 4).map(idx => (
+            <Link key={idx.id} href={`/research?q=${encodeURIComponent(idx.name + ' current status')}`} style={{ textDecoration: 'none' }}>
+              <div className="card" style={{ padding: '16px', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: idx.color }}>{idx.icon}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5px', fontWeight: '600', color: idx.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{TREND_LABELS[idx.trend]}</span>
+                </div>
+                <p style={{ fontFamily: 'Georgia, serif', fontSize: '26px', color: '#1A2F23', lineHeight: '1', marginBottom: '4px' }}>{idx.score}<span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>/{idx.maxScore}</span></p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '4px' }}>{idx.name}</p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{idx.description.slice(0, 80)}...</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Personal Intelligence Feed ─── */}
+      {(() => {
+        const mem = typeof window !== 'undefined' ? getMemory() : null
+        if (!mem || mem.topics.length === 0) return null
+        const topTopics = [...mem.topics].sort((a, b) => b.count - a.count).slice(0, 3)
+        return (
+          <div style={{ width: '100%', maxWidth: '760px', marginTop: '28px' }} className="fade-up">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--text-muted)' }}>psychology</span>
+              <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Your Research Memory</h3>
+              {mem.specialization && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', marginLeft: 'auto', fontWeight: '500' }}>Specialization: {mem.specialization}</span>}
+            </div>
+            <div className="card" style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                {topTopics.map(t => (
+                  <Link key={t.topic} href={`/research?q=${encodeURIComponent(t.relatedQueries[0] || t.topic)}`} style={{ textDecoration: 'none', flex: '1 1 180px' }}>
+                    <div style={{ padding: '10px', borderRadius: '8px', transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    >
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', fontWeight: '500', color: '#1A2F23', marginBottom: '4px' }}>{t.topic}</p>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{t.count} session{t.count !== 1 ? 's' : ''} · Resume →</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Trust Footer */}
       <div style={{ width: '100%', maxWidth: '760px', marginTop: '40px', paddingTop: '24px', borderTop: '1px solid var(--border)', textAlign: 'center' }} className="fade-up">
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-          Verdant produces executive intelligence reports with evidence mapping, contradiction detection, and uncertainty analysis.
-          <br />Every claim is source-traced. Every recommendation is evidence-backed.
+          Verdant is an Environmental Intelligence Authority. Every claim is source-traced. Every recommendation is evidence-backed.
+          <br />Powered by a network of 8 specialized environmental AI agents.
         </p>
       </div>
     </div>

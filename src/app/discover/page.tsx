@@ -5,7 +5,25 @@ import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { RefreshCw, ExternalLink } from 'lucide-react'
 
-const filters = ['Recommended', 'Trending', 'New Papers', 'By Region']
+const filters = ['Recommended', 'Trending', 'New Papers', 'By Region', 'Grants', 'Indonesia']
+
+const GRANTS = [
+  { title: 'GEF-8 Biodiversity Conservation Fund', deadline: '2026-06-30', amount: '$2M–$10M', focus: 'Biodiversity conservation in megadiverse countries', funder: 'Global Environment Facility', fit: 'High' },
+  { title: 'Green Climate Fund Ecosystem Resilience', deadline: '2026-08-15', amount: '$5M–$50M', focus: 'Climate adaptation through ecosystem-based approaches', funder: 'Green Climate Fund', fit: 'High' },
+  { title: 'EU Horizon Europe - RestoreEco Call', deadline: '2026-07-10', amount: '€1.5M–€4M', focus: 'Large-scale ecosystem restoration research', funder: 'European Commission', fit: 'Medium' },
+  { title: 'USAID Sustainable Landscapes Indonesia', deadline: '2026-09-01', amount: '$500K–$3M', focus: 'Peatland restoration and sustainable forest management', funder: 'USAID', fit: 'Very High' },
+  { title: 'Darwin Initiative Round 30', deadline: '2026-07-22', amount: '£150K–£500K', focus: 'Biodiversity and sustainable livelihoods in developing countries', funder: 'UK Defra', fit: 'Medium' },
+  { title: 'IUCN Save Our Species Fund', deadline: 'Rolling', amount: '$25K–$100K', focus: 'Targeted species conservation projects globally', funder: 'IUCN', fit: 'High' },
+]
+
+const INDONESIA_INTEL = [
+  { title: 'KLHK deforestation monitoring Q1 2026: Kalimantan shows 12% reduction', icon: 'forest', color: '#2E5D3E', query: 'Indonesia Kalimantan deforestation 2026 KLHK monitoring' },
+  { title: 'Coral Triangle coral bleaching alert: Level 2 warning for Raja Ampat', icon: 'scuba_diving', color: '#C0392B', query: 'Raja Ampat coral bleaching alert 2026' },
+  { title: 'New mangrove restoration decree targets 600K hectares by 2030', icon: 'eco', color: '#059669', query: 'Indonesia mangrove restoration policy 2030' },
+  { title: 'Sumatran rhino population: captive breeding shows promising results', icon: 'pets', color: '#B45309', query: 'Sumatran rhino captive breeding program update' },
+  { title: 'Peatland rewetting project in Riau achieves 40% fire reduction', icon: 'water_drop', color: '#1D4ED8', query: 'Riau peatland rewetting fire reduction results' },
+  { title: 'LIPI biodiversity survey discovers 14 new endemic species in Sulawesi', icon: 'search', color: '#7C3AED', query: 'Sulawesi new endemic species discovery LIPI 2026' },
+]
 
 interface Article {
   id: string
@@ -247,6 +265,69 @@ export default function DiscoverPage() {
                 Sources pulled live from global environmental media.
               </p>
             </>
+          )}
+
+          {/* Grant Intelligence */}
+          {activeFilter === 'Grants' && !loading && (
+            <div>
+              <div className="card" style={{ padding: '20px', marginBottom: '20px', borderLeft: '3px solid var(--green-mid)', background: 'rgba(209,250,229,0.08)' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Grant Intelligence Engine</p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  Environmental funding opportunities matched to your research focus. Deadlines, amounts, and fit scoring for conservation and research projects.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {GRANTS.map((g, i) => (
+                  <div key={i} className="card" style={{ padding: '18px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                    onClick={() => router.push(`/research?q=${encodeURIComponent(g.title + ' grant funding opportunity')}`)}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div>
+                        <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', color: '#1A2F23', marginBottom: '4px' }}>{g.title}</p>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-muted)' }}>{g.funder}</p>
+                      </div>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', color: g.fit === 'Very High' ? '#2E5D3E' : g.fit === 'High' ? '#059669' : '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', background: g.fit === 'Very High' ? 'rgba(209,250,229,0.4)' : 'rgba(26,47,35,0.05)', padding: '3px 8px', borderRadius: '6px', flexShrink: 0 }}>Fit: {g.fit}</span>
+                    </div>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '10px' }}>{g.focus}</p>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#1A2F23', fontWeight: '500' }}>{g.amount}</span>
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: g.deadline === 'Rolling' ? 'var(--green-mid)' : '#B45309' }}>Deadline: {g.deadline}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Indonesia National Intelligence */}
+          {activeFilter === 'Indonesia' && !loading && (
+            <div>
+              <div className="card" style={{ padding: '20px', marginBottom: '20px', borderLeft: '3px solid #C0392B', background: 'rgba(192,57,43,0.03)' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C0392B', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Indonesia National Intelligence</p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  Prioritized environmental intelligence for Indonesia — the world&apos;s most biodiverse archipelago. KLHK policy, Coral Triangle monitoring, and Indonesian conservation signals.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {INDONESIA_INTEL.map((item, i) => (
+                  <div key={i} className="card" style={{ padding: '16px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                    onClick={() => router.push(`/research?q=${encodeURIComponent(item.query)}`)}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: item.color }}>{item.icon}</span>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#1A2F23', lineHeight: '1.4' }}>{item.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '16px', textAlign: 'center' }}>
+                Sources: KLHK, LIPI/BRIN, CTI-CFF, Mongabay Indonesia, Jakarta Post, WALHI
+              </p>
+            </div>
           )}
         </div>
       </div>

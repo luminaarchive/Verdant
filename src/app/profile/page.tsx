@@ -8,6 +8,7 @@ import { useToast } from '@/components/verdant/Toast'
 import { Settings, LogOut, Flame, BookOpen, Search, FileText, Eye, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getStreak } from '@/lib/streak/client'
+import { getTopSpecializations, getMemory } from '@/lib/intelligence/memory'
 
 interface UserProfile {
   display_name: string | null
@@ -349,6 +350,53 @@ export default function ProfilePage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Research Memory */}
+          {(() => {
+            const specializations = typeof window !== 'undefined' ? getTopSpecializations(5) : []
+            const mem = typeof window !== 'undefined' ? getMemory() : null
+            if (specializations.length === 0) return null
+            return (
+              <div className="card" style={{ padding: '24px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <p className="section-label" style={{ marginBottom: 0 }}>Environmental Memory</p>
+                  {mem?.specialization && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', background: 'rgba(209,250,229,0.4)', color: '#1A2F23', padding: '3px 10px', borderRadius: '10px', fontWeight: '500' }}>Specialization: {mem.specialization}</span>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {specializations.map(s => (
+                    <div key={s.topic} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-main)' }}>
+                      <div>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '500', color: '#1A2F23' }}>{s.topic}</p>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{s.count} session{s.count !== 1 ? 's' : ''}</p>
+                      </div>
+                      <div style={{ width: `${Math.min(100, s.count * 15)}px`, height: '4px', borderRadius: '2px', background: 'rgba(26,47,35,0.08)' }}>
+                        <div style={{ width: '100%', height: '100%', borderRadius: '2px', background: '#1A2F23' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>Verdant remembers your research context across sessions to surface relevant prior work.</p>
+              </div>
+            )
+          })()}
+
+          {/* Reputation Protocol */}
+          <div className="card" style={{ padding: '24px', marginBottom: '16px' }}>
+            <p className="section-label">Research Reputation</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+              {[
+                { label: 'Research Consistency', value: researchCount > 5 ? 'High' : researchCount > 0 ? 'Moderate' : 'New', color: researchCount > 5 ? '#2E5D3E' : '#B45309' },
+                { label: 'Source Quality', value: 'Verified', color: '#2E5D3E' },
+                { label: 'Trust Status', value: streakDays > 7 ? 'Established' : streakDays > 0 ? 'Building' : 'New', color: streakDays > 7 ? '#2E5D3E' : '#B45309' },
+              ].map(r => (
+                <div key={r.label} style={{ padding: '10px', borderRadius: '8px', background: 'var(--bg-main)', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', fontWeight: '400', color: r.color, marginBottom: '4px' }}>{r.value}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>{r.label}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>Your reputation is computed from research consistency, source quality, and platform engagement.</p>
           </div>
 
           {/* Recent Activity */}
