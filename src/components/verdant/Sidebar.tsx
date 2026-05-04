@@ -80,7 +80,7 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: NavItemProps) {
       <span
         style={{
           fontSize: '14.5px',
-          fontFamily: "'Inter', system-ui, sans-serif",
+          fontFamily: "'Manrope', system-ui, sans-serif",
           letterSpacing: '0.01em',
         }}
       >
@@ -103,6 +103,25 @@ export function Sidebar() {
   const [sessions, setSessions] = useState(0)
   const [prestigeTitle, setPrestigeTitle] = useState('Observer')
   const [prestigeIcon, setPrestigeIcon] = useState('visibility')
+  const fallbackLabelMap: Record<string, string> = {
+    home: 'Home',
+    discover: 'Discover',
+    watchlists: 'Watchlists',
+    digest: 'Digest',
+    pulse: 'Pulse',
+    spaces: 'Spaces',
+    history: 'Archive',
+    journal: 'Journal',
+    protocol: 'Protocol',
+    about: 'About',
+    help: 'Help',
+  }
+  const getNavLabel = (key: string) => {
+    const translated = t.sidebar[key as keyof typeof t.sidebar]
+    return typeof translated === 'string' && translated.trim().length > 0
+      ? translated
+      : fallbackLabelMap[key] ?? 'Navigation'
+  }
 
   useEffect(() => {
     const streak = getStreak()
@@ -188,11 +207,11 @@ export function Sidebar() {
           <div>
             <h1
               style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontFamily: "'Fraunces', Georgia, serif",
                 fontSize: '20px',
-                fontWeight: '400',
+                fontWeight: '600',
                 color: '#1A2F23',
-                letterSpacing: '-0.3px',
+                letterSpacing: '-0.1px',
                 lineHeight: '1',
               }}
             >
@@ -200,7 +219,7 @@ export function Sidebar() {
             </h1>
           </div>
         </div>
-        <p style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '6px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: '500', paddingLeft: '34px' }}>
+        <p style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif", marginTop: '6px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: '500', paddingLeft: '34px' }}>
           Environmental Intelligence
         </p>
       </div>
@@ -217,7 +236,7 @@ export function Sidebar() {
           padding: '10px 16px',
           marginBottom: '16px',
           fontSize: '14px',
-          fontFamily: "'Inter', system-ui, sans-serif",
+          fontFamily: "'Manrope', system-ui, sans-serif",
           fontWeight: '600',
           letterSpacing: '0.01em',
           cursor: 'pointer',
@@ -247,7 +266,7 @@ export function Sidebar() {
           <NavItem
             key={item.key}
             href={item.href}
-            label={t.sidebar[item.key as keyof typeof t.sidebar] as string}
+            label={getNavLabel(item.key)}
             icon={item.icon}
             isActive={isActive(item.href)}
             onClick={() => setSidebarOpen(false)}
@@ -264,7 +283,7 @@ export function Sidebar() {
           <NavItem
             key={item.key}
             href={item.href}
-            label={t.sidebar[item.key as keyof typeof t.sidebar] as string}
+            label={getNavLabel(item.key)}
             icon={item.icon}
             isActive={isActive(item.href)}
             onClick={() => setSidebarOpen(false)}
@@ -283,7 +302,7 @@ export function Sidebar() {
                 flex: 1,
                 padding: '4px 0',
                 fontSize: '11px',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Manrope', sans-serif",
                 fontWeight: theme === mode ? 600 : 500,
                 color: theme === mode ? 'var(--text-main)' : 'var(--text-muted)',
                 background: theme === mode ? 'var(--bg-surface)' : 'transparent',
@@ -295,7 +314,11 @@ export function Sidebar() {
               }}
             >
               {mode === 'light' ? '☀ ' : mode === 'dark' ? '🌙 ' : '◐ '}
-              {t.sidebar[`theme${mode.charAt(0).toUpperCase() + mode.slice(1)}` as keyof typeof t.sidebar]}
+              {(() => {
+                const key = `theme${mode.charAt(0).toUpperCase() + mode.slice(1)}` as keyof typeof t.sidebar
+                const label = t.sidebar[key]
+                return typeof label === 'string' && label.trim().length > 0 ? label : mode
+              })()}
             </button>
           ))}
         </div>
@@ -306,8 +329,8 @@ export function Sidebar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'rgba(209,250,229,0.25)', borderRadius: '8px', border: '1px solid rgba(52,211,153,0.2)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#059669' }}>verified_user</span>
           <div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '700', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1' }}>Verdant Intelligence</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: '1' }}>Zero-hallucination enforced</p>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '10px', fontWeight: '700', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: '1' }}>Verdant Intelligence</p>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: '1' }}>Zero-hallucination enforced</p>
           </div>
         </div>
       </div>
@@ -356,7 +379,7 @@ export function Sidebar() {
                 <span
                   style={{
                     fontSize: '8.5px',
-                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontFamily: "'Manrope', system-ui, sans-serif",
                     fontWeight: '600',
                     color: '#F9F8F4',
                     textTransform: 'uppercase',
@@ -389,7 +412,7 @@ export function Sidebar() {
                 </svg>
               </div>
               <div className="flex-1 flex flex-col gap-1" style={{ minWidth: 0 }}>
-                <span style={{ fontSize: '12px', fontFamily: "'Instrument Serif', Georgia, serif", color: '#1A2F23', lineHeight: '1' }}>
+                <span style={{ fontSize: '12px', fontFamily: "'Fraunces', Georgia, serif", color: '#1A2F23', lineHeight: '1' }}>
                   {streakStage}
                 </span>
                 <div
@@ -410,7 +433,7 @@ export function Sidebar() {
                     />
                   </div>
                 </div>
-                <span style={{ fontSize: '9.5px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '9.5px', fontFamily: "'Manrope', sans-serif", color: 'var(--text-muted)' }}>
                   {daysToNext > 0 ? `${daysToNext}d to next level` : 'Maximum reached'}
                 </span>
               </div>

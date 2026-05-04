@@ -53,13 +53,17 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
   }
 
   const handleSubmit = () => {
-    const trimmed = query.trim()
+    const trimmed = query
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
     if (!trimmed || isLoading) return
+    if (trimmed.length > 500) return
     setIsLoading(true)
     router.push(`/research?q=${encodeURIComponent(trimmed)}`)
   }
 
-  const canSubmit = query.trim().length > 0 && !isLoading
+  const canSubmit = query.trim().length > 0 && query.trim().length <= 500 && !isLoading
 
   return (
     <div className="w-full" style={{ maxWidth: '680px' }}>
@@ -91,7 +95,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
             border: 'none',
             resize: 'none',
             outline: 'none',
-            fontFamily: "'Inter', system-ui, sans-serif",
+            fontFamily: "'Manrope', system-ui, sans-serif",
             fontSize: '15px',
             lineHeight: '1.6',
             color: 'var(--text-main)',
@@ -121,7 +125,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        fontFamily: "'Inter', system-ui, sans-serif",
+                        fontFamily: "'Manrope', system-ui, sans-serif",
                         fontSize: '12.5px',
                         fontWeight: isActive ? '600' : '400',
                         background: isActive ? 'rgba(209,250,229,0.5)' : 'transparent',
@@ -136,7 +140,10 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
                       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
-                      {t.research[`${m.id}Mode` as keyof typeof t.research] || m.label}
+                      {(() => {
+                        const label = t.research[`${m.id}Mode` as keyof typeof t.research]
+                        return typeof label === 'string' && label.trim().length > 0 ? label : m.label
+                      })()}
                     </button>
                   )
                 })}
@@ -144,7 +151,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
 
               {/* Language Selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{t.research.outputLanguage}:</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif" }}>{t.research.outputLanguage}:</span>
                 <select
                   value={language}
                   onChange={e => setLanguage(e.target.value as 'en' | 'id')}
@@ -152,7 +159,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
                     background: 'transparent',
                     border: 'none',
                     fontSize: '11.5px',
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Manrope', sans-serif",
                     fontWeight: '600',
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
@@ -168,12 +175,12 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
             {/* Active Mode Description */}
             {!compact && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '4px', marginTop: '2px' }}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>
-                  {MODES.find(m => m.id === mode)?.desc}
+                <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '10px', color: 'var(--text-muted)' }}>
+                  {MODES.find(m => m.id === mode)?.desc ?? 'Decision-grade environmental intelligence'}
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--border)' }}>•</span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '500', color: 'var(--green-mid)' }}>
-                  Est: {MODES.find(m => m.id === mode)?.time}
+                <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '10px', fontWeight: '500', color: 'var(--green-mid)' }}>
+                  Est: {MODES.find(m => m.id === mode)?.time ?? 'fast'}
                 </span>
               </div>
             )}
@@ -211,7 +218,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
 
       {/* Hint */}
       {!compact && (
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginTop: '8px', textAlign: 'center' }}>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif", marginTop: '8px', textAlign: 'center' }}>
           Press <kbd style={{ background: 'rgba(26,47,35,0.08)', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>Enter</kbd> to search · <kbd style={{ background: 'rgba(26,47,35,0.08)', padding: '1px 5px', borderRadius: '4px', fontSize: '10px' }}>Shift+Enter</kbd> for new line
         </p>
       )}

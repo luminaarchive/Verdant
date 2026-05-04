@@ -42,7 +42,7 @@ function CategoryPills() {
               borderRadius: '20px',
               padding: '5px 14px',
               fontSize: '12px',
-              fontFamily: "'Inter', system-ui, sans-serif",
+              fontFamily: "'Manrope', system-ui, sans-serif",
               fontWeight: active ? '600' : '400',
               letterSpacing: '0.04em',
               textTransform: 'uppercase',
@@ -234,7 +234,7 @@ export function TopBar() {
               onClick={() => router.push('/auth')}
               style={{
                 fontSize: '12px',
-                fontFamily: "'Inter', system-ui, sans-serif",
+                fontFamily: "'Manrope', system-ui, sans-serif",
                 fontWeight: '600',
                 color: '#FFFFFF',
                 background: '#1A2F23',

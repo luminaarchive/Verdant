@@ -3,6 +3,7 @@ export type Language = 'en' | 'id'
 export const translations = {
   en: {
     sidebar: {
+      home: 'Home',
       discover: 'Discover',
       research: 'Research',
       pulse: 'Pulse',
@@ -10,6 +11,10 @@ export const translations = {
       history: 'History',
       journal: 'Journal',
       watchlists: 'Watchlists',
+      spaces: 'Spaces',
+      protocol: 'Protocol',
+      about: 'About',
+      help: 'Help',
       profile: 'Profile',
       settings: 'Settings',
       themeLight: 'Light',
@@ -66,6 +71,7 @@ export const translations = {
   },
   id: {
     sidebar: {
+      home: 'Beranda',
       discover: 'Eksplorasi',
       research: 'Penelitian',
       pulse: 'Denyut Nadi',
@@ -73,6 +79,10 @@ export const translations = {
       history: 'Riwayat',
       journal: 'Jurnal Ilmiah',
       watchlists: 'Daftar Pantau',
+      spaces: 'Ruang',
+      protocol: 'Protokol',
+      about: 'Tentang',
+      help: 'Bantuan',
       profile: 'Profil Peneliti',
       settings: 'Pengaturan',
       themeLight: 'Terang',

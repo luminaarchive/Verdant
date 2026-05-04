@@ -19,6 +19,9 @@ import { getPrestigeLevel } from '@/lib/intelligence/prestige'
 import { getStreak } from '@/lib/streak/client'
 
 function TemplateCard({ t }: { t: EnvironmentalTemplate }) {
+  const safeTitle = t.title?.trim() || 'Environmental Research Template'
+  const safeSubtitle = t.subtitle?.trim() || 'Structured starting point for evidence-backed analysis.'
+  const safeIcon = t.icon?.trim() || 'science'
   return (
     <Link
       href={`/research?q=${encodeURIComponent(t.prompt)}&tpl=${t.id}`}
@@ -26,11 +29,11 @@ function TemplateCard({ t }: { t: EnvironmentalTemplate }) {
       style={{ padding: '20px', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none', minHeight: '140px', justifyContent: 'space-between' }}
     >
       <div>
-        <span className="material-symbols-outlined" style={{ color: 'var(--green-mid)', marginBottom: '10px', fontSize: '20px', display: 'block' }}>{t.icon}</span>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '5px', lineHeight: '1.3', display: 'block' }}>{t.title}</span>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', display: 'block' }}>{t.subtitle}</span>
+        <span className="material-symbols-outlined" style={{ color: 'var(--green-mid)', marginBottom: '10px', fontSize: '20px', display: 'block' }}>{safeIcon}</span>
+        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13.5px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '5px', lineHeight: '1.3', display: 'block' }}>{safeTitle}</span>
+        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', display: 'block' }}>{safeSubtitle}</span>
       </div>
-      <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontFamily: "'Inter', sans-serif", fontWeight: '600', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontFamily: "'Manrope', sans-serif", fontWeight: '600', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         Run Analysis <ArrowRight size={11} />
       </div>
     </Link>
@@ -102,12 +105,12 @@ function HomeContent() {
     }
   }, [searchParams])
 
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const wl = getWatchlists()
       if (wl.length > 0) setReturnSummary(getReturnVisitSummary())
     }
-  })
+  }, [])
 
   const filteredTemplates = TEMPLATES
     .filter(t => selectedDomain === 'all' || t.domain.includes(selectedDomain as TemplateDomain))
@@ -132,7 +135,11 @@ function HomeContent() {
 
   const domainSignals = DOMAIN_SIGNALS[selectedDomain] || DOMAIN_SIGNALS.all
   // eslint-disable-next-line react-hooks/purity
-  const signal = domainSignals[Math.floor(Math.random() * domainSignals.length)]
+  const signal = domainSignals[Math.floor(Math.random() * domainSignals.length)] ?? {
+    icon: 'insights',
+    text: 'No active signal right now. Explore templates for structured analysis.',
+    tag: 'Intelligence',
+  }
 
   // Phase 4: Daily Brief + Status
   const daily = typeof window !== 'undefined' ? getDailyBrief() : null
@@ -151,10 +158,10 @@ function HomeContent() {
             Environmental Intelligence Platform
           </span>
         </div>
-        <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '52px', fontWeight: '400', letterSpacing: '-2px', lineHeight: '1.0', color: '#1A2F23', marginBottom: '14px' }}>
+        <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '52px', fontWeight: '600', letterSpacing: '-0.8px', lineHeight: '1.08', color: '#1A2F23', marginBottom: '14px' }}>
           verdant
         </h2>
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-muted)', maxWidth: '500px' }}>
+        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14.5px', lineHeight: '1.75', color: 'var(--text-muted)', maxWidth: '500px' }}>
           Decision-grade environmental research. Species risk, climate intelligence, conservation strategy — powered by executive-level AI analysis.
         </p>
         {prestige && prestige.id !== 'observer' && (
@@ -305,11 +312,19 @@ function HomeContent() {
 
       {/* Template Grid */}
       <div style={{ width: '100%', maxWidth: '760px' }} className="slide-up stagger-5">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
-          {displayTemplates.map(t => (
-            <TemplateCard key={t.id} t={t} />
-          ))}
-        </div>
+        {displayTemplates.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+            {displayTemplates.map(t => (
+              <TemplateCard key={t.id} t={t} />
+            ))}
+          </div>
+        ) : (
+          <div className="card-editorial" style={{ padding: '18px 20px' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              No templates match your current filters. Reset domain/category or remove preset to view all templates.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Planet Pulse Strip */}
