@@ -17,6 +17,26 @@ function AuthForm() {
   const [displayName, setDisplayName] = useState('')
   const [organization, setOrganization] = useState('')
   const [error, setError] = useState('')
+  const humanizeAuthError = (message: string) => {
+    const m = message.toLowerCase()
+    if (m.includes('database error saving new user')) {
+      return language === 'id'
+        ? 'Pendaftaran belum dapat diproses sementara. Tim kami sudah menerima log teknis. Coba lagi beberapa saat atau gunakan email lain.'
+        : 'Sign up is temporarily unavailable due to account provisioning issues. Technical logs were captured. Please retry in a moment or use another email.'
+    }
+    if (m.includes('invalid login credentials') || m.includes('credential')) {
+      return language === 'id'
+        ? 'Email atau password tidak valid. Periksa kembali dan coba lagi.'
+        : 'Invalid email or password. Please verify your credentials and try again.'
+    }
+    if (m.includes('load failed') || m.includes('network')) {
+      return language === 'id'
+        ? 'Koneksi terputus saat autentikasi. Coba lagi.'
+        : 'Authentication request failed to load. Please retry.'
+    }
+    return message
+  }
+
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
 
@@ -37,28 +57,46 @@ function AuthForm() {
     try {
       const supabase = createClient()
 
+      const safeEmail = email.trim().toLowerCase()
+      const safePassword = password.trim()
+      const safeDisplayName = displayName.trim()
+      const safeOrganization = organization.trim()
+      if (!safeEmail || !safePassword) {
+        setError(language === 'id' ? 'Email dan password wajib diisi.' : 'Email and password are required.')
+        setLoading(false)
+        return
+      }
+
       if (isSignUp) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
+        let { error: signUpError } = await supabase.auth.signUp({
+          email: safeEmail,
+          password: safePassword,
           options: {
             data: {
-              display_name: displayName || email.split('@')[0],
-              organization: organization || null,
+              display_name: safeDisplayName || safeEmail.split('@')[0],
+              organization: safeOrganization || null,
             },
           },
         })
+        // Retry without metadata for DB triggers that reject unexpected profile fields.
+        if (signUpError?.message?.toLowerCase().includes('database error saving new user')) {
+          const retry = await supabase.auth.signUp({
+            email: safeEmail,
+            password: safePassword,
+          })
+          signUpError = retry.error
+        }
         if (signUpError) {
-          setError(signUpError.message)
+          setError(humanizeAuthError(signUpError.message))
           setLoading(false)
           return
         }
         setSuccess(language === 'id' ? 'Akun berhasil dibuat! Mengalihkan...' : 'Account created! Signing you in...')
         setTimeout(() => router.push(redirect), 1200)
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: safeEmail, password: safePassword })
         if (signInError) {
-          setError(signInError.message)
+          setError(humanizeAuthError(signInError.message))
           setLoading(false)
           return
         }

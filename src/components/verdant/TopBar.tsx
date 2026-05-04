@@ -120,9 +120,9 @@ export function TopBar() {
       className="w-full sticky top-0 z-50 flex items-center gap-3 px-5"
       style={{
         height: '52px',
-        background: 'rgba(249,248,244,0.94)',
+        background: 'var(--bg-main)',
         borderBottom: 'none',
-        boxShadow: 'inset 0 -1px 0 rgba(26,47,35,0.06)',
+        boxShadow: 'inset 0 -1px 0 var(--border)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         flexShrink: 0,
@@ -178,7 +178,7 @@ export function TopBar() {
             border: '1px solid var(--border-strong)',
             padding: '4px 12px',
             borderRadius: '8px',
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             letterSpacing: '0.01em',
@@ -187,12 +187,12 @@ export function TopBar() {
             gap: '5px',
           }}
           onMouseEnter={e => {
-            ;(e.currentTarget as HTMLElement).style.background = '#1A2F23'
+            ;(e.currentTarget as HTMLElement).style.background = 'var(--green-dark)'
             ;(e.currentTarget as HTMLElement).style.color = '#FFFFFF'
-            ;(e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'
+            ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--green-dark)'
           }}
           onMouseLeave={e => {
-            ;(e.currentTarget as HTMLElement).style.background = '#FFFFFF'
+            ;(e.currentTarget as HTMLElement).style.background = 'var(--bg-surface)'
             ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
             ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'
           }}

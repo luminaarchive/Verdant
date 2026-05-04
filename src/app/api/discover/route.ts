@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as cheerio from 'cheerio'
 
 interface TavilyResult {
   title: string
@@ -173,7 +174,90 @@ function generateImpactStatement(title: string, category: string, text: string):
   return 'Ecosystem signal → Alters baseline environmental intelligence'
 }
 
-import * as cheerio from 'cheerio'
+interface RssArticle {
+  title: string
+  body: string
+  url: string
+  source: string
+  publishedAt: string | null
+  image: string | null
+  category: string
+}
+
+const RSS_FEEDS = [
+  { url: 'https://www.theguardian.com/environment/rss', source: 'The Guardian' },
+  { url: 'https://news.mongabay.com/feed/', source: 'Mongabay' },
+  { url: 'https://www.unep.org/news-and-stories/rss.xml', source: 'UNEP' },
+]
+
+async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<RssArticle[]> {
+  try {
+    const res = await fetch(feedUrl, { signal: AbortSignal.timeout(8000), cache: 'no-store' })
+    if (!res.ok) return []
+    const xml = await res.text()
+    const $ = cheerio.load(xml, { xmlMode: true })
+    const items: RssArticle[] = []
+
+    $('item').each((_, el) => {
+      if (items.length >= 8) return false
+      const title = $(el).find('title').first().text().trim()
+      const url = $(el).find('link').first().text().trim()
+      const rawDesc = $(el).find('description').first().text().trim()
+      const publishedAt = $(el).find('pubDate').first().text().trim() || null
+      const categoryRaw = $(el).find('category').first().text().trim()
+      if (!title || !url) return
+
+      const desc$ = cheerio.load(rawDesc)
+      const plainDesc = desc$.text().replace(/\s+/g, ' ').trim()
+      const mediaImage =
+        $(el).find('media\\:content').attr('url') ||
+        $(el).find('enclosure').attr('url') ||
+        desc$('img').first().attr('src') ||
+        null
+      const category = detectCategory(title, `${plainDesc} ${categoryRaw}`)
+
+      items.push({
+        title,
+        url,
+        body: (plainDesc || 'Environmental update from trusted source.').slice(0, 180),
+        source: sourceName,
+        publishedAt,
+        image: mediaImage,
+        category,
+      })
+    })
+
+    return items
+  } catch {
+    return []
+  }
+}
+
+async function fetchRealRssArticles(filter: string): Promise<RssArticle[]> {
+  const batches = await Promise.all(RSS_FEEDS.map((f) => fetchRssFeed(f.url, f.source)))
+  const all = batches.flat()
+  const seen = new Set<string>()
+  const unique = all.filter((a) => {
+    if (seen.has(a.url)) return false
+    seen.add(a.url)
+    return true
+  })
+
+  const filtered = unique.filter((a) => {
+    if (filter === 'By Region' || filter === 'Indonesia') {
+      const t = `${a.title} ${a.body}`.toLowerCase()
+      return /indonesia|asean|asia|kalimantan|sumatra|papua|java/.test(t)
+    }
+    if (filter === 'New Papers') {
+      const t = `${a.title} ${a.source}`.toLowerCase()
+      return /study|research|paper|nature|science|journal/.test(t)
+    }
+    if (filter === 'Trending') return true
+    return true
+  })
+
+  return filtered.slice(0, 12)
+}
 
 export async function GET(request: NextRequest) {
   const filter = request.nextUrl.searchParams.get('filter') || 'Recommended'
@@ -183,7 +267,29 @@ export async function GET(request: NextRequest) {
 
   const apiKey = process.env.TAVILY_API_KEY
   if (!apiKey) {
+    const liveRss = await fetchRealRssArticles(filter)
     const labelInfo = LABEL_MAP[filter] || LABEL_MAP.Recommended
+    if (liveRss.length > 0) {
+      const articles = liveRss.map((a, i) => ({
+        id: `rss-${filter}-${i}-${Math.random()}`,
+        label: labelInfo.label,
+        labelColor: labelInfo.color,
+        category: a.category,
+        categoryColor: CATEGORY_COLORS[a.category] || '#2E5D3E',
+        tag: filter,
+        title: a.title,
+        body: a.body,
+        url: a.url,
+        image: a.image || getFallbackImage(a.category),
+        publishedAt: a.publishedAt,
+        source: a.source,
+        query: a.title,
+        impactStatement: generateImpactStatement(a.title, a.category, `${a.title} ${a.body}`),
+        priorityScore: 200 - i,
+      }))
+      return NextResponse.json({ ok: true, articles, filter, fetchedAt: new Date().toISOString(), live: true })
+    }
+
     const curated = CURATED_ARTICLES[filter] || CURATED_ARTICLES.Recommended
     
     // Shuffle curated articles on force refresh to simulate live rotation

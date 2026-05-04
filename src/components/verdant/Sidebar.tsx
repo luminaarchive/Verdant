@@ -156,8 +156,8 @@ export function Sidebar() {
       className={`sidebar-nav h-screen fixed left-0 top-0 flex flex-col flex-shrink-0 z-40 ${sidebarOpen ? 'open' : ''}`}
       style={{
         width: 'var(--sidebar-w)',
-        background: 'rgba(249,248,244,0.97)',
-        borderRight: '1px solid rgba(0,0,0,0.05)',
+        background: 'var(--bg-surface)',
+        borderRight: '1px solid var(--border)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         paddingTop: '0',
@@ -349,17 +349,17 @@ export function Sidebar() {
               padding: '12px 14px',
               borderRadius: '12px',
               transition: 'all 0.3s ease',
-              background: '#FFFFFF',
-              border: '1px solid rgba(0,0,0,0.04)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.8)',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-card)',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(26,47,35,0.06), inset 0 1px 0 rgba(255,255,255,0.8)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(26,47,35,0.1)'
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card-hover)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-strong)'
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.8)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.04)'
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-card)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
             }}
           >
             {/* Prestige Title */}

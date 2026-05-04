@@ -115,13 +115,13 @@ export default function DiscoverPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '6px', gap: '16px', flexWrap: 'wrap' }} className="slide-up">
             <div>
               <h1 className="heading-page" style={{ marginBottom: '6px' }}>Discover</h1>
-              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '0' }}>
+              <p style={{ fontFamily: "'Manrope', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)', marginBottom: '0' }}>
                 Explore verified research streams and emerging ecological trends.
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {fetchedAt && (
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>
                   Updated {timeAgo(fetchedAt)}
                 </span>
               )}
@@ -165,8 +165,8 @@ export default function DiscoverPage() {
           {!loading && error && (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--text-muted)', marginBottom: '12px', display: 'block' }}>cloud_off</span>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', color: '#1A2F23', marginBottom: '8px' }}>Could not load articles</p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{error}</p>
+              <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>Could not load articles</p>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{error}</p>
               <button onClick={() => fetchArticles(activeFilter, true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <RefreshCw size={13} /> Retry
               </button>
@@ -184,17 +184,17 @@ export default function DiscoverPage() {
                 >
                   <div style={{ flex: '0 0 65%', padding: '28px 32px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <p className="label-system" style={{ color: featured.labelColor, marginBottom: '12px' }}>{featured.label}</p>
-                    <h2 className="heading-card" style={{ fontSize: '22px', marginBottom: '12px', lineHeight: '1.3' }}>{featured.title}</h2>
+                    <h2 className="heading-card" style={{ fontSize: '22px', marginBottom: '12px', lineHeight: '1.3' }}>{featured.title || 'Untitled environmental update'}</h2>
                     
                     {/* Impact Statement */}
                     <div style={{ background: 'var(--bg-elevated)', borderRadius: '6px', padding: '10px 12px', marginBottom: '14px', borderLeft: '2px solid var(--green-mid)' }}>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
                         <strong style={{ color: 'var(--green-dark)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Why this matters</strong>
                         {featured.impactStatement || 'Ecosystem signal → Alters baseline environmental intelligence'}
                       </p>
                     </div>
 
-                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '14px' }}>{featured.body}</p>
+                    <p style={{ fontFamily: "'Manrope', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.65', marginBottom: '14px' }}>{featured.body || 'Summary unavailable. Open the source for full context.'}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <button
                         onClick={() => router.push('/research?q=' + encodeURIComponent(featured.title))}
@@ -203,12 +203,12 @@ export default function DiscoverPage() {
                       >
                         Build Executive Intelligence Report
                       </button>
-                      {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
+                      {featured.publishedAt && <span style={{ fontSize: '11px', fontFamily: "'Manrope', sans-serif", color: 'var(--text-muted)' }}>{timeAgo(featured.publishedAt)}</span>}
                     </div>
                   </div>
                   <div style={{
                     flex: 1,
-                    background: featured.image ? `url(${featured.image}) center/cover no-repeat` : 'linear-gradient(135deg, #D1FAE5 0%, #1A2F23 100%)',
+                    background: featured.image ? `url(${featured.image}) center/cover no-repeat` : 'linear-gradient(135deg, var(--green-light) 0%, var(--green-dark) 100%)',
                     minHeight: '180px',
                   }} />
                 </div>
@@ -216,7 +216,7 @@ export default function DiscoverPage() {
 
               {/* Grid */}
               {gridArticles.length === 0 && !featured && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontSize: '14px' }}>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif", fontSize: '14px' }}>
                   No articles found for this filter. Try another category.
                 </div>
               )}
@@ -243,7 +243,7 @@ export default function DiscoverPage() {
                     <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
                       <div style={{
                         width: '100%', height: '100%',
-                        background: article.image ? `url(${article.image}) center/cover no-repeat` : 'linear-gradient(135deg, #D1FAE5 0%, rgba(26,47,35,0.3) 100%)',
+                        background: article.image ? `url(${article.image}) center/cover no-repeat` : 'linear-gradient(135deg, var(--green-light) 0%, rgba(26,47,35,0.3) 100%)',
                       }} />
                       <div style={{
                         position: 'absolute', inset: 0,
@@ -251,7 +251,7 @@ export default function DiscoverPage() {
                       }} />
                       <span style={{
                         position: 'absolute', top: '12px', left: '12px',
-                        fontSize: '9px', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'uppercase',
+                        fontSize: '9px', fontFamily: "'Manrope', system-ui, sans-serif", textTransform: 'uppercase',
                         letterSpacing: '0.1em', color: '#FFFFFF', fontWeight: '600',
                         background: article.labelColor, padding: '4px 10px', borderRadius: '4px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
@@ -261,21 +261,21 @@ export default function DiscoverPage() {
                     </div>
                     {/* Body */}
                     <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '16.5px', fontWeight: '400', color: '#1A2F23', lineHeight: '1.4', marginBottom: '8px', flex: 1 }}>{article.title}</h3>
+                      <h3 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '16.5px', fontWeight: '600', color: 'var(--text-main)', lineHeight: '1.4', marginBottom: '8px', flex: 1 }}>{article.title || 'Untitled article'}</h3>
                       
                       {/* Impact Statement */}
                       <div style={{ background: 'var(--bg-elevated)', borderRadius: '6px', padding: '10px 12px', marginBottom: '14px', borderLeft: '2px solid var(--green-mid)' }}>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
+                        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12.5px', color: 'var(--text-main)', lineHeight: '1.4', margin: 0 }}>
                           <strong style={{ color: 'var(--green-dark)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Why this matters</strong>
                           {article.impactStatement || 'Ecosystem signal → Alters baseline environmental intelligence'}
                         </p>
                       </div>
 
-                      <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>{article.body}</p>
+                      <p style={{ fontFamily: "'Manrope', system-ui, sans-serif", fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '16px' }}>{article.body || 'No summary provided by source.'}</p>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '11px', background: 'rgba(26,47,35,0.07)', color: article.categoryColor, borderRadius: '10px', padding: '3px 10px', fontFamily: "'Inter', sans-serif", fontWeight: '500' }}>{article.category}</span>
-                          {article.publishedAt && <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>{timeAgo(article.publishedAt)}</span>}
+                          <span style={{ fontSize: '11px', background: 'rgba(26,47,35,0.07)', color: article.categoryColor, borderRadius: '10px', padding: '3px 10px', fontFamily: "'Manrope', sans-serif", fontWeight: '500' }}>{article.category || 'Ecology'}</span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif" }}>{article.publishedAt ? timeAgo(article.publishedAt) : 'Recent'}</span>
                         </div>
                         <a
                           href={article.url}
@@ -293,7 +293,7 @@ export default function DiscoverPage() {
               </div>
 
               {/* Footer */}
-              <p style={{ textAlign: 'center', fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+              <p style={{ textAlign: 'center', fontFamily: "'Manrope', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                 Sources pulled live from global environmental media.
               </p>
             </>
@@ -303,8 +303,8 @@ export default function DiscoverPage() {
           {activeFilter === 'Grants' && !loading && (
             <div>
               <div className="card" style={{ padding: '20px', marginBottom: '20px', borderLeft: '3px solid var(--green-mid)', background: 'rgba(209,250,229,0.08)' }}>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Grant Intelligence Engine</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', fontWeight: '600', color: 'var(--green-mid)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Grant Intelligence Engine</p>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                   Environmental funding opportunities matched to your research focus. Deadlines, amounts, and fit scoring for conservation and research projects.
                 </p>
               </div>
@@ -312,20 +312,20 @@ export default function DiscoverPage() {
                 {GRANTS.map((g, i) => (
                   <div key={i} className="card" style={{ padding: '18px', cursor: 'pointer', transition: 'border-color 0.15s' }}
                     onClick={() => router.push(`/research?q=${encodeURIComponent(g.title + ' grant funding opportunity')}`)}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--green-dark)'}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                       <div>
-                        <p style={{ fontFamily: 'Georgia, serif', fontSize: '16px', color: '#1A2F23', marginBottom: '4px' }}>{g.title}</p>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-muted)' }}>{g.funder}</p>
+                        <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '16px', color: 'var(--text-main)', marginBottom: '4px' }}>{g.title}</p>
+                        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: 'var(--text-muted)' }}>{g.funder}</p>
                       </div>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', color: g.fit === 'Very High' ? '#2E5D3E' : g.fit === 'High' ? '#059669' : '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', background: g.fit === 'Very High' ? 'rgba(209,250,229,0.4)' : 'rgba(26,47,35,0.05)', padding: '3px 8px', borderRadius: '6px', flexShrink: 0 }}>Fit: {g.fit}</span>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '10px', fontWeight: '600', color: g.fit === 'Very High' ? '#2E5D3E' : g.fit === 'High' ? '#059669' : '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', background: g.fit === 'Very High' ? 'rgba(209,250,229,0.4)' : 'rgba(26,47,35,0.05)', padding: '3px 8px', borderRadius: '6px', flexShrink: 0 }}>Fit: {g.fit}</span>
                     </div>
-                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '10px' }}>{g.focus}</p>
+                    <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '10px' }}>{g.focus}</p>
                     <div style={{ display: 'flex', gap: '16px' }}>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#1A2F23', fontWeight: '500' }}>{g.amount}</span>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: g.deadline === 'Rolling' ? 'var(--green-mid)' : '#B45309' }}>Deadline: {g.deadline}</span>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: 'var(--text-main)', fontWeight: '500' }}>{g.amount}</span>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: g.deadline === 'Rolling' ? 'var(--green-mid)' : '#B45309' }}>Deadline: {g.deadline}</span>
                     </div>
                   </div>
                 ))}
@@ -337,8 +337,8 @@ export default function DiscoverPage() {
           {activeFilter === 'Indonesia' && !loading && (
             <div>
               <div className="card" style={{ padding: '20px', marginBottom: '20px', borderLeft: '3px solid #C0392B', background: 'rgba(192,57,43,0.03)' }}>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C0392B', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Indonesia National Intelligence</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C0392B', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Indonesia National Intelligence</p>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                   Prioritized environmental intelligence for Indonesia — the world&apos;s most biodiverse archipelago. KLHK policy, Coral Triangle monitoring, and Indonesian conservation signals.
                 </p>
               </div>
@@ -346,17 +346,17 @@ export default function DiscoverPage() {
                 {INDONESIA_INTEL.map((item, i) => (
                   <div key={i} className="card" style={{ padding: '16px', cursor: 'pointer', transition: 'border-color 0.15s' }}
                     onClick={() => router.push(`/research?q=${encodeURIComponent(item.query)}`)}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = '#1A2F23'}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--green-dark)'}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = ''}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '20px', color: item.color }}>{item.icon}</span>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#1A2F23', lineHeight: '1.4' }}>{item.title}</p>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'var(--text-main)', lineHeight: '1.4' }}>{item.title}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '16px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '16px', textAlign: 'center' }}>
                 Sources: KLHK, LIPI/BRIN, CTI-CFF, Mongabay Indonesia, Jakarta Post, WALHI
               </p>
             </div>
