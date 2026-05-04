@@ -68,12 +68,12 @@ async function expandWithContinuation(heading: string, query: string, ctx: Parti
         query, 
         mode: 'focus', 
         systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', 
-        userPrompt: `'${prompt}
+        userPrompt: `${prompt}
 
-Previous text:
-${resultText}
+Previous text (last part):
+${resultText.slice(-500)}
 
-${contPrompt}'`
+${contPrompt}`
       }, ctx)
       resultText += '\n\n' + res2.response.content.trim()
     }
@@ -120,9 +120,13 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   // ─── STAGE 2: Outline Expansion (Loop) ───────────────
   if (input.mode === 'deep' || input.mode === 'analytica') {
     if (data.outline && data.outline.length > 0) {
-      log.step('expand_loop', `Starting expansion for ${data.outline.length} sections`, ctx)
-      for (const section of data.outline) {
-        section.body = await expandWithContinuation(section.heading, input.query, ctx)
+      log.step('expand_loop', `Starting expansion for ${data.outline.length} sections (batched)`, ctx)
+      const batchSize = 3
+      for (let i = 0; i < data.outline.length; i += batchSize) {
+        const batch = data.outline.slice(i, i + batchSize)
+        await Promise.all(batch.map(async (section: any) => {
+          section.body = await expandWithContinuation(section.heading, input.query, ctx)
+        }))
       }
     }
   }

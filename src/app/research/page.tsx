@@ -686,11 +686,17 @@ function ResearchContent() {
 
     try {
       // ─── Use async job system ────────────────────────────────────────
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
+
       const startRes = await fetch('/api/research/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey, presetId: presetId || undefined }),
+        signal: controller.signal
       })
+      clearTimeout(timeoutId)
+      
       const startData = await startRes.json()
 
       if (!startData.ok && startData.message) {
