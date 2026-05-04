@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, message: 'Run not found or has no results' }, { status: 404 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const r = data.run as any, res = data.result as any
 
   // Rebuild the ResearchResult from DB data

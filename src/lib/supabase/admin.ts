@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let _adminClient: any = null
 let _initAttempted = false
 

@@ -16,6 +16,15 @@ export interface ReportSection {
   level?: number
 }
 
+function cleanText(text: string) {
+  if (!text) return ""
+  return text
+    .replace(/#+/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 export function renderReportTemplate(result: ResearchResult): ReportSection[] {
   const sections: ReportSection[] = []
 
@@ -74,7 +83,13 @@ export function renderReportTemplate(result: ResearchResult): ReportSection[] {
     sections.push({ type: 'heading', content: 'Detailed Analysis', level: 1 })
     for (const item of result.outline) {
       sections.push({ type: 'heading', content: item.heading, level: 2 })
-      sections.push({ type: 'paragraph', content: item.body })
+      const cleanBody = cleanText(item.body)
+      const paragraphs = cleanBody.split("\n\n")
+      for (const p of paragraphs) {
+        if (p.trim()) {
+          sections.push({ type: 'paragraph', content: p.trim() })
+        }
+      }
     }
     sections.push({ type: 'divider' })
   }

@@ -664,12 +664,16 @@ function ResearchContent() {
   const [asyncStage, setAsyncStage] = useState<string | undefined>()
   const [asyncProgress, setAsyncProgress] = useState<number | undefined>()
   const [asyncEta, setAsyncEta] = useState<number | undefined>()
+  const isFetchingRef = React.useRef(false)
 
   // Get template-specific follow-ups
   const activeTemplate = templateId ? TEMPLATES.find(t => t.id === templateId) : null
 
   const runFetch = useCallback(async () => {
     if (!queryString) { router.replace('/'); return }
+    if (isFetchingRef.current) return
+    
+    isFetchingRef.current = true
     setStatus('loading')
     setResult(null)
     setAsyncStage(undefined)
@@ -690,8 +694,9 @@ function ResearchContent() {
       const startData = await startRes.json()
 
       if (!startData.ok && startData.message) {
-        setResult({ error: startData.message, raw: startData.message })
-        setStatus('success')
+        setResult({ error: startData.message })
+        setStatus('error')
+        isFetchingRef.current = false
         return
       }
 
@@ -719,8 +724,9 @@ function ResearchContent() {
 
       // Failed inline
       if (startData.status === 'failed') {
-        setResult({ error: startData.errorReason || 'Analysis failed', raw: startData.errorReason })
-        setStatus('success')
+        setResult({ error: startData.errorReason || 'Analysis failed' })
+        setStatus('error')
+        isFetchingRef.current = false
         return
       }
 
@@ -764,10 +770,10 @@ function ResearchContent() {
               setStatus('success')
             } else if (statusData.failed) {
               clearInterval(pollInterval)
-              setResult({ error: statusData.errorReason || 'Analysis failed after retries', raw: statusData.errorReason })
+              setResult({ error: statusData.errorReason || 'Analysis failed after retries' })
               setAsyncStage(undefined)
               setAsyncProgress(undefined)
-              setStatus('success')
+              setStatus('error')
             }
           } catch {
             // Silently retry polling on network errors
@@ -787,15 +793,18 @@ function ResearchContent() {
       }
 
       // Fallback: unexpected response
-      setResult({ error: 'Unexpected response from research engine', raw: JSON.stringify(startData) })
-      setStatus('success')
+      setResult({ error: 'Unexpected response from research engine' })
+      setStatus('error')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        setResult({ error: 'Request timed out. Please try again.', raw: 'Timeout' })
-        setStatus('success')
+        setResult({ error: 'Request timed out. Please try again.' })
+        setStatus('error')
       } else {
+        setResult({ error: (err as Error).message || 'An unknown error occurred.' })
         setStatus('error')
       }
+    } finally {
+      isFetchingRef.current = false
     }
   }, [queryString, router, presetId])
 
@@ -843,7 +852,7 @@ function ResearchContent() {
         </h1>
 
         {status === 'loading' && <LoadingState asyncStage={asyncStage} asyncProgress={asyncProgress} etaSeconds={asyncEta} />}
-        {status === 'error'   && <ErrorState onRetry={runFetch} />}
+        {status === 'error'   && <ErrorState onRetry={() => { isFetchingRef.current = false; runFetch(); }} message={result?.error} />}
         {status === 'success' && !hasContent && <EmptyState />}
         {status === 'success' && result && hasContent && (
           result.raw && !result.executiveSummary

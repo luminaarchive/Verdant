@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ ok: true, ...rebuildResult(data) })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function rebuildResult(data: { run: any; result: any }) {
   return {
     runId: data.run.run_id,

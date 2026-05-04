@@ -31,7 +31,7 @@ const navFooterKeys = [
 interface NavItemProps {
   href: string
   label: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   icon: React.ComponentType<any>
   isActive: boolean
   onClick?: () => void

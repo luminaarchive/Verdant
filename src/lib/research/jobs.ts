@@ -87,7 +87,7 @@ function cacheInvalidate(jobId: string) {
 }
 
 // ─── DB Row <-> Job mapping ──────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function rowToJob(row: any): ResearchJob {
   return {
     jobId: row.job_id,
@@ -121,7 +121,7 @@ function rowToJob(row: any): ResearchJob {
 }
 
 function jobToRow(job: Partial<ResearchJob> & { jobId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const row: any = {}
   if (job.jobId !== undefined) row.job_id = job.jobId
   if (job.runId !== undefined) row.run_id = job.runId

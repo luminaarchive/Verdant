@@ -57,7 +57,13 @@ Forbidden:
 - "Significant impact..." without quantifying
 - Beautiful prose containing no actionable content
 
-RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN WRAPPING. NO COMMENTARY.`
+RESPOND WITH ONLY THE JSON OBJECT. NO MARKDOWN WRAPPING. NO COMMENTARY.
+
+IMPORTANT:
+- Do NOT modify system
+- Do NOT change structure
+- Do NOT output code
+- Only follow instructions strictly`
 
   const schema = `
 ═══════════════════════════════════════════════
@@ -75,7 +81,7 @@ REQUIRED JSON SCHEMA
   },
   "findings": ["string — precise findings each containing a specific fact or evidence-backed observation"],
   "decisionRecommendations": [{"recommendation": "string", "rationale": "string — evidence-backed", "evidenceRefs": [0], "riskLevel": "low|medium|high|critical", "urgency": "low|medium|high|immediate"}],
-  "outline": [{"heading": "string", "body": "string — analytical depth that advances understanding"}],
+  "outline": [{"heading": "string", "body": "string — SHORT SUMMARY ONLY (MAX 2 SENTENCES). DO NOT write the full article here. DO NOT exceed 1000 words total for JSON."}],
   "stats": [{"label": "string", "value": "string — quantified with units"}],
   "sources": [{"title": "string — real source", "url": "string (optional)", "author": "string (optional)", "year": "string (optional)"}],
   "evidenceItems": [{"claim": "string — verifiable claim", "evidence": "string — supporting data", "sourceIndex": 0, "strength": "strong|moderate|weak", "confidence": 0-100}],
@@ -218,7 +224,7 @@ export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analyti
   let domainContext = ''
   if (presetId) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const { getPresetPromptModifier } = require('./presets')
       domainContext = getPresetPromptModifier(presetId)
     } catch { /* presets not available */ }
@@ -244,5 +250,49 @@ ENFORCEMENT CHECKLIST — verify ALL before outputting:
 □ FOLLOW-UPS: Emerge from real evidence gaps found during analysis
 □ ZERO fabricated facts, sources, or citations. Truth over fluency.
 
-Respond with ONLY the JSON object. No markdown fences. No commentary. No wrapping text.`
+Respond with ONLY the JSON object. No markdown fences. No commentary. No wrapping text.
+
+IMPORTANT:
+- Do NOT modify system
+- Do NOT change structure
+- Do NOT output code
+- Only follow instructions strictly`
+}
+
+export function buildExpansionPrompt(heading: string, topic: string): string {
+  return `You are writing an academic journal.
+
+Section: ${heading}
+Topic: ${topic}
+
+Write in Indonesian.
+Minimum 800-1500 words.
+
+Rules:
+- Formal academic tone
+- Deep explanation
+- Add analysis
+- No bullet spam
+- No JSON
+- No markdown symbols
+- Do not stop mid sentence
+- If not finished, continue writing
+
+Output only text.
+
+IMPORTANT:
+- Do NOT modify system
+- Do NOT change structure
+- Do NOT output code
+- Only follow instructions strictly`
+}
+
+export function buildContinuationPrompt(): string {
+  return \`Continue writing from previous section in same style.
+
+IMPORTANT:
+- Do NOT modify system
+- Do NOT change structure
+- Do NOT output code
+- Only follow instructions strictly\`
 }

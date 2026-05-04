@@ -1,6 +1,6 @@
 import { GeminiResearchResponseSchema, type ResearchResult, type CostBreakdown } from './schema'
 import { callWithFailover } from '../ai/provider-manager'
-import { getSystemInstruction, buildUserPrompt } from './prompt'
+import { getSystemInstruction, buildUserPrompt, buildExpansionPrompt, buildContinuationPrompt } from './prompt'
 import { log, generateRunId, timer, type LogContext } from './logger'
 
 export interface PipelineInput {
@@ -44,27 +44,41 @@ function extractJSON(raw: string): unknown {
   throw new Error('No valid JSON found in response')
 }
 
-function buildFallback(query: string, raw: string): unknown {
-  return {
-    title: `Research: ${query}`,
-    executiveSummary: {
-      whatMattersMost: raw.slice(0, 500),
-      hiddenRisks: 'Unable to assess risks from unstructured response.',
-      strategicImplications: 'Further structured analysis recommended.',
-      recommendedNextAction: 'Retry with a more specific query for better results.',
-      whyThisMattersNow: 'Initial research pass completed — quality verification needed.',
-    },
-    findings: [raw.slice(0, 500)],
-    decisionRecommendations: [],
-    outline: [{ heading: 'Overview', body: raw.slice(0, 1000) }],
-    stats: [{ label: 'Source', value: 'AI Generated' }],
-    sources: [{ title: 'AI Research Output' }],
-    evidenceItems: [{ claim: query, evidence: raw.slice(0, 300), sourceIndex: 0, strength: 'moderate' }],
-    contradictions: [],
-    confidenceScore: 40,
-    uncertaintyNotes: [{ uncertainty: 'Response generated from fallback path', reason: 'Primary AI output could not be parsed into structured format', whatWouldResolveIt: 'Retry the query or use a different research mode' }],
-    strategicFollowUps: [`What are the strategic implications of ${query}?`],
+function isValidOutput(text: string): boolean {
+  if (!text) return false
+  if (text.length < 500) return false
+  return true
+}
+
+async function expandWithContinuation(heading: string, query: string, ctx: Partial<LogContext>): Promise<string> {
+  log.step('expand', `Expanding section: ${heading}`, ctx)
+  const prompt = buildExpansionPrompt(heading, query)
+  
+  let resultText = ''
+  try {
+    const res1 = await callWithFailover({ query, mode: 'focus', systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', userPrompt: prompt }, ctx)
+    resultText = res1.response.content.trim()
+    
+    // Auto-continue if it seems truncated
+    if (resultText.length < 800) {
+      log.step('expand', `Auto-continuing short section: ${heading}`, ctx)
+      const contPrompt = buildContinuationPrompt()
+      // Use the previous output as context by appending it to the system prompt or user prompt
+      const res2 = await callWithFailover({ 
+        query, 
+        mode: 'focus', 
+        systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', 
+        userPrompt: \`\${prompt}\n\nPrevious text:\n\${resultText}\n\n\${contPrompt}\` 
+      }, ctx)
+      resultText += '\n\n' + res2.response.content.trim()
+    }
+  } catch (err) {
+    log.error(`Expansion failed for ${heading}: ${(err as Error).message}`, ctx)
+    // If it completely fails, we leave it as is or return a short summary
+    if (!resultText) resultText = "Analysis temporarily unavailable for this section."
   }
+  
+  return resultText
 }
 
 export async function runResearchPipeline(input: PipelineInput): Promise<PipelineOutput> {
@@ -86,20 +100,26 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   try {
     parsed = extractJSON(response.content)
   } catch (e) {
-    log.error(`JSON parse failed, using fallback: ${(e as Error).message}`, { ...ctx, failureStep: 'parse' })
-    parsed = buildFallback(input.query, response.content)
+    log.error(`JSON parse failed: ${(e as Error).message}`, { ...ctx, failureStep: 'parse' })
+    throw new Error('Gagal memproses hasil AI. Output tidak valid (JSON parse error).')
   }
 
   log.step('validate', 'Validating schema', ctx)
-  let data: any
   const validation = GeminiResearchResponseSchema.safeParse(parsed)
   if (!validation.success) {
-    log.error('Schema validation failed, using fallback', { ...ctx, failureStep: 'validate' })
-    const fallback = GeminiResearchResponseSchema.safeParse(buildFallback(input.query, response.content))
-    if (!fallback.success) throw new Error('Both primary and fallback validation failed')
-    data = fallback.data
-  } else {
-    data = validation.data
+    log.error('Schema validation failed', { ...ctx, failureStep: 'validate' })
+    throw new Error(`Validasi hasil gagal: ${validation.error.issues.map(i => i.message).join(', ')}`)
+  }
+  let data = validation.data
+  
+  // ─── STAGE 2: Outline Expansion (Loop) ───────────────
+  if (input.mode === 'deep' || input.mode === 'analytica') {
+    if (data.outline && data.outline.length > 0) {
+      log.step('expand_loop', `Starting expansion for ${data.outline.length} sections`, ctx)
+      for (const section of data.outline) {
+        section.body = await expandWithContinuation(section.heading, input.query, ctx)
+      }
+    }
   }
 
   // ─── Quality Audit: mode-aware confidence calibration ───────────────
@@ -143,10 +163,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
 
   data.confidenceScore = auditedConfidence
 
-  // Flag if this was a fallback parse
-  if (!validation.success) {
-    data.confidenceScore = Math.min(data.confidenceScore, 40)
-  }
+  data.confidenceScore = auditedConfidence
 
   log.info(`Quality audit: mode=${input.mode} sources=${sourceCount}/${mins.sources} evidence=${evidenceCount}/${mins.evidence} findings=${findingCount}/${mins.findings} outline=${outlineCount}/${mins.outline} recs=${recCount}/${mins.recs} depthPenalty=${depthPenalty} confidence=${data.confidenceScore}`, ctx)
 

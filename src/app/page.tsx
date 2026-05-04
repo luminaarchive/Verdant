@@ -131,6 +131,7 @@ function HomeContent() {
     : filteredTemplates
 
   const domainSignals = DOMAIN_SIGNALS[selectedDomain] || DOMAIN_SIGNALS.all
+  // eslint-disable-next-line react-hooks/purity
   const signal = domainSignals[Math.floor(Math.random() * domainSignals.length)]
 
   // Phase 4: Daily Brief + Status
