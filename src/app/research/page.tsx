@@ -261,16 +261,14 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
     try {
       const res = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ runId: result.runId, format: 'pdf' }) })
       if (!res.ok) throw new Error('Export failed')
-      const contentType = res.headers.get('content-type') || ''
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      // If the server returned HTML fallback, download as .html for browser print-to-PDF
-      a.download = contentType.includes('text/html') ? `verdant-${result.runId}.html` : `verdant-${result.runId}.pdf`
+      a.download = `verdant-${result.runId}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-      toast(contentType.includes('text/html') ? 'Print-ready HTML downloaded (use browser Print > Save as PDF)' : 'PDF downloaded', { icon: 'download' })
+      toast('PDF downloaded', { icon: 'download' })
       try { const c = parseInt(localStorage.getItem('verdant-exports-count') ?? '0', 10); localStorage.setItem('verdant-exports-count', String(c + 1)) } catch { /* ignore */ }
     } catch { toast('PDF export failed. Try again.', { type: 'error' }) }
     setExporting(false)
@@ -819,6 +817,7 @@ function ResearchContent() {
         setAsyncStage(startData.stage || 'Queued for processing')
         setAsyncProgress(startData.progress || 5)
         setAsyncEta(startData.etaSeconds || 180)
+        let pollFailureCount = 0
 
         // Use ref to track if poll has completed (avoids stale closure on status)
         const pollCompletedRef = { current: false }
@@ -826,7 +825,9 @@ function ResearchContent() {
         const pollInterval = setInterval(async () => {
           try {
             const statusRes = await fetch(`/api/research/status/${jobId}`)
+            if (!statusRes.ok) throw new Error(`Status polling failed (${statusRes.status})`)
             const statusData = await statusRes.json()
+            pollFailureCount = 0
 
             setAsyncStage(statusData.stage)
             setAsyncProgress(statusData.progress)
@@ -864,7 +865,15 @@ function ResearchContent() {
               setStatus('error')
             }
           } catch {
-            // Silently retry polling on network errors
+            pollFailureCount += 1
+            if (pollFailureCount >= 3) {
+              clearInterval(pollInterval)
+              setResult({ error: 'Unable to retrieve analysis status. Please retry.', raw: 'Polling failed' })
+              setAsyncStage(undefined)
+              setAsyncProgress(undefined)
+              setStatus('error')
+              isFetchingRef.current = false
+            }
           }
         }, 5000)
 

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ExportRequestSchema } from '@/lib/research/schema'
 import { getRunById, saveGeneratedFile, getSupabaseAdmin } from '@/lib/supabase/admin'
 import { generateDocxBuffer } from '@/lib/research/docx-generator'
+import { generatePdfBuffer } from '@/lib/research/pdf-generator'
 import { renderReportHtml } from '@/lib/research/report-template'
 import type { ResearchResult } from '@/lib/research/schema'
 import { log, generateRequestId, timer } from '@/lib/research/logger'
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
     } else if (format === 'pdf') {
       // ─── PDF Generation ─────────────────────────────────────────────
       const pdfServiceUrl = process.env.PDF_SERVICE_URL
+      await trackExportState(runId, { exportStatus: 'generating' })
 
       if (pdfServiceUrl) {
         // Railway headless Chromium service
@@ -184,9 +186,17 @@ export async function POST(request: NextRequest) {
             }).catch(() => {})
           }
 
+          await trackExportState(runId, {
+            exportStatus: 'ready',
+            exportReady: true,
+            exportFilePath: `pdf/${filename}`,
+            exportFileSize: pdfBuffer.length,
+          })
+          await logEvent(`export_${runId}`, 'export_completed', 'generating', 'ready', { format: 'pdf', fileSize: pdfBuffer.length })
+
           log.info(`PDF generated via Railway (${pdfBuffer.length} bytes)`, { requestId, runId, durationMs: elapsed() })
 
-          return new NextResponse(pdfBuffer, {
+          return new NextResponse(new Uint8Array(pdfBuffer), {
             status: 200,
             headers: {
               'Content-Type': 'application/pdf',
@@ -196,18 +206,36 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        log.warn('Railway PDF service failed, falling back to HTML', { requestId, runId })
+        log.warn('Railway PDF service failed, falling back to internal PDF generator', { requestId, runId })
       }
 
-      // Fallback: return print-optimized HTML
-      log.step('pdf', 'Generating print-optimized HTML (PDF fallback)', { requestId, runId })
-      const html = renderReportHtml(result)
+      // Fallback: generate PDF in-process (prevents false-success HTML downloads)
+      log.step('pdf', 'Generating in-process PDF fallback', { requestId, runId })
+      const pdfBuffer = await generatePdfBuffer(result)
+      const filename = `verdant-${runId}.pdf`
 
-      return new NextResponse(html, {
+      const sb = getSupabaseAdmin()
+      if (sb) {
+        await sb.storage.from('reports').upload(`pdf/${filename}`, pdfBuffer, {
+          contentType: 'application/pdf',
+          upsert: true,
+        }).catch(() => {})
+      }
+
+      await trackExportState(runId, {
+        exportStatus: 'ready',
+        exportReady: true,
+        exportFilePath: `pdf/${filename}`,
+        exportFileSize: pdfBuffer.length,
+      })
+      await logEvent(`export_${runId}`, 'export_completed', 'generating', 'ready', { format: 'pdf', fileSize: pdfBuffer.length, fallback: 'internal' })
+
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         status: 200,
         headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'X-Fallback': 'html-print',
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': String(pdfBuffer.length),
           'X-Request-Id': requestId,
         },
       })

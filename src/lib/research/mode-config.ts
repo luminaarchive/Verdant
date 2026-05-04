@@ -25,13 +25,13 @@ export const MODE_CONFIG = {
   },
   analytica: {
     label: 'Analytica - International Journal-Grade Intelligence',
-    targetPages: { min: 20, max: 30 },
-    targetWords: { min: 8000, max: 12000 },
+    targetPages: { min: 15, max: 20 },
+    targetWords: { min: 6000, max: 9000 },
     maxSources: 30,
     timeoutMinutes: 10,
     inngestTimeout: '15m' as const,
     reportFormat: 'International Journal-Grade Report',
-    promptAddition: `Generate a comprehensive international journal-grade environmental research report. Target length: 20-30 pages (approximately 8,000-12,000 words minimum). This report must be suitable for submission to peer-reviewed environmental journals. Include all standard academic sections: Cover Page, Abstract (EN + ID), Table of Contents, Executive Summary, Introduction & Background, Theoretical Framework, Methodology & Data Sources, Primary Findings, Species/Ecosystem Analysis (if applicable), Threat Assessment, Statistical Analysis & Data Visualization, Policy Implications, Conservation/Action Recommendations, Limitations & Uncertainty Declaration, Future Research Directions, References (formatted), Appendices. Every claim must be supported by verifiable sources with DOI where available. Include confidence scores per major claim. The report must be coherent and consistent from introduction to conclusion - all sections must reference and build upon each other. Do not truncate. Complete all sections fully.
+    promptAddition: `Generate a comprehensive international journal-grade environmental research report. Target length: 15-20 pages (approximately 6,000-9,000 words minimum). This report must be suitable for submission to peer-reviewed environmental journals. Include all standard academic sections: Cover Page, Abstract (EN + ID), Table of Contents, Executive Summary, Introduction & Background, Theoretical Framework, Methodology & Data Sources, Primary Findings, Species/Ecosystem Analysis (if applicable), Threat Assessment, Statistical Analysis & Data Visualization, Policy Implications, Conservation/Action Recommendations, Limitations & Uncertainty Declaration, Future Research Directions, References (formatted), Appendices. Every claim must be supported by verifiable sources with DOI where available. Include confidence scores per major claim. The report must be coherent and consistent from introduction to conclusion - all sections must reference and build upon each other. Do not truncate. Complete all sections fully.
 
 CONSISTENCY REQUIREMENTS:
 - Every section must reference findings established in previous sections

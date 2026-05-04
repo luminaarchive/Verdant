@@ -5,11 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ResearchRequestSchema } from '@/lib/research/schema'
-import { runResearchPipeline } from '@/lib/research/pipeline'
-import { createJob, completeJob, failJob, updateJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
+import { createJob, updateJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
 import { checkRateLimit } from '@/lib/research/rate-limit'
 import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
-import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
 import { validateEnv } from '@/lib/env-check'
 import { inngest } from '@/inngest/client'
 import { MODE_CONFIG } from '@/lib/research/mode-config'
@@ -99,66 +97,13 @@ export async function POST(request: NextRequest) {
 
   log.info(`Job created: ${job.jobId} mode=${mode}`, { requestId, runId })
 
-  // ─── Focus: run inline (fits within 60s easily) ────────────────────────
-  if (mode === 'focus') {
-    await updateJob(job.jobId, { status: 'evidence_synthesis', stage: 'Synthesizing evidence & findings', progress: 30, startedAt: new Date().toISOString() })
-
-    try {
-      const { result } = await runResearchPipeline({ query, mode, requestId, presetId })
-      await completeJob(job.jobId, result, {
-        confidenceScore: result.confidenceScore,
-        sourceCount: (result as any).sources?.length,
-        evidenceCount: (result as any).evidenceItems?.length,
-        exportReady: false,
-      })
-
-      // Persist research run (best-effort)
-      try {
-        await saveResearchRun({
-          run_id: result.runId, query: result.query, mode: result.mode,
-          status: 'ready', pipeline_source: result.pipelineSource,
-          confidence_score: result.confidenceScore, duration_ms: result.durationMs,
-          request_id: requestId,
-        })
-      } catch { /* non-critical */ }
-      try {
-        await saveResearchResult({
-          run_id: result.runId,
-          title: result.title ?? '',
-          executive_summary: result.executiveSummary,
-          findings: result.findings ?? [],
-          outline: result.outline ?? [],
-          stats: result.stats ?? [],
-          sources: result.sources ?? [],
-          evidence_items: result.evidenceItems ?? [],
-          uncertainty_notes: result.uncertaintyNotes ?? [],
-          decision_recommendations: result.decisionRecommendations,
-          contradictions: result.contradictions,
-          strategic_follow_ups: result.strategicFollowUps,
-        })
-      } catch { /* non-critical */ }
-
-      return NextResponse.json({
-        ok: true,
-        jobId: job.jobId,
-        status: 'ready',
-        progress: 100,
-        result,
-      })
-    } catch (err) {
-      await failJob(job.jobId, (err as Error).message)
-      return NextResponse.json({
-        ok: true,
-        jobId: job.jobId,
-        status: 'failed',
-        errorReason: (err as Error).message,
-      })
-    }
-  }
-
-  // ─── Deep & Analytica: dispatch to Inngest, return jobId instantly ────
+  // ─── Dispatch to Inngest for all modes, return jobId instantly ─────────
   const config = MODE_CONFIG[mode as keyof typeof MODE_CONFIG]
-  const stageLabel = mode === 'analytica' ? 'Queued for Analytica processing' : 'Queued for Deep analysis'
+  const stageLabel = mode === 'analytica'
+    ? 'Queued for Analytica processing'
+    : mode === 'deep'
+      ? 'Queued for Deep analysis'
+      : 'Queued for Focus analysis'
   await updateJob(job.jobId, { status: 'queued', stage: stageLabel, progress: 5 })
 
   // Dispatch to Inngest durable pipeline (runs outside Vercel 60s timeout)

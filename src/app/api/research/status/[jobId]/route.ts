@@ -38,8 +38,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
-  // ─── Deep & Analytica: trigger processing with worker lock ─────────────
-  if ((job.mode === 'analytica' || job.mode === 'deep') && (job.status === 'queued' || job.status === 'source_collection')) {
+  // ─── Trigger processing with worker lock ────────────────────────────────
+  if (job.status === 'queued' || job.status === 'source_collection') {
     const requestId = generateRequestId()
 
     // Acquire worker lock (prevents double-processing across instances)
