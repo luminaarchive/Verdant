@@ -190,6 +190,17 @@ const RSS_FEEDS = [
   { url: 'https://www.unep.org/news-and-stories/rss.xml', source: 'UNEP' },
 ]
 
+function sanitizeExternalUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.href
+  } catch {
+    return null
+  }
+}
+
 async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<RssArticle[]> {
   try {
     const res = await fetch(feedUrl, { signal: AbortSignal.timeout(8000), cache: 'no-store' })
@@ -201,7 +212,8 @@ async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<RssArt
     $('item').each((_, el) => {
       if (items.length >= 8) return false
       const title = $(el).find('title').first().text().trim()
-      const url = $(el).find('link').first().text().trim()
+      const rawUrl = $(el).find('link').first().text().trim()
+      const url = sanitizeExternalUrl(rawUrl)
       const rawDesc = $(el).find('description').first().text().trim()
       const publishedAt = $(el).find('pubDate').first().text().trim() || null
       const categoryRaw = $(el).find('category').first().text().trim()
@@ -222,7 +234,7 @@ async function fetchRssFeed(feedUrl: string, sourceName: string): Promise<RssArt
         body: (plainDesc || 'Environmental update from trusted source.').slice(0, 180),
         source: sourceName,
         publishedAt,
-        image: mediaImage,
+        image: sanitizeExternalUrl(mediaImage),
         category,
       })
     })
@@ -358,10 +370,12 @@ export async function GET(request: NextRequest) {
       if (validArticles.length >= 12) break // Fetch a bit more to sort
 
       let imageUrl = r.image_url || null
+      const articleUrl = sanitizeExternalUrl(r.url)
+      if (!articleUrl) continue
 
       if (!imageUrl) {
         try {
-          const pageRes = await fetch(r.url, { signal: AbortSignal.timeout(3000) })
+          const pageRes = await fetch(articleUrl, { signal: AbortSignal.timeout(3000) })
           if (pageRes.ok) {
             const html = await pageRes.text()
             const $ = cheerio.load(html)
@@ -374,12 +388,13 @@ export async function GET(request: NextRequest) {
             if (fallbacks.length > 0) {
               const urlMatch = fallbacks[0]
               if (urlMatch && !urlMatch.startsWith('data:')) {
-                imageUrl = new URL(urlMatch, r.url).href
+                imageUrl = new URL(urlMatch, articleUrl).href
               }
             }
           }
         } catch { }
       }
+      imageUrl = sanitizeExternalUrl(imageUrl)
 
       const category = detectCategory(r.title, r.content)
       
@@ -397,10 +412,10 @@ export async function GET(request: NextRequest) {
         tag: filter,
         title: r.title,
         body: (r.content || '').slice(0, 160) + (r.content?.length > 160 ? '...' : ''),
-        url: r.url,
+        url: articleUrl,
         image: imageUrl,
         publishedAt: r.published_date || null,
-        source: r.source || new URL(r.url).hostname.replace('www.', ''),
+        source: r.source || new URL(articleUrl).hostname.replace('www.', ''),
         query: r.title,
         impactStatement: generateImpactStatement(r.title, category, r.title + ' ' + r.content),
         priorityScore: calculatePriorityScore(r)

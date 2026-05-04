@@ -39,6 +39,7 @@ function AuthForm() {
 
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
+  const [oauthLoading, setOauthLoading] = useState(false)
 
   const inputStyle = {
     width: '100%', padding: '10px 14px', borderRadius: '8px',
@@ -106,6 +107,27 @@ function AuthForm() {
       setError(language === 'id' ? 'Terjadi kesalahan tak terduga. Silakan coba lagi.' : 'An unexpected error occurred. Please try again.')
     }
     setLoading(false)
+  }
+
+  const handleGoogleAuth = async () => {
+    setError('')
+    setSuccess('')
+    setOauthLoading(true)
+    try {
+      const supabase = createClient()
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const callback = `${origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: callback },
+      })
+      if (oauthError) {
+        setError(humanizeAuthError(oauthError.message))
+      }
+    } catch {
+      setError(language === 'id' ? 'Autentikasi Google gagal dimulai. Coba lagi.' : 'Failed to start Google authentication. Please retry.')
+    }
+    setOauthLoading(false)
   }
 
   return (
@@ -220,6 +242,27 @@ function AuthForm() {
             {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
+
+        <div style={{ marginTop: '14px' }}>
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={loading || oauthLoading}
+            className="btn"
+            style={{
+              width: '100%',
+              height: '42px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-main)',
+              opacity: loading || oauthLoading ? 0.6 : 1,
+            }}
+          >
+            {oauthLoading
+              ? (language === 'id' ? 'Mengarahkan ke Google...' : 'Redirecting to Google...')
+              : (language === 'id' ? 'Lanjutkan dengan Google' : 'Continue with Google')}
+          </button>
+        </div>
 
         <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
           <button

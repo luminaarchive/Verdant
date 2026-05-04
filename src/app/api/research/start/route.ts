@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, message: `Validation: ${parsed.error.issues.map(i => i.message).join('; ')}` }, { status: 400 })
   }
 
-  const { query, mode, idempotencyKey, presetId } = parsed.data
+  const { query, mode, idempotencyKey, presetId, context } = parsed.data
   const runId = generateRunId()
 
   // ─── Monetization Gating (P1) ──────────────────────────────────────────
@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
         query,
         mode,
         presetId: presetId ?? undefined,
+        context: context ?? undefined,
       },
     })
     log.info(`Inngest event dispatched for job ${job.jobId}`, { requestId, runId })

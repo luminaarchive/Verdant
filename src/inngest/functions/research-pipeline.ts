@@ -27,9 +27,11 @@ export const researchPipeline = inngest.createFunction(
       query: string
       mode: 'focus' | 'deep' | 'analytica'
       presetId?: string
+      context?: string
     }
     const runId = (event.data as { runId?: string }).runId
     const presetId = (event.data as { presetId?: string }).presetId
+    const context = (event.data as { context?: string }).context
     const requestId = generateRequestId()
     const config = MODE_CONFIG[mode]
 
@@ -67,6 +69,7 @@ export const researchPipeline = inngest.createFunction(
         requestId,
         presetId,
         runId,
+        context,
       })
 
       // Save partial result checkpoint (crash-safe)

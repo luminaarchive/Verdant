@@ -119,6 +119,7 @@ export const ResearchRequestSchema = z.object({
   mode: z.enum(['focus', 'deep', 'analytica']).default('focus'),
   idempotencyKey: z.string().optional(),
   presetId: z.string().optional(),
+  context: z.string().max(4000).optional(),
 })
 export type ResearchRequest = z.infer<typeof ResearchRequestSchema>
 

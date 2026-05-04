@@ -9,6 +9,7 @@ export interface PipelineInput {
   requestId: string
   presetId?: string
   runId?: string
+  context?: string
 }
 
 export interface PipelineOutput {
@@ -103,7 +104,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   log.info('Pipeline started', ctx)
   log.step('prompt', 'Building prompt', ctx)
   const systemPrompt = getSystemInstruction(input.mode)
-  const userPrompt = buildUserPrompt(input.query, input.mode, input.presetId)
+  const userPrompt = buildUserPrompt(input.query, input.mode, input.presetId, input.context)
 
   log.step('provider', 'Calling AI provider', ctx)
   const providerResult = await callWithFailover({ query: input.query, mode: input.mode, systemPrompt, userPrompt }, ctx)

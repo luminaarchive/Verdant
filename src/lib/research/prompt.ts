@@ -220,7 +220,7 @@ ${schema}`,
   return `${base}\n\n${modeInstructions[mode] ?? modeInstructions.focus}${lengthEnforcement}`
 }
 
-export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analytica', presetId?: string): string {
+export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analytica', presetId?: string, context?: string): string {
   let domainContext = ''
   if (presetId) {
     try {
@@ -232,10 +232,14 @@ export function buildUserPrompt(query: string, mode: 'focus' | 'deep' | 'analyti
 
   const modeLabel = { focus: 'FOCUS (Fast Strategic Intelligence)', deep: 'DEEP (Professional Research Report)', analytica: 'ANALYTICA (International Journal-Grade Intelligence)' }
 
+  const conversationContext = context?.trim()
+    ? `\n\nFOLLOW-UP CONTEXT (from previous turns):\n${context.trim()}\nUse this context to keep continuity. If current query conflicts, prioritize current query but explicitly reconcile differences.`
+    : ''
+
   return `Produce an Environmental Intelligence Report for the following query.
 Apply ${modeLabel[mode]} depth and standards.
 
-QUERY: ${query}${domainContext}
+QUERY: ${query}${domainContext}${conversationContext}
 
 ENFORCEMENT CHECKLIST — verify ALL before outputting:
 □ CONSISTENCY: Executive summary, findings, and recommendations tell ONE coherent story

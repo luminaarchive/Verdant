@@ -10,7 +10,7 @@ import { ArrowLeft, RotateCcw, Copy, BookmarkPlus, CheckCircle2, Download, Thumb
 import { TEMPLATES } from '@/lib/research/templates'
 import { addWatchlistItem } from '@/lib/retention/watchlists'
 import { recordActivity } from '@/lib/streak/client'
-import { recordQuery, getRelatedPriorWork } from '@/lib/intelligence/memory'
+import { recordQuery, getRelatedPriorWork, getMemory } from '@/lib/intelligence/memory'
 import { computeReportScores, computeProofOfWork } from '@/lib/intelligence/scores'
 import { getReportFreshness, recordReportView, getReportDeltas } from '@/lib/intelligence/living-reports'
 import { getSourceReliability } from '@/lib/intelligence/source-reliability'
@@ -758,6 +758,19 @@ function ResearchContent() {
       ? (localStorage.getItem('verdant-search-mode') || 'focus')
       : 'focus'
     const idempotencyKey = `${queryString}-${Date.now()}`
+    const conversationContext = (() => {
+      if (typeof window === 'undefined') return undefined
+      try {
+        const memory = getMemory()
+        const recent = memory.recentQueries
+          .filter((q) => q.toLowerCase() !== queryString.toLowerCase())
+          .slice(0, 4)
+        if (recent.length === 0) return undefined
+        return `Recent related user questions:\n- ${recent.join('\n- ')}`
+      } catch {
+        return undefined
+      }
+    })()
 
     try {
       // ─── Use async job system ────────────────────────────────────────
@@ -767,7 +780,13 @@ function ResearchContent() {
       const startRes = await fetch('/api/research/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryString, mode: searchMode, idempotencyKey, presetId: presetId || undefined }),
+        body: JSON.stringify({
+          query: queryString,
+          mode: searchMode,
+          idempotencyKey,
+          presetId: presetId || undefined,
+          context: conversationContext,
+        }),
         signal: controller.signal
       })
       clearTimeout(timeoutId)
