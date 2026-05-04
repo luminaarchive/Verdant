@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ResearchRequestSchema } from '@/lib/research/schema'
-import { createJob, updateJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
+import { createJob, updateJob, failJob, findByIdempotencyKey, logEvent } from '@/lib/research/jobs'
 import { checkRateLimit } from '@/lib/research/rate-limit'
 import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
 import { validateEnv } from '@/lib/env-check'
@@ -121,10 +121,18 @@ export async function POST(request: NextRequest) {
     log.info(`Inngest event dispatched for job ${job.jobId}`, { requestId, runId })
     await logEvent(job.jobId, 'inngest_dispatched', 'queued', 'queued', { mode })
   } catch (inngestErr) {
-    // If Inngest dispatch fails, log but don't fail the request.
-    // The status polling route still has fallback in-process execution.
-    log.warn(`Inngest dispatch failed, falling back to poll-triggered execution: ${(inngestErr as Error).message}`, { requestId })
-    await logEvent(job.jobId, 'inngest_dispatch_failed', 'queued', 'queued', { error: (inngestErr as Error).message })
+    // No in-request execution fallback here: mark job failed explicitly
+    // so UI does not hang in queued/loading state.
+    const errorMsg = (inngestErr as Error).message
+    log.warn(`Inngest dispatch failed: ${errorMsg}`, { requestId })
+    await failJob(job.jobId, `Queue dispatch failed: ${errorMsg}`)
+    await logEvent(job.jobId, 'inngest_dispatch_failed', 'queued', 'failed', { error: errorMsg })
+    return NextResponse.json({
+      ok: true,
+      jobId: job.jobId,
+      status: 'failed',
+      errorReason: 'Failed to queue analysis job. Please retry.',
+    })
   }
 
   return NextResponse.json({
