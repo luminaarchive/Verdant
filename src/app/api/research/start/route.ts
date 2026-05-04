@@ -13,6 +13,7 @@ import { saveResearchRun, saveResearchResult } from '@/lib/supabase/admin'
 import { validateEnv } from '@/lib/env-check'
 import { inngest } from '@/inngest/client'
 import { MODE_CONFIG } from '@/lib/research/mode-config'
+import { createClient } from '@/lib/supabase/server'
 
 // Validate env on module load — logs clear errors to Vercel logs immediately
 validateEnv()
@@ -43,6 +44,33 @@ export async function POST(request: NextRequest) {
 
   const { query, mode, idempotencyKey, presetId } = parsed.data
   const runId = generateRunId()
+
+  // ─── Monetization Gating (P1) ──────────────────────────────────────────
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let tier = 'guest'
+  if (user) {
+    const { data: profile } = await supabase.from('user_profiles').select('subscription_tier').eq('id', user.id).single()
+    tier = profile?.subscription_tier || 'seeds'
+  }
+
+  // Gating Logic
+  if (mode === 'analytica' && (tier === 'guest' || tier === 'seeds')) {
+    return NextResponse.json({ 
+      ok: false, 
+      message: tier === 'guest' 
+        ? 'Please sign in to access Analytica mode.' 
+        : 'Analytica is a premium mode. Upgrade to Sapling or Forest Keeper tier to unlock international-grade intelligence.' 
+    }, { status: 403 })
+  }
+
+  if (mode === 'deep' && tier === 'guest') {
+    return NextResponse.json({ 
+      ok: false, 
+      message: 'Please sign in to access Deep Research mode.' 
+    }, { status: 403 })
+  }
 
   // ─── Idempotency: check DB for existing job (durable, survives restarts) ──
   if (idempotencyKey) {

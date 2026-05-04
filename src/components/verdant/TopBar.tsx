@@ -3,8 +3,9 @@
 import React, { Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Menu, Clock } from 'lucide-react'
+import { Menu, Clock, LogIn } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
+import { createClient } from '@/lib/supabase/client'
 
 import { useTheme } from '@/components/providers/ThemeProvider'
 
@@ -103,6 +104,16 @@ export function TopBar() {
   const router = useRouter()
   const { setSidebarOpen } = useAppLayout()
   const { activeTheme, setTheme } = useTheme()
+  const [user, setUser] = React.useState<any>(null)
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      setLoading(false)
+    })
+  }, [])
 
   return (
     <header
@@ -190,32 +201,60 @@ export function TopBar() {
           Archive
         </button>
 
-        <Link href="/profile" style={{ lineHeight: 0 }}>
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              transition: 'color 0.15s, transform 0.2s',
-              padding: '2px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onMouseEnter={e => {
-              ;(e.currentTarget as HTMLElement).style.color = '#1A2F23'
-              ;(e.currentTarget as HTMLElement).style.transform = 'scale(1.1)'
-            }}
-            onMouseLeave={e => {
-              ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
-              ;(e.currentTarget as HTMLElement).style.transform = 'scale(1)'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>account_circle</span>
-          </button>
-        </Link>
+        {!loading && (
+          user ? (
+            <Link href="/profile" style={{ lineHeight: 0 }}>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  transition: 'color 0.15s, transform 0.2s',
+                  padding: '2px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  ;(e.currentTarget as HTMLElement).style.color = '#1A2F23'
+                  ;(e.currentTarget as HTMLElement).style.transform = 'scale(1.1)'
+                }}
+                onMouseLeave={e => {
+                  ;(e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+                  ;(e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>account_circle</span>
+              </button>
+            </Link>
+          ) : (
+            <button
+              onClick={() => router.push('/auth')}
+              style={{
+                fontSize: '12px',
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontWeight: '600',
+                color: '#FFFFFF',
+                background: '#1A2F23',
+                border: 'none',
+                padding: '6px 16px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.9'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+            >
+              <LogIn size={13} />
+              Sign In
+            </button>
+          )
+        )}
       </div>
     </header>
   )

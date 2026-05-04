@@ -233,7 +233,16 @@ export default function ProfilePage() {
                     Focus: {profile.research_focus}
                   </p>
                 )}
-                <span className="badge badge-green" style={{ marginTop: '6px', fontSize: '10px' }}>{tier}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                  <span className="badge badge-green" style={{ fontSize: '10px' }}>{tier}</span>
+                  {(profile?.subscription_tier === 'seeds' || !profile?.subscription_tier) && (
+                    <Link href="/pricing" style={{ textDecoration: 'none' }}>
+                      <button style={{ background: 'var(--green-dark)', color: '#FFFFFF', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '9px', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Upgrade
+                      </button>
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
 

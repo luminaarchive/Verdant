@@ -176,11 +176,40 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
   }
 
   const copyLink = () => { navigator.clipboard.writeText(window.location.href).then(() => toast('Link copied', { icon: 'link' })) }
-  const copySummary = () => {
-    const text = typeof result.executiveSummary === 'object'
-      ? Object.entries(result.executiveSummary).map(([k, v]) => `${k}: ${v}`).join('\n\n')
-      : (result.executiveSummary ?? '')
-    navigator.clipboard.writeText(text).then(() => toast('Summary copied', { icon: 'content_copy' }))
+  const copyReport = () => {
+    let text = `VERDANT RESEARCH REPORT: ${result.title || query}\n`
+    text += `==========================================\n\n`
+    
+    if (typeof result.executiveSummary === 'object' && result.executiveSummary) {
+      text += `EXECUTIVE SUMMARY\n`
+      if (result.executiveSummary.whatMattersMost) text += `What Matters Most: ${result.executiveSummary.whatMattersMost}\n`
+      if (result.executiveSummary.recommendedNextAction) text += `Recommended Action: ${result.executiveSummary.recommendedNextAction}\n`
+      text += `\n`
+    } else if (result.executiveSummary) {
+      text += `EXECUTIVE SUMMARY: ${result.executiveSummary}\n\n`
+    }
+
+    if (result.findings && result.findings.length > 0) {
+      text += `KEY FINDINGS\n`
+      result.findings.forEach(f => { text += `• ${f}\n` })
+      text += `\n`
+    }
+
+    if (result.outline && result.outline.length > 0) {
+      text += `DETAILED ANALYSIS\n`
+      result.outline.forEach(item => {
+        text += `## ${item.heading}\n${item.body}\n\n`
+      })
+    }
+
+    if (result.sources && result.sources.length > 0) {
+      text += `SOURCES\n`
+      result.sources.forEach((src, i) => {
+        text += `[${i + 1}] ${src.title}${src.url ? ` (${src.url})` : ''}\n`
+      })
+    }
+
+    navigator.clipboard.writeText(text).then(() => toast('Full report copied', { icon: 'content_copy' }))
   }
 
   const downloadDocx = async () => {
@@ -329,7 +358,7 @@ function StructuredResult({ result, query, onRetry }: { result: ResearchResult; 
       {/* Action bar */}
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: '4px' }}>
         <button onClick={downloadDocx} disabled={exporting || !result.runId} className="btn btn-subtle" style={abStyle}><Download size={12} /> {exporting ? '...' : 'DOCX'}</button>
-        <button onClick={copySummary} className="btn btn-subtle" style={abStyle}><Copy size={12} /> Summary</button>
+        <button onClick={copyReport} className="btn btn-subtle" style={abStyle}><Copy size={12} /> Copy Report</button>
         <button onClick={copyLink} className="btn btn-subtle" style={abStyle}><Share2 size={12} /> Link</button>
         <button onClick={saveToJournal} className="btn btn-subtle" style={abStyle}><BookmarkPlus size={12} /> Save</button>
         <button onClick={() => { addWatchlistItem({ type: 'research', title: result.title || query, description: query, query, priority: 'medium' }); toast('Added to Watchlist', { icon: 'visibility' }) }} className="btn btn-subtle" style={abStyle}><Eye size={12} /> Watch</button>
