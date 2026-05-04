@@ -53,33 +53,41 @@ function isValidOutput(text: string): boolean {
 async function expandWithContinuation(heading: string, query: string, ctx: Partial<LogContext>): Promise<string> {
   log.step('expand', `Expanding section: ${heading}`, ctx)
   const prompt = buildExpansionPrompt(heading, query)
+  const sysPrompt = 'You are an academic environmental researcher producing a formal research report. Output plain text only. No markdown, no JSON, no headers, no bullet points.'
   
   let resultText = ''
   try {
-    const res1 = await callWithFailover({ query, mode: 'focus', systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', userPrompt: prompt }, ctx)
+    const res1 = await callWithFailover({ query, mode: 'focus', systemPrompt: sysPrompt, userPrompt: prompt }, ctx)
     resultText = res1.response.content.trim()
     
-    // Auto-continue if it seems truncated
-    if (resultText.length < 800) {
-      log.step('expand', `Auto-continuing short section: ${heading}`, ctx)
+    // Auto-continue if section is too short (target: 1000-2000 words ≈ 5000-10000 chars)
+    // First continuation: if under ~330 words
+    if (resultText.length < 2000) {
+      log.step('expand', `Auto-continuing short section (${resultText.length} chars): ${heading}`, ctx)
       const contPrompt = buildContinuationPrompt()
-      // Use the previous output as context by appending it to the system prompt or user prompt
       const res2 = await callWithFailover({ 
         query, 
         mode: 'focus', 
-        systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', 
-        userPrompt: `${prompt}
-
-Previous text (last part):
-${resultText.slice(-500)}
-
-${contPrompt}`
+        systemPrompt: sysPrompt, 
+        userPrompt: `${prompt}\n\nPrevious text (last part):\n${resultText.slice(-500)}\n\n${contPrompt}`
       }, ctx)
       resultText += '\n\n' + res2.response.content.trim()
     }
+    
+    // Second continuation: if still under ~660 words after first continuation
+    if (resultText.length < 4000) {
+      log.step('expand', `Second continuation (${resultText.length} chars): ${heading}`, ctx)
+      const contPrompt = buildContinuationPrompt()
+      const res3 = await callWithFailover({ 
+        query, 
+        mode: 'focus', 
+        systemPrompt: sysPrompt, 
+        userPrompt: `${prompt}\n\nPrevious text (last part):\n${resultText.slice(-500)}\n\n${contPrompt}`
+      }, ctx)
+      resultText += '\n\n' + res3.response.content.trim()
+    }
   } catch (err) {
     log.error(`Expansion failed for ${heading}: ${(err as Error).message}`, ctx)
-    // If it completely fails, we leave it as is or return a short summary
     if (!resultText) resultText = "Analysis temporarily unavailable for this section."
   }
   
@@ -169,8 +177,6 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   if (outlineCount < mins.outline) depthPenalty += 3
   if (recCount < mins.recs) depthPenalty += 4
   auditedConfidence = Math.max(10, auditedConfidence - depthPenalty)
-
-  data.confidenceScore = auditedConfidence
 
   data.confidenceScore = auditedConfidence
 

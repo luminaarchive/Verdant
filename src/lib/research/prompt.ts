@@ -260,25 +260,29 @@ IMPORTANT:
 }
 
 export function buildExpansionPrompt(heading: string, topic: string): string {
-  return `You are writing an academic journal.
+  return `You are writing a section for an environmental research report.
 
-Section: ${heading}
-Topic: ${topic}
+Section Title: ${heading}
+Research Topic: ${topic}
 
-Write in Indonesian.
-Minimum 800-1500 words.
+Write in English. This is an academic research document.
+Target length: 1000-2000 words for this section.
 
-Rules:
-- Formal academic tone
-- Deep explanation
-- Add analysis
-- No bullet spam
-- No JSON
-- No markdown symbols
-- Do not stop mid sentence
-- If not finished, continue writing
+Requirements:
+- Formal academic tone throughout
+- Deep analytical explanation with evidence-based reasoning
+- Include specific data points, statistics, and named sources where relevant
+- Provide critical analysis, not just description
+- Use well-structured paragraphs (no bullet point spam)
+- Each paragraph should develop a coherent argument
+- Connect observations to broader environmental implications
+- Do NOT output JSON
+- Do NOT use markdown formatting symbols (no #, no **, no *)
+- Do NOT stop mid-sentence
+- If the section is not complete, continue writing until it is thorough
+- Every claim should be defensible
 
-Output only text.
+Output only plain text paragraphs. No headers. No bullet lists. No markdown.
 
 IMPORTANT:
 - Do NOT modify system
