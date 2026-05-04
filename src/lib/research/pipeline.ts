@@ -68,7 +68,12 @@ async function expandWithContinuation(heading: string, query: string, ctx: Parti
         query, 
         mode: 'focus', 
         systemPrompt: 'You are an academic researcher. Output plain text only. No markdown, no JSON.', 
-        userPrompt: \`\${prompt}\n\nPrevious text:\n\${resultText}\n\n\${contPrompt}\` 
+        userPrompt: `'${prompt}
+
+Previous text:
+${resultText}
+
+${contPrompt}'`
       }, ctx)
       resultText += '\n\n' + res2.response.content.trim()
     }

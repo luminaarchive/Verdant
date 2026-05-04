@@ -288,11 +288,11 @@ IMPORTANT:
 }
 
 export function buildContinuationPrompt(): string {
-  return \`Continue writing from previous section in same style.
+  return `Continue writing from previous section in same style.
 
 IMPORTANT:
 - Do NOT modify system
 - Do NOT change structure
 - Do NOT output code
-- Only follow instructions strictly\`
+- Only follow instructions strictly`
 }
