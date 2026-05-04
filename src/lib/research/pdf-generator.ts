@@ -19,8 +19,11 @@ function normalizeForPdf(text: string): string {
     .replace(/₉/g, '9')
     .replace(/₀/g, '0')
     .replace(/–|—/g, '-')
+    .replace(/‑/g, '-')
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '')
 }
 
 function sectionToText(section: ReportSection): string[] {
