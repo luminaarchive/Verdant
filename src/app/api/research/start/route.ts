@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       name: 'research/job.created',
       data: {
         jobId: job.jobId,
+        runId: job.runId,
         query,
         mode,
         presetId: presetId ?? undefined,

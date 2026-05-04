@@ -65,37 +65,64 @@ export async function POST(request: NextRequest) {
 
   log.info(`Export request: ${format}`, { requestId, runId })
 
-  // ─── Get run data ───────────────────────────────────────────────────────
+  // ─── Get run data (primary: normalized tables, fallback: research_jobs) ──
   const data = await getRunById(runId)
-  if (!data?.result) {
-    return NextResponse.json({ ok: false, message: 'Run not found or has no results' }, { status: 404 })
+  let result: ResearchResult | null = null
+
+  if (data?.result && data?.run) {
+    const r = data.run as any
+    const res = data.result as any
+    result = {
+      runId: r.run_id,
+      query: r.query,
+      mode: r.mode,
+      status: r.status,
+      pipelineSource: r.pipeline_source ?? 'gemini-direct',
+      confidenceScore: r.confidence_score ?? 0,
+      durationMs: r.duration_ms,
+      createdAt: r.created_at,
+      title: res.title,
+      executiveSummary: res.executive_summary ?? '',
+      findings: res.findings ?? [],
+      decisionRecommendations: res.decision_recommendations ?? [],
+      outline: res.outline ?? [],
+      stats: res.stats ?? [],
+      sources: res.sources ?? [],
+      evidenceItems: res.evidence_items ?? [],
+      contradictions: res.contradictions ?? [],
+      uncertaintyNotes: res.uncertainty_notes ?? [],
+      strategicFollowUps: res.strategic_follow_ups ?? [],
+      costBreakdown: r.cost_usd ? { model: 'gemini-2.0-flash', inputTokens: 0, outputTokens: 0, costUsd: r.cost_usd } : undefined,
+    }
+  } else {
+    const sb = getSupabaseAdmin()
+    if (sb) {
+      const { data: jobRow } = await sb
+        .from('research_jobs')
+        .select('*')
+        .filter('result_data->>runId', 'eq', runId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const raw = jobRow?.result_data as any
+      if (raw) {
+        result = {
+          ...raw,
+          runId: raw.runId ?? runId,
+          query: raw.query ?? jobRow.query ?? '',
+          mode: raw.mode ?? jobRow.mode ?? 'focus',
+          status: raw.status ?? 'ready',
+          pipelineSource: raw.pipelineSource ?? jobRow.provider_source ?? 'gemini-direct',
+          confidenceScore: raw.confidenceScore ?? jobRow.confidence_score ?? 0,
+          durationMs: raw.durationMs,
+          createdAt: raw.createdAt ?? jobRow.created_at ?? new Date().toISOString(),
+        } as ResearchResult
+      }
+    }
   }
 
-   
-  const r = data.run as any, res = data.result as any
-
-  // Rebuild the ResearchResult from DB data
-  const result: ResearchResult = {
-    runId: r.run_id,
-    query: r.query,
-    mode: r.mode,
-    status: r.status,
-    pipelineSource: r.pipeline_source ?? 'gemini-direct',
-    confidenceScore: r.confidence_score ?? 0,
-    durationMs: r.duration_ms,
-    createdAt: r.created_at,
-    title: res.title,
-    executiveSummary: res.executive_summary ?? '',
-    findings: res.findings ?? [],
-    decisionRecommendations: res.decision_recommendations ?? [],
-    outline: res.outline ?? [],
-    stats: res.stats ?? [],
-    sources: res.sources ?? [],
-    evidenceItems: res.evidence_items ?? [],
-    contradictions: res.contradictions ?? [],
-    uncertaintyNotes: res.uncertainty_notes ?? [],
-    strategicFollowUps: res.strategic_follow_ups ?? [],
-    costBreakdown: r.cost_usd ? { model: 'gemini-2.0-flash', inputTokens: 0, outputTokens: 0, costUsd: r.cost_usd } : undefined,
+  if (!result) {
+    return NextResponse.json({ ok: false, message: 'Run not found or has no results' }, { status: 404 })
   }
 
   try {

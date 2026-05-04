@@ -8,6 +8,7 @@ export interface PipelineInput {
   mode: 'focus' | 'deep' | 'analytica'
   requestId: string
   presetId?: string
+  runId?: string
 }
 
 export interface PipelineOutput {
@@ -95,7 +96,7 @@ async function expandWithContinuation(heading: string, query: string, ctx: Parti
 }
 
 export async function runResearchPipeline(input: PipelineInput): Promise<PipelineOutput> {
-  const runId = generateRunId()
+  const runId = input.runId ?? generateRunId()
   const elapsed = timer()
   const ctx: Partial<LogContext> = { requestId: input.requestId, runId }
 

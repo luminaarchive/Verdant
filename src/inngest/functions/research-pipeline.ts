@@ -23,10 +23,12 @@ export const researchPipeline = inngest.createFunction(
   async ({ event, step }) => {
     const { jobId, query, mode } = event.data as {
       jobId: string
+      runId: string
       query: string
       mode: 'focus' | 'deep' | 'analytica'
       presetId?: string
     }
+    const runId = (event.data as { runId?: string }).runId
     const presetId = (event.data as { presetId?: string }).presetId
     const requestId = generateRequestId()
     const config = MODE_CONFIG[mode]
@@ -64,6 +66,7 @@ export const researchPipeline = inngest.createFunction(
         mode,
         requestId,
         presetId,
+        runId,
       })
 
       // Save partial result checkpoint (crash-safe)

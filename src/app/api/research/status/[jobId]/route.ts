@@ -67,6 +67,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         mode: job.mode,
         requestId,
         presetId: job.presetId,
+        runId: job.runId,
       })
 
       // Save partial result snapshot before completing
