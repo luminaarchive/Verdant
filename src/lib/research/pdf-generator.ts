@@ -7,6 +7,22 @@ const MARGIN = 48
 const LINE_HEIGHT = 16
 const FONT_SIZE = 11
 
+function normalizeForPdf(text: string): string {
+  return text
+    .replace(/₂/g, '2')
+    .replace(/₃/g, '3')
+    .replace(/₄/g, '4')
+    .replace(/₅/g, '5')
+    .replace(/₆/g, '6')
+    .replace(/₇/g, '7')
+    .replace(/₈/g, '8')
+    .replace(/₉/g, '9')
+    .replace(/₀/g, '0')
+    .replace(/–|—/g, '-')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+}
+
 function sectionToText(section: ReportSection): string[] {
   switch (section.type) {
     case 'title':
@@ -69,9 +85,10 @@ export async function generatePdfBuffer(result: ResearchResult): Promise<Buffer>
 
   const wrapText = (text: string, isHeading = false): string[] => {
     if (!text) return ['']
+    const safeText = normalizeForPdf(text)
     const activeFont = isHeading ? bold : font
     const activeSize = isHeading ? 12 : FONT_SIZE
-    const words = text.split(/\s+/)
+    const words = safeText.split(/\s+/)
     const lines: string[] = []
     let current = ''
     for (const word of words) {
