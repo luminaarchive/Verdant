@@ -109,10 +109,28 @@ export function TopBar() {
 
   React.useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+
+    let isMounted = true
+    const initialize = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (isMounted) {
+        setUser(user)
+        setLoading(false)
+      }
+    }
+
+    initialize()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      setUser(session?.user ?? null)
       setLoading(false)
     })
+
+    return () => {
+      isMounted = false
+      subscription?.unsubscribe()
+    }
   }, [])
 
   return (

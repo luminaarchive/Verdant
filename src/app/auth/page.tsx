@@ -29,6 +29,11 @@ function AuthForm() {
         ? 'Email atau password tidak valid. Periksa kembali dan coba lagi.'
         : 'Invalid email or password. Please verify your credentials and try again.'
     }
+    if (m.includes('email not confirmed') || m.includes('confirm your email')) {
+      return language === 'id'
+        ? 'Email belum dikonfirmasi. Periksa inbox Anda dan ikuti tautan konfirmasi terlebih dahulu.'
+        : 'Email not confirmed. Please check your inbox and confirm your email before signing in.'
+    }
     if (m.includes('load failed') || m.includes('network')) {
       return language === 'id'
         ? 'Koneksi terputus saat autentikasi. Coba lagi.'
@@ -69,7 +74,7 @@ function AuthForm() {
       }
 
       if (isSignUp) {
-        let { error: signUpError } = await supabase.auth.signUp({
+        const signUpResult = await supabase.auth.signUp({
           email: safeEmail,
           password: safePassword,
           options: {
@@ -79,28 +84,51 @@ function AuthForm() {
             },
           },
         })
-        // Retry without metadata for DB triggers that reject unexpected profile fields.
-        if (signUpError?.message?.toLowerCase().includes('database error saving new user')) {
+
+        let { data: signUpData, error: signUpError } = signUpResult
+
+        // Retry without metadata if profile data causes a signup failure.
+        if (signUpError && (safeDisplayName || safeOrganization)) {
           const retry = await supabase.auth.signUp({
             email: safeEmail,
             password: safePassword,
           })
+          signUpData = retry.data
           signUpError = retry.error
         }
+
         if (signUpError) {
           setError(humanizeAuthError(signUpError.message))
           setLoading(false)
           return
         }
+
+        if (!signUpData?.session) {
+          setSuccess(
+            language === 'id'
+              ? 'Akun berhasil dibuat. Periksa email Anda untuk mengonfirmasi lalu masuk.'
+              : 'Account created. Please check your email to confirm your account before signing in.'
+          )
+          setLoading(false)
+          return
+        }
+
         setSuccess(language === 'id' ? 'Akun berhasil dibuat! Mengalihkan...' : 'Account created! Signing you in...')
         setTimeout(() => router.push(redirect), 1200)
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email: safeEmail, password: safePassword })
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email: safeEmail, password: safePassword })
         if (signInError) {
           setError(humanizeAuthError(signInError.message))
           setLoading(false)
           return
         }
+
+        if (!signInData?.session) {
+          setError(language === 'id' ? 'Mohon konfirmasi email Anda sebelum masuk.' : 'Please confirm your email before signing in.')
+          setLoading(false)
+          return
+        }
+
         router.push(redirect)
       }
     } catch {

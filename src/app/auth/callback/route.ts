@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    await supabase.auth.exchangeCodeForSession(code)
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) {
+      const errorUrl = requestUrl.clone()
+      errorUrl.pathname = '/auth'
+      return NextResponse.redirect(errorUrl)
+    }
   }
 
   return NextResponse.redirect(new URL(redirect, requestUrl.origin))
