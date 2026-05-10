@@ -1,7 +1,7 @@
-import { GeminiResearchResponseSchema, type ResearchResult, type CostBreakdown } from '@/lib/research/schema'
+import { GeminiResearchResponseSchema, type ResearchResult, type CostBreakdown } from '@/schemas/research'
 import { callWithFailover } from '../ai/provider-manager'
 import { getSystemInstruction, buildUserPrompt } from './prompt'
-import { log, generateRunId, timer, type LogContext } from '@/lib/research/logger'
+import { log, generateRunId, timer, type LogContext } from '@/lib/logger'
 
 export interface PipelineInput {
   query: string

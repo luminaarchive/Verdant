@@ -3,7 +3,7 @@
 // Tries multiple API key env vars in sequence — if one is quota-exhausted, tries the next.
 
 import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
-import { log, timer } from '@/lib/research/logger'
+import { log, timer } from '@/lib/logger'
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const MODEL = 'gemini-2.0-flash'

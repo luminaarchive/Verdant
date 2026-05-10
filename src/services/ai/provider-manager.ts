@@ -11,7 +11,7 @@ import { OpenRouterProvider } from './openrouter'
 import { recordSuccess, recordFailure, hasRecentFailure, getSuccessRate } from '@/infrastructure/health'
 import { isCircuitAllowed, getCircuitState, getAllCircuitStates } from '@/infrastructure/circuit-breaker'
 import { getUnhealthyModels } from '@/infrastructure/model-health'
-import { log, type LogContext } from '@/lib/research/logger'
+import { log, type LogContext } from '@/lib/logger'
 
 // ─── Provider Registry ──────────────────────────────────────────────────────
 const providers: AIProvider[] = [

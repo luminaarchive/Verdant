@@ -3,7 +3,7 @@
 // BYPASSES the full provider-manager for speed.
 // Tries multiple fast models with short timeouts.
 
-import type { ResearchResult } from '@/lib/research/schema'
+import type { ResearchResult } from '@/schemas/research'
 
 // ─── Fast models — ordered by speed, with fallback ──────────────────────────
 const FAST_MODELS = [

@@ -2,7 +2,7 @@
 // Separates: data prep → template rendering → export input
 // All export generators (DOCX, PDF, HTML) consume this intermediate format.
 
-import type { ResearchResult, Source, EvidenceItem } from '@/lib/research/schema'
+import type { ResearchResult, Source, EvidenceItem } from '@/schemas/research'
 
 export interface ReportSection {
   type: 'title' | 'subtitle' | 'heading' | 'paragraph' | 'bullets' | 'stat' | 'citation' | 'evidence' | 'divider' | 'metadata'

@@ -7,7 +7,7 @@
 //   - Structured observability logging
 
 import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
-import { log, timer } from '@/lib/research/logger'
+import { log, timer } from '@/lib/logger'
 import { isModelHealthy, markModelUnhealthy, markModelHealthy, type UnhealthyReason } from '@/infrastructure/model-health'
 import { isCircuitAllowed, recordCircuitSuccess, recordCircuitFailure } from '@/infrastructure/circuit-breaker'
 import { metricModelAttempt, metricModelSuccess, metricModelFailure, metricModelTimeout, metricFallback, getModelReliability, getModelLatency } from '@/infrastructure/metrics'

@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { renderReportTemplate, type ReportSection } from './report-template'
-import type { ResearchResult } from '@/lib/research/schema'
+import type { ResearchResult } from '@/schemas/research'
 
 const PAGE = { width: 595, height: 842 } // A4 points
 const MARGIN = 48

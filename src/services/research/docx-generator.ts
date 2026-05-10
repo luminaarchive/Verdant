@@ -8,7 +8,7 @@ import {
   WidthType,
 } from 'docx'
 import { renderReportTemplate, type ReportSection } from './report-template'
-import type { ResearchResult } from '@/lib/research/schema'
+import type { ResearchResult } from '@/schemas/research'
 
 const VERDANT_GREEN = '1A2F23'
 const MUTED = '737870'

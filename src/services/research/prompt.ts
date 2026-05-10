@@ -2,7 +2,7 @@
 // Zero-hallucination, source-grounded, consistency-enforced, mode-differentiated.
 // Three distinct intelligence products. International-grade output.
 
-import { MODE_CONFIG } from '@/lib/research/mode-config'
+import { MODE_CONFIG } from '@/config/modes'
 
 export function getSystemInstruction(mode: 'focus' | 'deep' | 'analytica'): string {
   const base = `You are VerdantAI — an Environmental Intelligence Authority producing decision-grade research reports for institutional buyers, government analysts, ESG teams, and research organizations.

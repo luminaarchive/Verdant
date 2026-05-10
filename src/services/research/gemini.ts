@@ -2,7 +2,7 @@
 // Calls the Gemini REST API with structured JSON output.
 // All keys read from environment variables. Never hardcoded.
 
-import { log, timer, type LogContext } from '@/lib/research/logger'
+import { log, timer, type LogContext } from '@/lib/logger'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const MODEL = 'gemini-2.0-flash'
