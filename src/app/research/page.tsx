@@ -798,16 +798,19 @@ function ResearchContent() {
     }
 
     try {
-      // ─── Call /api/research/start ────────────────────────────────────
-      // The start route now AWAITS the pipeline before responding, so this
-      // fetch will block until the AI result is ready (or fails).
-      // Timeout: 65s (slightly over Vercel's 60s maxDuration to catch 502s)
+      // ─── Progressive SSE Pipeline ──────────────────────────────────────
+      // Uses /api/research/stream for two-stage delivery:
+      //   Stage A (~5-10s): Fast initial report (title + summary + findings)
+      //   Stage B (~30-50s): Deep enrichment (full report)
+      // Falls back to /api/research/start if SSE fails.
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 65_000)
 
-      let startRes: Response
+      let usedStreaming = false
+
       try {
-        startRes = await fetch('/api/research/start', {
+        const streamRes = await fetch('/api/research/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -819,115 +822,153 @@ function ResearchContent() {
           }),
           signal: controller.signal,
         })
-      } finally {
-        clearTimeout(timeoutId)
-      }
 
-      let startData: any
-      try {
-        startData = await startRes.json()
-      } catch {
-        terminateWithError('Server returned an invalid response. Please try again.')
-        return
-      }
+        if (streamRes.ok && streamRes.body) {
+          usedStreaming = true
+          const reader = streamRes.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+          let gotStageA = false
 
-      // ─── Error response from server ──────────────────────────────────
-      if (!startData.ok) {
-        const msg = startData.message || startData.error || 'Research engine returned an error.'
-        terminateWithError(msg)
-        return
-      }
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
 
-      // ─── Direct result (focus / deep / analytica — all modes now) ────
-      // The start route awaits the pipeline and returns result directly.
-      if (startData.result) {
-        const data = startData.result as ResearchResult
-        if ((data as any).ok === false && ((data as any).message || (data as any).error)) {
-          terminateWithError((data as any).message || (data as any).error || 'Analysis failed.')
-        } else {
-          recordSuccess(data)
-          setStatus('success')
-          isFetchingRef.current = false
-        }
-        return
-      }
+            buffer += decoder.decode(value, { stream: true })
 
-      // ─── Explicit failed status ──────────────────────────────────────
-      if (startData.status === 'failed') {
-        terminateWithError(startData.message || startData.errorReason || 'Analysis failed.')
-        return
-      }
+            // Parse SSE events from buffer
+            const events = buffer.split('\n\n')
+            buffer = events.pop() || '' // Keep incomplete event in buffer
 
-      // ─── Legacy async polling path (kept for backward compatibility) ─
-      // This path is only hit if the server still returns async:true.
-      if (startData.async && startData.jobId) {
-        const jobId = startData.jobId
-        setAsyncStage(startData.stage || 'Processing...')
-        setAsyncProgress(startData.progress || 5)
-        setAsyncEta(startData.etaSeconds || 60)
-        let pollFailureCount = 0
-        const pollCompletedRef = { current: false }
-
-        const stopPolling = (terminal: boolean) => {
-          clearInterval(pollInterval)
-          pollCompletedRef.current = terminal
-          setAsyncStage(undefined)
-          setAsyncProgress(undefined)
-          // Always reset isFetchingRef when polling stops
-          isFetchingRef.current = false
-        }
-
-        const pollInterval = setInterval(async () => {
-          try {
-            const statusRes = await fetch(`/api/research/status/${jobId}`)
-            if (!statusRes.ok) throw new Error(`Status ${statusRes.status}`)
-            const statusData = await statusRes.json()
-            pollFailureCount = 0
-
-            setAsyncStage(statusData.stage)
-            setAsyncProgress(statusData.progress)
-
-            if (statusData.ready) {
-              stopPolling(true)
-              const resultRes = await fetch(`/api/research/result/${jobId}`)
-              const resultData = await resultRes.json()
-              if (resultData.ok && resultData.result) {
-                recordSuccess(resultData.result as ResearchResult)
-                setStatus('success')
-              } else {
-                setResult({ error: resultData.errorReason || 'Failed to retrieve completed report.' })
-                setStatus('error')
+            for (const eventStr of events) {
+              if (!eventStr.trim()) continue
+              const lines = eventStr.split('\n')
+              let eventType = ''
+              let eventData = ''
+              for (const line of lines) {
+                if (line.startsWith('event: ')) eventType = line.slice(7)
+                if (line.startsWith('data: ')) eventData = line.slice(6)
               }
-            } else if (statusData.failed) {
-              stopPolling(true)
-              setResult({ error: statusData.errorReason || 'Analysis failed.' })
-              setStatus('error')
-            }
-          } catch {
-            pollFailureCount += 1
-            if (pollFailureCount >= 3) {
-              stopPolling(true)
-              setResult({ error: 'Unable to retrieve analysis status. Please retry.' })
-              setStatus('error')
+
+              if (!eventType || !eventData) continue
+
+              try {
+                const payload = JSON.parse(eventData)
+
+                if (eventType === 'stage_a' && payload.result) {
+                  // ⚡ Stage A — show initial results immediately
+                  gotStageA = true
+                  setAsyncStage('Deepening analysis...')
+                  setAsyncProgress(40)
+                  recordSuccess(payload.result as ResearchResult)
+                  setStatus('success')
+                  console.log(`[research] ⚡ Stage A rendered in ${payload.durationMs}ms`)
+                }
+
+                if (eventType === 'stage_b' && payload.result) {
+                  // 📊 Stage B — replace with enriched full report
+                  setAsyncStage(undefined)
+                  setAsyncProgress(undefined)
+                  recordSuccess(payload.result as ResearchResult)
+                  setStatus('success')
+                  console.log(`[research] ✅ Stage B rendered in ${payload.durationMs}ms`)
+                }
+
+                if (eventType === 'stage_a_error') {
+                  setAsyncStage('Running full analysis...')
+                  setAsyncProgress(20)
+                }
+
+                if (eventType === 'stage_b_error') {
+                  if (!gotStageA) {
+                    terminateWithError(payload.message || 'Analysis timed out.')
+                  }
+                  // If we got Stage A, keep showing it
+                  setAsyncStage(undefined)
+                  setAsyncProgress(undefined)
+                }
+
+                if (eventType === 'done') {
+                  setAsyncStage(undefined)
+                  setAsyncProgress(undefined)
+                  isFetchingRef.current = false
+                }
+
+                if (eventType === 'error') {
+                  terminateWithError(payload.message || 'Research pipeline failed.')
+                  clearTimeout(timeoutId)
+                  return
+                }
+              } catch { /* skip unparseable events */ }
             }
           }
-        }, 5000)
 
-        // Safety timeout — 3 minutes max for async path
-        setTimeout(() => {
-          if (!pollCompletedRef.current) {
-            stopPolling(true)
-            setResult({ error: 'Analysis timed out. Please try again with Focus mode for faster results.' })
-            setStatus('error')
-          }
-        }, 180_000)
-
-        // isFetchingRef is reset inside stopPolling — do NOT reset in finally
-        return
+          clearTimeout(timeoutId)
+          isFetchingRef.current = false
+          return
+        }
+      } catch (streamErr) {
+        // SSE failed — fall back to blocking /api/research/start
+        console.warn('[research] SSE stream failed, falling back to blocking API', streamErr)
       }
 
-      // ─── Unexpected response ─────────────────────────────────────────
-      terminateWithError('Unexpected response from research engine. Please try again.')
+      clearTimeout(timeoutId)
+
+      // ─── Fallback: blocking /api/research/start ────────────────────────
+      if (!usedStreaming) {
+        const fallbackController = new AbortController()
+        const fallbackTimeout = setTimeout(() => fallbackController.abort(), 65_000)
+
+        let startRes: Response
+        try {
+          startRes = await fetch('/api/research/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: queryString,
+              mode: searchMode,
+              idempotencyKey,
+              presetId: presetId || undefined,
+              context: conversationContext,
+            }),
+            signal: fallbackController.signal,
+          })
+        } finally {
+          clearTimeout(fallbackTimeout)
+        }
+
+        let startData: any
+        try {
+          startData = await startRes.json()
+        } catch {
+          terminateWithError('Server returned an invalid response. Please try again.')
+          return
+        }
+
+        if (!startData.ok) {
+          terminateWithError(startData.message || startData.error || 'Research engine returned an error.')
+          return
+        }
+
+        if (startData.result) {
+          const data = startData.result as ResearchResult
+          if ((data as any).ok === false && ((data as any).message || (data as any).error)) {
+            terminateWithError((data as any).message || (data as any).error || 'Analysis failed.')
+          } else {
+            recordSuccess(data)
+            setStatus('success')
+            isFetchingRef.current = false
+          }
+          return
+        }
+
+        if (startData.status === 'failed') {
+          terminateWithError(startData.message || startData.errorReason || 'Analysis failed.')
+          return
+        }
+      }
+
+
 
     } catch (err) {
       const isAbort = err instanceof DOMException && err.name === 'AbortError'
