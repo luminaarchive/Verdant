@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
-import { useToast } from '@/components/verdant/Toast'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { useToast } from '@/components/ui/Toast'
 import { CheckCircle, XCircle, ExternalLink, Clock, ShieldCheck } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 
 interface VerificationRequest {
   id: string

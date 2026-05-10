@@ -3,7 +3,7 @@
 import React, { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { Plus, ChevronRight, Trash2, ArrowLeft } from 'lucide-react'
 import { getSpaceBySlug, removeSpace, type SpaceData } from '@/app/spaces/page'
 

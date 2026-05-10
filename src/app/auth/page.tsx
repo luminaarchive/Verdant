@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 
 function AuthForm() {

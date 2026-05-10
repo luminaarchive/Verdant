@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { ArrowRight, RefreshCw } from 'lucide-react'
-import { generateDigest, getReturnVisitSummary, runChangeDetection, type DigestEntry } from '@/lib/retention/signals'
-import { getWatchlists, WATCHLIST_TYPES } from '@/lib/retention/watchlists'
-import { getDailyBrief } from '@/lib/intelligence/daily-brief'
+import { generateDigest, getReturnVisitSummary, runChangeDetection, type DigestEntry } from '@/features/retention/signals'
+import { getWatchlists, WATCHLIST_TYPES } from '@/features/retention/watchlists'
+import { getDailyBrief } from '@/features/intelligence/daily-brief'
 
 const SEV_COLORS = { urgent: '#C0392B', important: '#B8860B', info: 'var(--green-mid)' }
 const SEV_LABELS = { urgent: 'URGENT', important: 'IMPORTANT', info: 'INFO' }

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
-import { useToast } from '@/components/verdant/Toast'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { useToast } from '@/components/ui/Toast'
 import { ShieldCheck, Upload, AlertCircle, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { submitVerificationRequest } from '@/lib/reputation/verification'
+import { createClient } from '@/services/supabase/client'
+import { submitVerificationRequest } from '@/features/reputation/verification'
 
 export default function VerificationSettingsPage() {
   const router = useRouter()

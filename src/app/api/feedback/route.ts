@@ -1,7 +1,7 @@
 // ─── /api/feedback — User Feedback ──────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server'
-import { FeedbackRequestSchema } from '@/lib/research/schema'
-import { saveFeedback } from '@/lib/supabase/admin'
+import { FeedbackRequestSchema } from '@/schemas/research'
+import { saveFeedback } from '@/services/supabase/admin'
 
 export async function POST(request: NextRequest) {
   let body: unknown

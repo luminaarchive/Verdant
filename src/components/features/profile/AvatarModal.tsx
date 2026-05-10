@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback } from 'react'
 import { X, Upload, Camera } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 
 const STOCK_AVATARS = [
   'forest','ocean','mountain','river','valley','coral',

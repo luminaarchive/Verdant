@@ -2,10 +2,10 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
-import { useToast } from '@/components/verdant/Toast'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { useToast } from '@/components/ui/Toast'
 import { Check, Shield, Zap, Globe } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 
 const PLANS = [
   {

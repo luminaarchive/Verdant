@@ -3,7 +3,7 @@
 // Always returns a terminal status (ready/failed) — never leaves frontend hanging.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getJob, getJobStatus } from '@/lib/research/jobs'
+import { getJob, getJobStatus } from '@/services/research/jobs'
 
 export const maxDuration = 30
 

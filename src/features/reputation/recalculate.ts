@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 
 export async function recalculateReputation(userId: string) {
   const sb = createClient()

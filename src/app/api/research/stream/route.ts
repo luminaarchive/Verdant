@@ -10,15 +10,15 @@
 //   event: error → pipeline failed
 
 import { NextRequest } from 'next/server'
-import { ResearchRequestSchema } from '@/lib/research/schema'
-import { validateEnv } from '@/lib/env-check'
-import { generateRequestId } from '@/lib/research/logger'
-import { runFastPipeline } from '@/lib/research/fast-pipeline'
-import { runResearchPipeline } from '@/lib/research/pipeline'
-import { makeRequestKey } from '@/lib/ai/dedup'
-import { cacheGet, cacheSet } from '@/lib/ai/cache'
-import { checkConcurrency, registerRequest } from '@/lib/ai/concurrency'
-import { metricRequestStart, metricRequestSuccess, metricRequestFailure, metricCacheHit } from '@/lib/ai/metrics'
+import { ResearchRequestSchema } from '@/schemas/research'
+import { validateEnv } from '@/config/env'
+import { generateRequestId } from '@/lib/logger'
+import { runFastPipeline } from '@/services/research/fast-pipeline'
+import { runResearchPipeline } from '@/services/research/pipeline'
+import { makeRequestKey } from '@/infrastructure/dedup'
+import { cacheGet, cacheSet } from '@/infrastructure/cache'
+import { checkConcurrency, registerRequest } from '@/infrastructure/concurrency'
+import { metricRequestStart, metricRequestSuccess, metricRequestFailure, metricCacheHit } from '@/infrastructure/metrics'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60

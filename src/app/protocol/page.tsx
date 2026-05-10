@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 
 const PRINCIPLES = [
   {

@@ -1,7 +1,7 @@
 // ─── /api/share — Generate Share Token ──────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server'
-import { ShareRequestSchema } from '@/lib/research/schema'
-import { createShareToken, getRunById } from '@/lib/supabase/admin'
+import { ShareRequestSchema } from '@/schemas/research'
+import { createShareToken, getRunById } from '@/services/supabase/admin'
 import { randomBytes } from 'crypto'
 
 export async function POST(request: NextRequest) {

@@ -2,9 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { Leaf, Globe, BookOpen, Users } from 'lucide-react'
-import { VERDANT_AGENTS, AGENT_NETWORK_DESCRIPTION } from '@/lib/intelligence/agents'
+import { VERDANT_AGENTS, AGENT_NETWORK_DESCRIPTION } from '@/features/intelligence/agents'
 
 const pillars = [
   { icon: Leaf, title: 'Environmental Focus', desc: 'Built specifically for ecology, biodiversity, geology, and oceanography research — not a generic AI.' },

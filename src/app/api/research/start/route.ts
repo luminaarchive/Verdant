@@ -14,17 +14,17 @@
 //   8. Return result directly in response (no polling needed)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ResearchRequestSchema } from '@/lib/research/schema'
-import { createJob, updateJob, completeJob, failJob, findByIdempotencyKey } from '@/lib/research/jobs'
-import { checkRateLimit } from '@/lib/research/rate-limit'
-import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
-import { validateEnv, checkEnv } from '@/lib/env-check'
-import { MODE_CONFIG } from '@/lib/research/mode-config'
-import { runResearchPipeline } from '@/lib/research/pipeline'
-import { makeRequestKey, dedup, getInflightCount } from '@/lib/ai/dedup'
-import { cacheGet, cacheSet } from '@/lib/ai/cache'
-import { checkConcurrency, registerRequest } from '@/lib/ai/concurrency'
-import { metricRequestStart, metricRequestSuccess, metricRequestFailure, metricCacheHit, metricDeduplicated } from '@/lib/ai/metrics'
+import { ResearchRequestSchema } from '@/schemas/research'
+import { createJob, updateJob, completeJob, failJob, findByIdempotencyKey } from '@/services/research/jobs'
+import { checkRateLimit } from '@/services/research/rate-limit'
+import { log, generateRequestId, generateRunId } from '@/lib/logger'
+import { validateEnv, checkEnv } from '@/config/env'
+import { MODE_CONFIG } from '@/config/modes'
+import { runResearchPipeline } from '@/services/research/pipeline'
+import { makeRequestKey, dedup, getInflightCount } from '@/infrastructure/dedup'
+import { cacheGet, cacheSet } from '@/infrastructure/cache'
+import { checkConcurrency, registerRequest } from '@/infrastructure/concurrency'
+import { metricRequestStart, metricRequestSuccess, metricRequestFailure, metricCacheHit, metricDeduplicated } from '@/infrastructure/metrics'
 
 // Force nodejs runtime — edge runtime causes failures with AbortController,
 // large JSON parsing, and OpenRouter fetch on Vercel
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       const envStatus = checkEnv()
       // Only attempt auth if Supabase is actually configured
       if (envStatus.supabase === 'configured') {
-        const { createClient } = await import('@/lib/supabase/server')
+        const { createClient } = await import('@/services/supabase/server')
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
 

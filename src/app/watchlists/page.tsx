@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { ArrowRight, Plus, Trash2, Eye, AlertTriangle, Bell } from 'lucide-react'
-import { getWatchlists, addWatchlistItem, removeWatchlistItem, updateWatchlistItem, dismissSignal, WATCHLIST_TYPES, type WatchlistItem, type WatchlistType } from '@/lib/retention/watchlists'
-import { runChangeDetection } from '@/lib/retention/signals'
+import { getWatchlists, addWatchlistItem, removeWatchlistItem, updateWatchlistItem, dismissSignal, WATCHLIST_TYPES, type WatchlistItem, type WatchlistType } from '@/features/retention/watchlists'
+import { runChangeDetection } from '@/features/retention/signals'
 
 const SEV_COLORS = { urgent: '#C0392B', important: '#B8860B', info: 'var(--green-mid)' }
 const PRIORITY_COLORS = { critical: '#C0392B', high: '#B8860B', medium: 'var(--text-muted)', low: 'var(--text-muted)' }

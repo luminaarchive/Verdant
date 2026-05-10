@@ -1,7 +1,7 @@
 // ─── /api/send — Email Delivery (Resend) ────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server'
-import { getRunById } from '@/lib/supabase/admin'
-import { log, generateRequestId } from '@/lib/research/logger'
+import { getRunById } from '@/services/supabase/admin'
+import { log, generateRequestId } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const requestId = generateRequestId()

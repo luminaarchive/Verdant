@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppLayout } from '@/components/verdant/AppLayout'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { RefreshCw, ExternalLink } from 'lucide-react'
 
 const filters = ['Recommended', 'Trending', 'New Papers', 'By Region', 'Grants', 'Indonesia']

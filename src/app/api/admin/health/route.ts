@@ -1,6 +1,6 @@
 // ─── /api/admin/health — Provider Health Dashboard ──────────────────────────
 import { NextResponse } from 'next/server'
-import { getAllHealth } from '@/lib/ai/health'
+import { getAllHealth } from '@/infrastructure/health'
 
 export async function GET() {
   const health = getAllHealth()

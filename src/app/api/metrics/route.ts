@@ -4,12 +4,12 @@
 // concurrency state, and in-flight requests.
 
 import { NextResponse } from 'next/server'
-import { getMetrics } from '@/lib/ai/metrics'
-import { getCacheStats } from '@/lib/ai/cache'
-import { getUnhealthyModels, getUnhealthyCount } from '@/lib/ai/model-health'
-import { getAllCircuitStates } from '@/lib/ai/circuit-breaker'
-import { getConcurrencyState } from '@/lib/ai/concurrency'
-import { getInflightState } from '@/lib/ai/dedup'
+import { getMetrics } from '@/infrastructure/metrics'
+import { getCacheStats } from '@/infrastructure/cache'
+import { getUnhealthyModels, getUnhealthyCount } from '@/infrastructure/model-health'
+import { getAllCircuitStates } from '@/infrastructure/circuit-breaker'
+import { getConcurrencyState } from '@/infrastructure/concurrency'
+import { getInflightState } from '@/infrastructure/dedup'
 
 export const runtime = 'nodejs'
 

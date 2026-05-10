@@ -3,13 +3,13 @@
 // GET:  Retrieve a previous run by runId (for history/share)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ResearchRequestSchema, type ApiError } from '@/lib/research/schema'
-import { runResearchPipeline } from '@/lib/research/pipeline'
-import { checkRateLimit } from '@/lib/research/rate-limit'
-import { findByIdempotencyKey } from '@/lib/research/jobs'
-import { log, generateRequestId, timer } from '@/lib/research/logger'
-import { saveResearchRun, saveResearchResult, getRunById } from '@/lib/supabase/admin'
-import { validateEnv } from '@/lib/env-check'
+import { ResearchRequestSchema, type ApiError } from '@/schemas/research'
+import { runResearchPipeline } from '@/services/research/pipeline'
+import { checkRateLimit } from '@/services/research/rate-limit'
+import { findByIdempotencyKey } from '@/services/research/jobs'
+import { log, generateRequestId, timer } from '@/lib/logger'
+import { saveResearchRun, saveResearchResult, getRunById } from '@/services/supabase/admin'
+import { validateEnv } from '@/config/env'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     // Save failure to Supabase (best-effort)
     try {
-      const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
+      const { getSupabaseAdmin } = await import('@/services/supabase/admin')
       const sb = getSupabaseAdmin()
       if (sb) {
         await sb.from('failure_logs').insert({ request_id: requestId, failed_step: failedStep, error_message: rawMessage.slice(0, 500), metadata: { query, mode } })

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { ToastProvider } from '@/components/verdant/Toast'
+import { ToastProvider } from '@/components/ui/Toast'
 
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { LanguageProvider } from '@/components/providers/LanguageProvider'
-import { themeInitScript } from '@/lib/ui/theme'
+import { themeInitScript } from '@/config/theme'
 
 export const metadata: Metadata = {
   title: 'Verdant — AI Environmental Research',

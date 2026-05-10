@@ -4,14 +4,14 @@
 // Export state is durably tracked in the research_jobs table.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ExportRequestSchema } from '@/lib/research/schema'
-import { getRunById, saveGeneratedFile, getSupabaseAdmin } from '@/lib/supabase/admin'
-import { generateDocxBuffer } from '@/lib/research/docx-generator'
-import { generatePdfBuffer } from '@/lib/research/pdf-generator'
-import { renderReportHtml } from '@/lib/research/report-template'
-import type { ResearchResult } from '@/lib/research/schema'
-import { log, generateRequestId, timer } from '@/lib/research/logger'
-import { logEvent } from '@/lib/research/jobs'
+import { ExportRequestSchema } from '@/schemas/research'
+import { getRunById, saveGeneratedFile, getSupabaseAdmin } from '@/services/supabase/admin'
+import { generateDocxBuffer } from '@/services/research/docx-generator'
+import { generatePdfBuffer } from '@/services/research/pdf-generator'
+import { renderReportHtml } from '@/services/research/report-template'
+import type { ResearchResult } from '@/schemas/research'
+import { log, generateRequestId, timer } from '@/lib/logger'
+import { logEvent } from '@/services/research/jobs'
 
 // ─── Durable export state tracking ──────────────────────────────────────────
 // Updates the research_jobs row (if it exists) to track export lifecycle.

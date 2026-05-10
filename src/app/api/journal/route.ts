@@ -1,7 +1,7 @@
 // ─── /api/journal — Journal CRUD ────────────────────────────────────────────
 import { NextRequest, NextResponse } from 'next/server'
-import { JournalEntrySchema } from '@/lib/research/schema'
-import { saveJournalEntry, getJournalEntries, deleteJournalEntry } from '@/lib/supabase/admin'
+import { JournalEntrySchema } from '@/schemas/research'
+import { saveJournalEntry, getJournalEntries, deleteJournalEntry } from '@/services/supabase/admin'
 
 export async function GET() {
   try {

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Menu, Clock, LogIn } from 'lucide-react'
 import { useAppLayout } from './AppLayout'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/services/supabase/client'
 
 import { useTheme } from '@/components/providers/ThemeProvider'
 

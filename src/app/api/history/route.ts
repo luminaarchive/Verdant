@@ -1,6 +1,6 @@
 // ─── /api/history — Research History ────────────────────────────────────────
 import { NextResponse } from 'next/server'
-import { getRecentRuns } from '@/lib/supabase/admin'
+import { getRecentRuns } from '@/services/supabase/admin'
 
 export async function GET() {
   try {

@@ -2,9 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { AppLayout } from '@/components/verdant/AppLayout'
-import { getPlanetPulse, DIRECTION_COLORS } from '@/lib/intelligence/pulse'
-import { getWorldNatureIndex, TREND_LABELS } from '@/lib/intelligence/nature-index'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { getPlanetPulse, DIRECTION_COLORS } from '@/features/intelligence/pulse'
+import { getWorldNatureIndex, TREND_LABELS } from '@/features/intelligence/nature-index'
 
 export default function PulsePage() {
   const pulse = getPlanetPulse()

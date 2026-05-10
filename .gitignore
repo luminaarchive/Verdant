@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 .env.local
 .env*.local
+ui-ux-pro-max-skill
+
+.kiro
+.openclaude-profile.json
+.playwright-mcp
+.DS_Store
+ui-ux-pro-max-skill

@@ -2,7 +2,7 @@
 // Checks Supabase first, falls back to in-memory store for mem_ prefixed jobs.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getJob, getPartialResults } from '@/lib/research/jobs'
+import { getJob, getPartialResults } from '@/services/research/jobs'
 
 export const maxDuration = 30
 

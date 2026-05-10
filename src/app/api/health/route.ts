@@ -9,10 +9,10 @@
 // GET /api/health → { status, env, openrouter, supabase, models, circuits }
 
 import { NextResponse } from 'next/server'
-import { checkEnv } from '@/lib/env-check'
-import { getAllHealth } from '@/lib/ai/health'
-import { getUnhealthyModels, getUnhealthyCount } from '@/lib/ai/model-health'
-import { getAllCircuitStates } from '@/lib/ai/circuit-breaker'
+import { checkEnv } from '@/config/env'
+import { getAllHealth } from '@/infrastructure/health'
+import { getUnhealthyModels, getUnhealthyCount } from '@/infrastructure/model-health'
+import { getAllCircuitStates } from '@/infrastructure/circuit-breaker'
 
 export const runtime = 'nodejs'
 
@@ -106,7 +106,7 @@ export async function GET() {
   if (envStatus.supabase === 'configured') {
     const sbStart = Date.now()
     try {
-      const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
+      const { getSupabaseAdmin } = await import('@/services/supabase/admin')
       const sb = getSupabaseAdmin()
       if (sb) {
         const { error } = await sb.from('research_runs').select('run_id').limit(1)

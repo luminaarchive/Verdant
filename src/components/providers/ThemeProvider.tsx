@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { ThemeMode, getThemePreference, setThemePreference, applyThemeClass, getSystemTheme } from '@/lib/ui/theme'
+import { ThemeMode, getThemePreference, setThemePreference, applyThemeClass, getSystemTheme } from '@/config/theme'
 
 interface ThemeContextType {
   theme: ThemeMode

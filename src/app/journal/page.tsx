@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { AppLayout } from '@/components/verdant/AppLayout'
-import { useToast } from '@/components/verdant/Toast'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { useToast } from '@/components/ui/Toast'
 import { Trash2, ExternalLink, BookOpen } from 'lucide-react'
 
 interface JournalEntry {
