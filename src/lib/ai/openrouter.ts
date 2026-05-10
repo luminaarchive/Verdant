@@ -10,6 +10,7 @@ import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
 import { log, timer } from '../research/logger'
 import { isModelHealthy, markModelUnhealthy, markModelHealthy, type UnhealthyReason } from './model-health'
 import { isCircuitAllowed, recordCircuitSuccess, recordCircuitFailure } from './circuit-breaker'
+import { metricModelAttempt, metricModelSuccess, metricModelFailure, metricModelTimeout, metricFallback, getModelReliability, getModelLatency } from './metrics'
 
 // ─── Verified Working Free Models (tested 2026-05-10) ───────────────────────
 // These were tested live against OpenRouter API. Ordered by latency.
@@ -23,14 +24,14 @@ const FREE_MODELS = [
 
 // ─── Max tokens per mode ────────────────────────────────────────────────────
 const MODE_MAX_TOKENS: Record<string, number> = {
-  focus:     4000,
+  focus:     3000,
   deep:      6000,
   analytica: 8000,
 }
 
 // ─── Timeout Configuration ──────────────────────────────────────────────────
-const MODEL_TIMEOUT_MS = 22_000     // Per-model hard timeout
-const PIPELINE_BUDGET_MS = 50_000   // Total budget across all models
+const MODEL_TIMEOUT_MS = 20_000     // Per-model hard timeout
+const PIPELINE_BUDGET_MS = 45_000   // Total budget — must leave headroom for DB + overhead under 60s
 const INTER_MODEL_DELAY_MS = 500    // Delay between attempts (rate limit protection)
 const RATE_LIMIT_DELAY_MS = 2000    // Extra delay after 429
 
@@ -112,8 +113,8 @@ export class OpenRouterProvider implements AIProvider {
     const errors: string[] = []
     const requestId = `or_${Date.now().toString(36)}`
 
-    // ─── Filter healthy models ──────────────────────────────────────
-    const healthyModels = FREE_MODELS.filter(m => isModelHealthy(m))
+    // ─── Filter healthy models + adaptive routing ─────────────────
+    let healthyModels = FREE_MODELS.filter(m => isModelHealthy(m))
     const skippedModels = FREE_MODELS.filter(m => !isModelHealthy(m))
 
     if (skippedModels.length > 0) {
@@ -122,7 +123,28 @@ export class OpenRouterProvider implements AIProvider {
 
     if (healthyModels.length === 0) {
       console.warn(`[openrouter] ⚠️ All models unhealthy — forcing retry on all models`)
-      healthyModels.push(...FREE_MODELS) // Force retry when everything is marked dead
+      healthyModels = [...FREE_MODELS]
+    }
+
+    // ─── Adaptive routing: reorder by reliability + latency ─────────
+    const reliability = getModelReliability()
+    const latency = getModelLatency()
+    if (reliability.size > 0) {
+      healthyModels.sort((a, b) => {
+        const aRel = reliability.get(a) ?? 0.5
+        const bRel = reliability.get(b) ?? 0.5
+        // Primary: higher reliability first
+        if (Math.abs(aRel - bRel) > 0.1) return bRel - aRel
+        // Secondary: lower latency first
+        const aLat = latency.get(a) ?? 5000
+        const bLat = latency.get(b) ?? 5000
+        return aLat - bLat
+      })
+      console.log(`[openrouter] 📊 Adaptive order: ${healthyModels.map(m => {
+        const r = reliability.get(m)
+        const l = latency.get(m)
+        return `${m.split('/')[1]?.split(':')[0]}(r=${r?.toFixed(2) ?? '?'},l=${l ? Math.round(l) + 'ms' : '?'})`
+      }).join(' → ')}`)
     }
 
     console.log(
@@ -145,9 +167,11 @@ export class OpenRouterProvider implements AIProvider {
 
       // ─── Inter-model delay ──────────────────────────────────────
       if (modelIdx > 0) {
+        metricFallback()
         await new Promise(r => setTimeout(r, INTER_MODEL_DELAY_MS))
       }
 
+      metricModelAttempt(model)
       const modelTimeout = Math.min(MODEL_TIMEOUT_MS, budgetRemaining - 2_000)
       const modelStart = Date.now()
 
@@ -298,6 +322,7 @@ export class OpenRouterProvider implements AIProvider {
         )
 
         markModelHealthy(model)
+        metricModelSuccess(model, durationMs)
         recordCircuitSuccess('openrouter')
 
         return {

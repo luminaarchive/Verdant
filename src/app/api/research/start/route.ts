@@ -21,6 +21,10 @@ import { log, generateRequestId, generateRunId } from '@/lib/research/logger'
 import { validateEnv, checkEnv } from '@/lib/env-check'
 import { MODE_CONFIG } from '@/lib/research/mode-config'
 import { runResearchPipeline } from '@/lib/research/pipeline'
+import { makeRequestKey, dedup, getInflightCount } from '@/lib/ai/dedup'
+import { cacheGet, cacheSet } from '@/lib/ai/cache'
+import { checkConcurrency, registerRequest } from '@/lib/ai/concurrency'
+import { metricRequestStart, metricRequestSuccess, metricRequestFailure, metricCacheHit, metricDeduplicated } from '@/lib/ai/metrics'
 
 // Force nodejs runtime — edge runtime causes failures with AbortController,
 // large JSON parsing, and OpenRouter fetch on Vercel
@@ -89,8 +93,40 @@ export async function POST(request: NextRequest) {
 
     const { query, mode, idempotencyKey, presetId, context } = parsed.data
     const runId = generateRunId()
+    const dedupKey = makeRequestKey(query, mode)
 
-    console.log(`[start] Request: mode=${mode}, query="${query.slice(0, 80)}", requestId=${requestId}, elapsed=${Date.now() - startTime}ms`)
+    metricRequestStart()
+    console.log(`[start] Request: mode=${mode}, query="${query.slice(0, 80)}", requestId=${requestId}, dedupKey=${dedupKey}, inflight=${getInflightCount()}, elapsed=${Date.now() - startTime}ms`)
+
+    // ─── Step 3.5: Cache check ────────────────────────────────────────────────
+    const cached = cacheGet(dedupKey)
+    if (cached) {
+      metricCacheHit()
+      const latency = Date.now() - startTime
+      metricRequestSuccess(latency)
+      console.log(`[start] ⚡ Cache HIT for dedupKey=${dedupKey}, returning cached result, elapsed=${latency}ms`)
+      return NextResponse.json({
+        ok: true,
+        jobId: `cache_${dedupKey}`,
+        status: 'ready',
+        cached: true,
+        result: cached.result,
+      })
+    }
+
+    // ─── Step 3.6: Concurrency check ──────────────────────────────────────────
+    const userId = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'anonymous'
+    const concurrencyCheck = checkConcurrency(userId)
+    if (!concurrencyCheck.allowed) {
+      console.warn(`[start] 🚫 Concurrency blocked: ${concurrencyCheck.reason}`)
+      metricRequestFailure()
+      return NextResponse.json({
+        ok: false,
+        message: concurrencyCheck.reason,
+        retryable: true,
+        requestId,
+      }, { status: 429 })
+    }
 
     // ─── Step 4: Monetization gating (GRACEFUL) ──────────────────────────────
     // CRITICAL: Auth failures must NEVER block the pipeline.
@@ -246,16 +282,43 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`[start] Calling AI pipeline for job ${jobId}, mode=${mode}, elapsed=${Date.now() - startTime}ms`)
-      pipelineResult = await runResearchPipeline({
-        query,
-        mode: mode as 'focus' | 'deep' | 'analytica',
-        requestId,
-        presetId,
-        runId,
-        context,
-      })
 
-      console.log(`[start] Pipeline complete for job ${jobId}, confidence=${pipelineResult.result.confidenceScore}, elapsed=${Date.now() - startTime}ms`)
+      // Register concurrency slot + wrap with dedup
+      const releaseConcurrency = registerRequest(requestId, userId, mode)
+      try {
+        const { result: dedupResult, deduplicated } = await dedup(dedupKey, () =>
+          runResearchPipeline({
+            query,
+            mode: mode as 'focus' | 'deep' | 'analytica',
+            requestId,
+            presetId,
+            runId,
+            context,
+          })
+        )
+        pipelineResult = dedupResult
+
+        if (deduplicated) {
+          metricDeduplicated()
+          console.log(`[start] ♻️ Deduplicated — reused in-flight result for dedupKey=${dedupKey}`)
+        }
+      } finally {
+        releaseConcurrency()
+      }
+
+      const pipelineDuration = Date.now() - startTime
+      metricRequestSuccess(pipelineDuration)
+      console.log(`[start] Pipeline complete for job ${jobId}, confidence=${pipelineResult.result.confidenceScore}, elapsed=${pipelineDuration}ms`)
+
+      // Cache the successful result
+      cacheSet(
+        dedupKey,
+        pipelineResult.result,
+        pipelineResult.rawJson,
+        mode,
+        pipelineResult.result.pipelineSource || 'unknown',
+        pipelineDuration
+      )
 
       // Update job to complete (non-blocking)
       if (!useMemoryFallback) {
@@ -282,6 +345,7 @@ export async function POST(request: NextRequest) {
 
     } catch (err) {
       pipelineError = err instanceof Error ? err.message : String(err)
+      metricRequestFailure()
       console.error(`[start] Pipeline failed for job ${jobId}: ${pipelineError}, elapsed=${Date.now() - startTime}ms`)
 
       // Update job to failed (non-blocking — MUST NOT hang the request)

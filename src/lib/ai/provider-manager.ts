@@ -21,7 +21,7 @@ const providers: AIProvider[] = [
 // ─── Failover Configuration ─────────────────────────────────────────────────
 const MAX_RETRIES_PER_PROVIDER = 1
 const RETRY_DELAY_MS = 1500
-const FAILOVER_BUDGET_MS = 55_000  // Must stay under Vercel's 60s limit
+const FAILOVER_BUDGET_MS = 50_000  // Must stay under Vercel's 60s limit with overhead
 
 interface ProviderManagerResult {
   response: ProviderResponse
