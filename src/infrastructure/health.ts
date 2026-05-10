@@ -2,7 +2,7 @@
 // In-memory health tracking. Resets on cold start (fine for serverless).
 // Used by provider-manager to make intelligent routing decisions.
 
-import type { ProviderHealthSnapshot } from '@/lib/ai/types'
+import type { ProviderHealthSnapshot } from '@/services/ai/types'
 
 const health = new Map<string, {
   success: number
