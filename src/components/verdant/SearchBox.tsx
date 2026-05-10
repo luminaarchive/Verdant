@@ -60,7 +60,7 @@ export function SearchBox({ autoFocus = false, compact = false }: SearchBoxProps
     if (!trimmed || isLoading) return
     if (trimmed.length > 500) return
     setIsLoading(true)
-    router.push(`/research?q=${encodeURIComponent(trimmed)}`)
+    router.push(`/research?q=${encodeURIComponent(trimmed)}&mode=${mode}`)
   }
 
   const canSubmit = query.trim().length > 0 && query.trim().length <= 500 && !isLoading

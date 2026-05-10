@@ -469,7 +469,9 @@ export function Sidebar() {
         <button
           onClick={async () => {
             const sb = createClient()
-            await sb.auth.signOut()
+            if (sb) {
+              await sb.auth.signOut()
+            }
             router.push('/auth')
             router.refresh()
           }}

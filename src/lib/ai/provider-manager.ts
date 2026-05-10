@@ -1,23 +1,30 @@
 // ─── Provider Manager — Orchestrator with Intelligent Failover ──────────────
 // This is the ONLY module the research pipeline calls.
 // It handles: provider selection → execution → retry → failover → health tracking.
+//
+// IMPORTANT: All provider calls are SEQUENTIAL (for loop, not Promise.all).
+// Parallel calls cause memory spikes and Vercel freezes on free tier.
 
 import type { AIProvider, ProviderRequest, ProviderResponse, ProviderFailure } from './types'
 import { classifyError } from './types'
 import { OpenRouterProvider } from './openrouter'
-import { GeminiProvider } from './gemini-provider'
+// import { GeminiProvider } from './gemini-provider'  // DISABLED — user wants OpenRouter only
 import { recordSuccess, recordFailure, hasRecentFailure, getSuccessRate } from './health'
 import { log, type LogContext } from '../research/logger'
 
 // ─── Provider Registry ──────────────────────────────────────────────────────
 const providers: AIProvider[] = [
   new OpenRouterProvider(),
-  new GeminiProvider(),
+  // GeminiProvider disabled — OpenRouter only
 ]
 
 // ─── Failover Configuration ─────────────────────────────────────────────────
 const MAX_RETRIES_PER_PROVIDER = 1
 const RETRY_DELAY_MS = 1500
+
+// Overall timeout for callWithFailover — must stay under Vercel's 60s limit
+// OpenRouter gets ~35s, then Gemini gets the remaining ~20s
+const FAILOVER_BUDGET_MS = 55_000
 
 interface ProviderManagerResult {
   response: ProviderResponse
@@ -35,15 +42,27 @@ export async function callWithFailover(
   // Build ordered provider list based on health
   const ordered = getProviderOrder()
 
+  if (ordered.length === 0) {
+    throw new ProviderExhaustedError(
+      'No AI providers are configured. Set OPENROUTER_API_KEY in Vercel Environment Variables.',
+      []
+    )
+  }
+
   log.info(`Provider order: [${ordered.map(p => p.name).join(' → ')}]`, ctx)
 
   for (const provider of ordered) {
-    if (!provider.isConfigured()) {
-      log.warn(`Skipping ${provider.name}: not configured`, ctx)
-      continue
+    // Check overall budget
+    const budgetRemaining = FAILOVER_BUDGET_MS - (Date.now() - startTime)
+    if (budgetRemaining < 5_000) {
+      log.warn(`Failover budget exhausted (${Date.now() - startTime}ms elapsed), aborting`, ctx)
+      break
     }
 
     for (let retry = 0; retry <= MAX_RETRIES_PER_PROVIDER; retry++) {
+      // Re-check budget before each retry
+      if (FAILOVER_BUDGET_MS - (Date.now() - startTime) < 5_000) break
+
       try {
         if (retry > 0) {
           log.warn(`Retrying ${provider.name} (attempt ${retry + 1})`, ctx)
@@ -107,8 +126,9 @@ export async function callWithFailover(
 
   // All providers failed
   const lastAttempt = attempts[attempts.length - 1]
+  const allErrors = attempts.map((a, i) => `[${i+1}] ${a.provider}: ${a.error}`).join(' | ')
   throw new ProviderExhaustedError(
-    `All providers failed. Last error: ${lastAttempt?.error ?? 'unknown'}`,
+    `All providers failed (${attempts.length} attempts). Errors: ${allErrors}`,
     attempts
   )
 }

@@ -112,16 +112,23 @@ export function TopBar() {
 
     let isMounted = true
     const initialize = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (isMounted) {
-        setUser(user)
-        setLoading(false)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (isMounted) {
+          setUser(user)
+          setLoading(false)
+        }
+      } catch {
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
       }
     }
 
     initialize()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (!isMounted) return
       setUser(session?.user ?? null)
       setLoading(false)

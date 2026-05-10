@@ -18,11 +18,11 @@ export async function GET() {
     ok: true,
     providers,
     configured: {
-      openrouter: !!process.env.OPENROUTER_API_KEY,
-      gemini: !!process.env.GEMINI_API_KEY,
-      resend: !!process.env.RESEND_API_KEY,
-      supabase: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      pdfService: !!process.env.PDF_SERVICE_URL,
+      openrouter: !!(process.env.OPENROUTER_API_KEY?.trim()),
+      gemini: !!(process.env.GEMINI_API_KEY?.trim()),
+      resend: !!(process.env.RESEND_API_KEY?.trim()),
+      supabase: !!(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()),
+      pdfService: !!(process.env.PDF_SERVICE_URL?.trim()),
     },
     timestamp: new Date().toISOString(),
   })

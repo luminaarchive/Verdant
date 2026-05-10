@@ -747,7 +747,7 @@ function ResearchContent() {
   const runFetch = useCallback(async () => {
     if (!queryString) { router.replace('/'); return }
     if (isFetchingRef.current) return
-    
+
     isFetchingRef.current = true
     setStatus('loading')
     setResult(null)
@@ -757,7 +757,8 @@ function ResearchContent() {
     const searchMode = typeof window !== 'undefined'
       ? (localStorage.getItem('verdant-search-mode') || 'focus')
       : 'focus'
-    const idempotencyKey = `${queryString}-${Date.now()}`
+    // Use timestamp in idempotency key so retries always get a fresh result
+    const idempotencyKey = `${queryString}-${searchMode}-${Date.now()}`
     const conversationContext = (() => {
       if (typeof window === 'undefined') return undefined
       try {
@@ -772,79 +773,114 @@ function ResearchContent() {
       }
     })()
 
+    // Helper: record successful result in local storage
+    const recordSuccess = (data: ResearchResult) => {
+      setResult(data)
+      recordActivity()
+      if (queryString) {
+        recordQuery(queryString)
+        recordReportView(queryString)
+        try {
+          const vs = JSON.parse(localStorage.getItem('verdant-query-versions') || '{}')
+          vs[queryString] = (vs[queryString] || 0) + 1
+          localStorage.setItem('verdant-query-versions', JSON.stringify(vs))
+        } catch {}
+      }
+    }
+
+    // Helper: terminate with error — always resets isFetchingRef
+    const terminateWithError = (message: string) => {
+      setResult({ error: message })
+      setAsyncStage(undefined)
+      setAsyncProgress(undefined)
+      setStatus('error')
+      isFetchingRef.current = false
+    }
+
     try {
-      // ─── Use async job system ────────────────────────────────────────
+      // ─── Call /api/research/start ────────────────────────────────────
+      // The start route now AWAITS the pipeline before responding, so this
+      // fetch will block until the AI result is ready (or fails).
+      // Timeout: 65s (slightly over Vercel's 60s maxDuration to catch 502s)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000)
+      const timeoutId = setTimeout(() => controller.abort(), 65_000)
 
-      const startRes = await fetch('/api/research/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: queryString,
-          mode: searchMode,
-          idempotencyKey,
-          presetId: presetId || undefined,
-          context: conversationContext,
-        }),
-        signal: controller.signal
-      })
-      clearTimeout(timeoutId)
-      
-      const startData = await startRes.json()
+      let startRes: Response
+      try {
+        startRes = await fetch('/api/research/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: queryString,
+            mode: searchMode,
+            idempotencyKey,
+            presetId: presetId || undefined,
+            context: conversationContext,
+          }),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeoutId)
+      }
 
-      if (!startData.ok && startData.message) {
-        setResult({ error: startData.message })
-        setStatus('error')
-        isFetchingRef.current = false
+      let startData: any
+      try {
+        startData = await startRes.json()
+      } catch {
+        terminateWithError('Server returned an invalid response. Please try again.')
         return
       }
 
-      // Focus/Deep: result returned immediately
+      // ─── Error response from server ──────────────────────────────────
+      if (!startData.ok) {
+        const msg = startData.message || startData.error || 'Research engine returned an error.'
+        terminateWithError(msg)
+        return
+      }
+
+      // ─── Direct result (focus / deep / analytica — all modes now) ────
+      // The start route awaits the pipeline and returns result directly.
       if (startData.result) {
         const data = startData.result as ResearchResult
-        if (data.ok === false && (data.message || data.error)) {
-          setResult({ error: data.message || data.error, raw: data.message || data.error })
+        if ((data as any).ok === false && ((data as any).message || (data as any).error)) {
+          terminateWithError((data as any).message || (data as any).error || 'Analysis failed.')
         } else {
-          setResult(data)
-          recordActivity()
-          if (queryString) { 
-            recordQuery(queryString)
-            recordReportView(queryString) 
-            try {
-              const vs = JSON.parse(localStorage.getItem('verdant-query-versions') || '{}')
-              vs[queryString] = (vs[queryString] || 0) + 1
-              localStorage.setItem('verdant-query-versions', JSON.stringify(vs))
-            } catch {}
-          }
+          recordSuccess(data)
+          setStatus('success')
+          isFetchingRef.current = false
         }
-        setStatus('success')
         return
       }
 
-      // Failed inline
+      // ─── Explicit failed status ──────────────────────────────────────
       if (startData.status === 'failed') {
-        setResult({ error: startData.errorReason || 'Analysis failed' })
-        setStatus('error')
-        isFetchingRef.current = false
+        terminateWithError(startData.message || startData.errorReason || 'Analysis failed.')
         return
       }
 
-      // ─── Analytica: poll for status ──────────────────────────────────
+      // ─── Legacy async polling path (kept for backward compatibility) ─
+      // This path is only hit if the server still returns async:true.
       if (startData.async && startData.jobId) {
         const jobId = startData.jobId
-        setAsyncStage(startData.stage || 'Queued for processing')
+        setAsyncStage(startData.stage || 'Processing...')
         setAsyncProgress(startData.progress || 5)
-        setAsyncEta(startData.etaSeconds || 180)
+        setAsyncEta(startData.etaSeconds || 60)
         let pollFailureCount = 0
-
-        // Use ref to track if poll has completed (avoids stale closure on status)
         const pollCompletedRef = { current: false }
+
+        const stopPolling = (terminal: boolean) => {
+          clearInterval(pollInterval)
+          pollCompletedRef.current = terminal
+          setAsyncStage(undefined)
+          setAsyncProgress(undefined)
+          // Always reset isFetchingRef when polling stops
+          isFetchingRef.current = false
+        }
 
         const pollInterval = setInterval(async () => {
           try {
             const statusRes = await fetch(`/api/research/status/${jobId}`)
-            if (!statusRes.ok) throw new Error(`Status polling failed (${statusRes.status})`)
+            if (!statusRes.ok) throw new Error(`Status ${statusRes.status}`)
             const statusData = await statusRes.json()
             pollFailureCount = 0
 
@@ -852,80 +888,82 @@ function ResearchContent() {
             setAsyncProgress(statusData.progress)
 
             if (statusData.ready) {
-              clearInterval(pollInterval)
-              pollCompletedRef.current = true
-              // Fetch full result
+              stopPolling(true)
               const resultRes = await fetch(`/api/research/result/${jobId}`)
               const resultData = await resultRes.json()
               if (resultData.ok && resultData.result) {
-                setResult(resultData.result as ResearchResult)
-                recordActivity()
-                if (queryString) {
-                  recordQuery(queryString)
-                  recordReportView(queryString)
-                  try {
-                    const vs = JSON.parse(localStorage.getItem('verdant-query-versions') || '{}')
-                    vs[queryString] = (vs[queryString] || 0) + 1
-                    localStorage.setItem('verdant-query-versions', JSON.stringify(vs))
-                  } catch {}
-                }
+                recordSuccess(resultData.result as ResearchResult)
+                setStatus('success')
               } else {
-                setResult({ error: 'Failed to retrieve completed report', raw: '' })
+                setResult({ error: resultData.errorReason || 'Failed to retrieve completed report.' })
+                setStatus('error')
               }
-              setAsyncStage(undefined)
-              setAsyncProgress(undefined)
-              setStatus('success')
             } else if (statusData.failed) {
-              clearInterval(pollInterval)
-              pollCompletedRef.current = true
-              setResult({ error: statusData.errorReason || 'Analysis failed after retries' })
-              setAsyncStage(undefined)
-              setAsyncProgress(undefined)
+              stopPolling(true)
+              setResult({ error: statusData.errorReason || 'Analysis failed.' })
               setStatus('error')
             }
           } catch {
             pollFailureCount += 1
             if (pollFailureCount >= 3) {
-              clearInterval(pollInterval)
-              setResult({ error: 'Unable to retrieve analysis status. Please retry.', raw: 'Polling failed' })
-              setAsyncStage(undefined)
-              setAsyncProgress(undefined)
+              stopPolling(true)
+              setResult({ error: 'Unable to retrieve analysis status. Please retry.' })
               setStatus('error')
-              isFetchingRef.current = false
             }
           }
         }, 5000)
 
-        // Safety: stop polling after 10 minutes (only if poll hasn't completed)
+        // Safety timeout — 3 minutes max for async path
         setTimeout(() => {
-          clearInterval(pollInterval)
           if (!pollCompletedRef.current) {
-            setResult({ error: 'Analysis timed out. Analytica reports may take several minutes — please try again.', raw: 'Timeout' })
-            setAsyncStage(undefined)
+            stopPolling(true)
+            setResult({ error: 'Analysis timed out. Please try again with Focus mode for faster results.' })
             setStatus('error')
-            isFetchingRef.current = false
           }
-        }, 600000)
+        }, 180_000)
+
+        // isFetchingRef is reset inside stopPolling — do NOT reset in finally
         return
       }
 
-      // Fallback: unexpected response
-      setResult({ error: 'Unexpected response from research engine' })
-      setStatus('error')
+      // ─── Unexpected response ─────────────────────────────────────────
+      terminateWithError('Unexpected response from research engine. Please try again.')
+
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        setResult({ error: 'Request timed out. Please try again.' })
-        setStatus('error')
-      } else {
-        setResult({ error: (err as Error).message || 'An unknown error occurred.' })
-        setStatus('error')
-      }
+      const isAbort = err instanceof DOMException && err.name === 'AbortError'
+      terminateWithError(
+        isAbort
+          ? 'Request timed out after 65 seconds. Please try Focus mode for faster results.'
+          : ((err as Error).message || 'An unexpected error occurred.')
+      )
     } finally {
+      // Reset isFetchingRef for all synchronous paths.
+      // The async polling path resets it inside stopPolling() instead.
+      // We only reset here if we're NOT in the async polling path.
+      // The async path returns early before reaching finally.
       isFetchingRef.current = false
     }
   }, [queryString, router, presetId])
 
   useEffect(() => { runFetch() }, [runFetch])
+
+  // ─── Loading timeout safety valve ───────────────────────────────────────
+  // If loading state persists for >70s, force-transition to error.
+  // This prevents infinite loading when the backend hangs or network drops.
+  useEffect(() => {
+    if (status !== 'loading') return
+    const safetyTimeout = setTimeout(() => {
+      if (status === 'loading') {
+        console.warn('[research] Loading timeout safety valve triggered after 70s')
+        setResult({ error: 'Request timed out. The analysis server did not respond in time. Please try again — Focus mode is fastest.' })
+        setAsyncStage(undefined)
+        setAsyncProgress(undefined)
+        setStatus('error')
+        isFetchingRef.current = false
+      }
+    }, 70_000)
+    return () => clearTimeout(safetyTimeout)
+  }, [status])
 
   const hasContent = result && (
     result.raw || result.executiveSummary || result.findings?.length ||

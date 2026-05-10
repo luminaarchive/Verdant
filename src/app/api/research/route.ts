@@ -9,8 +9,13 @@ import { checkRateLimit } from '@/lib/research/rate-limit'
 import { findByIdempotencyKey } from '@/lib/research/jobs'
 import { log, generateRequestId, timer } from '@/lib/research/logger'
 import { saveResearchRun, saveResearchResult, getRunById } from '@/lib/supabase/admin'
+import { validateEnv } from '@/lib/env-check'
 
+export const runtime = 'nodejs'
 export const maxDuration = 60
+
+// Validate env on module load — fail fast with clear error
+try { validateEnv() } catch (e) { console.error('[research/route] Env validation failed:', (e as Error).message) }
 
 function errorResponse(status: number, message: string, opts: Partial<ApiError> = {}): NextResponse {
   return NextResponse.json({
@@ -56,13 +61,17 @@ export async function POST(request: NextRequest) {
 
   // ─── Idempotency check (DB-backed, survives restarts) ─────────────────
   if (idempotencyKey) {
-    const existingJob = await findByIdempotencyKey(idempotencyKey)
-    if (existingJob && existingJob.result) {
-      log.info('Idempotency hit — returning existing result', { requestId, runId: existingJob.runId })
-      const existing = await getRunById(existingJob.runId)
-      if (existing?.result) {
-        return NextResponse.json({ ok: true, ...rebuildResult(existing), pipelineSource: 'cache' })
+    try {
+      const existingJob = await findByIdempotencyKey(idempotencyKey)
+      if (existingJob && existingJob.result) {
+        log.info('Idempotency hit — returning existing result', { requestId, runId: existingJob.runId })
+        const existing = await getRunById(existingJob.runId)
+        if (existing?.result) {
+          return NextResponse.json({ ok: true, ...rebuildResult(existing), pipelineSource: 'cache' })
+        }
       }
+    } catch (idempErr) {
+      log.warn(`Idempotency check failed (non-fatal): ${(idempErr as Error).message}`, { requestId })
     }
   }
 

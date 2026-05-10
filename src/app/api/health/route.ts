@@ -1,55 +1,109 @@
-// ─── GET /api/health — Diagnostic endpoint ──────────────────────────────────
-// Returns system health status. Never exposes actual key values.
-// Use to verify Vercel production has correct env vars configured.
+// ─── /api/health — Production Health Check ──────────────────────────────────
+// Quick diagnostic endpoint to verify:
+//   1. Environment variables are configured
+//   2. OpenRouter is reachable
+//   3. Supabase is reachable
+//
+// Use this to debug production failures without reading function logs.
+// GET /api/health → { status, env, openrouter, supabase, timestamp }
 
 import { NextResponse } from 'next/server'
 import { checkEnv } from '@/lib/env-check'
-import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getAllHealth } from '@/lib/ai/health'
+
+export const runtime = 'nodejs'
 
 export async function GET() {
-  const env = checkEnv()
+  const startTime = Date.now()
+  const envStatus = checkEnv()
 
-  // Test actual Supabase connectivity (not just env presence)
-  let supabaseStatus: 'connected' | 'missing_env' | 'connection_failed' = 'missing_env'
-  let supabaseError: string | undefined
+  // ─── OpenRouter ping ──────────────────────────────────────────────────────
+  let openrouterStatus: { reachable: boolean; latencyMs: number; error?: string } = {
+    reachable: false,
+    latencyMs: 0,
+  }
 
-  if (env.supabase === 'configured') {
-    const sb = getSupabaseAdmin()
-    if (sb) {
-      try {
-        // Lightweight query to test connectivity
-        const { error } = await sb.from('research_jobs').select('job_id').limit(1)
-        if (error) {
-          supabaseStatus = 'connection_failed'
-          supabaseError = error.message
-        } else {
-          supabaseStatus = 'connected'
-        }
-      } catch (e) {
-        supabaseStatus = 'connection_failed'
-        supabaseError = (e as Error).message
+  if (envStatus.providers.openrouter) {
+    const orStart = Date.now()
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 8000)
+      const res = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY?.trim()}`,
+        },
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      openrouterStatus = {
+        reachable: res.ok,
+        latencyMs: Date.now() - orStart,
+        error: res.ok ? undefined : `HTTP ${res.status}`,
+      }
+    } catch (e) {
+      openrouterStatus = {
+        reachable: false,
+        latencyMs: Date.now() - orStart,
+        error: (e as Error).message,
       }
     }
   } else {
-    supabaseStatus = 'missing_env'
+    openrouterStatus.error = 'OPENROUTER_API_KEY not configured'
   }
 
-  const overall = supabaseStatus === 'connected' && env.ai === 'configured' ? 'ok' : 'degraded'
+  // ─── Supabase ping ────────────────────────────────────────────────────────
+  let supabaseStatus: { reachable: boolean; latencyMs: number; error?: string } = {
+    reachable: false,
+    latencyMs: 0,
+  }
+
+  if (envStatus.supabase === 'configured') {
+    const sbStart = Date.now()
+    try {
+      const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
+      const sb = getSupabaseAdmin()
+      if (sb) {
+        const { error } = await sb.from('research_runs').select('run_id').limit(1)
+        supabaseStatus = {
+          reachable: !error,
+          latencyMs: Date.now() - sbStart,
+          error: error?.message,
+        }
+      } else {
+        supabaseStatus.error = 'Admin client returned null'
+      }
+    } catch (e) {
+      supabaseStatus = {
+        reachable: false,
+        latencyMs: Date.now() - sbStart,
+        error: (e as Error).message,
+      }
+    }
+  } else {
+    supabaseStatus.error = `Supabase status: ${envStatus.supabase}`
+  }
+
+  // ─── Provider health history ──────────────────────────────────────────────
+  const providerHealth = getAllHealth()
+
+  // ─── Overall status ───────────────────────────────────────────────────────
+  const healthy = envStatus.ai === 'configured' && openrouterStatus.reachable
 
   return NextResponse.json({
-    status: overall,
-    supabase: supabaseStatus,
-    supabaseDetail: supabaseError ?? undefined,
-    ai: env.ai,
-    envPresent: {
-      supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      supabaseUrlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 25) ?? null,
-      supabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      supabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      serviceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length ?? 0,
-      geminiKey: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY),
-      openrouterKey: !!process.env.OPENROUTER_API_KEY,
-    },
+    status: healthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
+    totalLatencyMs: Date.now() - startTime,
+    env: {
+      valid: envStatus.valid,
+      missing: envStatus.missing,
+      supabase: envStatus.supabase,
+      ai: envStatus.ai,
+      providers: envStatus.providers,
+    },
+    openrouter: openrouterStatus,
+    supabase: supabaseStatus,
+    providerHealth,
+  }, {
+    status: healthy ? 200 : 503,
   })
 }

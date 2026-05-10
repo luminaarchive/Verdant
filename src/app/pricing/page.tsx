@@ -64,14 +64,15 @@ export default function PricingPage() {
 
   React.useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       if (user) {
         supabase.from('user_profiles').select('subscription_tier').eq('id', user.id).single()
-          .then(({ data }) => {
+          .then(({ data }: any) => {
             if (data) setCurrentTier(data.subscription_tier || 'seeds')
           })
       }
-    })
+    }).catch(() => {})
   }, [])
 
   const handleUpgrade = async (planId: string) => {
@@ -80,6 +81,10 @@ export default function PricingPage() {
     
     try {
       const supabase = createClient()
+      if (!supabase) {
+        router.push(`/auth?redirect=/pricing`)
+        return
+      }
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {

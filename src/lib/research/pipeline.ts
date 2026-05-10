@@ -1,6 +1,6 @@
 import { GeminiResearchResponseSchema, type ResearchResult, type CostBreakdown } from './schema'
 import { callWithFailover } from '../ai/provider-manager'
-import { getSystemInstruction, buildUserPrompt, buildExpansionPrompt, buildContinuationPrompt } from './prompt'
+import { getSystemInstruction, buildUserPrompt } from './prompt'
 import { log, generateRunId, timer, type LogContext } from './logger'
 
 export interface PipelineInput {
@@ -46,56 +46,6 @@ function extractJSON(raw: string): unknown {
   throw new Error('No valid JSON found in response')
 }
 
-function isValidOutput(text: string): boolean {
-  if (!text) return false
-  if (text.length < 500) return false
-  return true
-}
-
-async function expandWithContinuation(heading: string, query: string, ctx: Partial<LogContext>): Promise<string> {
-  log.step('expand', `Expanding section: ${heading}`, ctx)
-  const prompt = buildExpansionPrompt(heading, query)
-  const sysPrompt = 'You are an academic environmental researcher producing a formal research report. Output plain text only. No markdown, no JSON, no headers, no bullet points.'
-  
-  let resultText = ''
-  try {
-    const res1 = await callWithFailover({ query, mode: 'focus', systemPrompt: sysPrompt, userPrompt: prompt }, ctx)
-    resultText = res1.response.content.trim()
-    
-    // Auto-continue if section is too short (target: 1000-2000 words ≈ 5000-10000 chars)
-    // First continuation: if under ~330 words
-    if (resultText.length < 2000) {
-      log.step('expand', `Auto-continuing short section (${resultText.length} chars): ${heading}`, ctx)
-      const contPrompt = buildContinuationPrompt()
-      const res2 = await callWithFailover({ 
-        query, 
-        mode: 'focus', 
-        systemPrompt: sysPrompt, 
-        userPrompt: `${prompt}\n\nPrevious text (last part):\n${resultText.slice(-500)}\n\n${contPrompt}`
-      }, ctx)
-      resultText += '\n\n' + res2.response.content.trim()
-    }
-    
-    // Second continuation: if still under ~660 words after first continuation
-    if (resultText.length < 4000) {
-      log.step('expand', `Second continuation (${resultText.length} chars): ${heading}`, ctx)
-      const contPrompt = buildContinuationPrompt()
-      const res3 = await callWithFailover({ 
-        query, 
-        mode: 'focus', 
-        systemPrompt: sysPrompt, 
-        userPrompt: `${prompt}\n\nPrevious text (last part):\n${resultText.slice(-500)}\n\n${contPrompt}`
-      }, ctx)
-      resultText += '\n\n' + res3.response.content.trim()
-    }
-  } catch (err) {
-    log.error(`Expansion failed for ${heading}: ${(err as Error).message}`, ctx)
-    if (!resultText) resultText = "Analysis temporarily unavailable for this section."
-  }
-  
-  return resultText
-}
-
 export async function runResearchPipeline(input: PipelineInput): Promise<PipelineOutput> {
   const runId = input.runId ?? generateRunId()
   const elapsed = timer()
@@ -110,36 +60,129 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
   const providerResult = await callWithFailover({ query: input.query, mode: input.mode, systemPrompt, userPrompt }, ctx)
   const { response, attempts } = providerResult
 
-  log.step('parse', 'Parsing response JSON', ctx)
+  log.step('parse', `Parsing response JSON (content_length=${response.content.length})`, ctx)
   let parsed: unknown
+  let isRawFallback = false
   try {
     parsed = extractJSON(response.content)
   } catch (e) {
-    log.error(`JSON parse failed: ${(e as Error).message}`, { ...ctx, failureStep: 'parse' })
-    throw new Error('Gagal memproses hasil AI. Output tidak valid (JSON parse error).')
+    log.warn(`JSON parse failed, using raw text fallback: ${(e as Error).message}. Content preview: ${response.content.slice(0, 200)}`, { ...ctx, failureStep: 'parse' })
+    // Raw text fallback — the AI returned coherent text but not valid JSON.
+    // Wrap it in a minimal result so the frontend can display it via RawResult.
+    isRawFallback = true
+    parsed = null
   }
 
   log.step('validate', 'Validating schema', ctx)
-  const validation = GeminiResearchResponseSchema.safeParse(parsed)
-  if (!validation.success) {
-    log.error('Schema validation failed', { ...ctx, failureStep: 'validate' })
-    throw new Error(`Validasi hasil gagal: ${validation.error.issues.map(i => i.message).join(', ')}`)
-  }
-  let data = validation.data
-  
-  // ─── STAGE 2: Outline Expansion (Loop) ───────────────
-  if (input.mode === 'deep' || input.mode === 'analytica') {
-    if (data.outline && data.outline.length > 0) {
-      log.step('expand_loop', `Starting expansion for ${data.outline.length} sections (batched)`, ctx)
-      const batchSize = 3
-      for (let i = 0; i < data.outline.length; i += batchSize) {
-        const batch = data.outline.slice(i, i + batchSize)
-        await Promise.all(batch.map(async (section: any) => {
-          section.body = await expandWithContinuation(section.heading, input.query, ctx)
-        }))
-      }
+
+  // ─── RAW TEXT FALLBACK PATH ─────────────────────────────────────────
+  // If JSON parsing failed, the AI returned coherent text but not structured JSON.
+  // We wrap it in a minimal ResearchResult with the 'raw' field. The frontend's
+  // RawResult component will render this as a formatted text report.
+  if (isRawFallback || parsed === null) {
+    const durationMs = elapsed()
+    const pipelineSource = response.provider === 'openrouter' ? 'openrouter' as const : 'gemini-direct' as const
+    log.info(`Pipeline complete (raw fallback) via ${response.provider}/${response.model} | ${durationMs}ms`, { ...ctx, durationMs, pipelineSource })
+
+    const rawResult: any = {
+      title: input.query,
+      raw: response.content,
+      executiveSummary: null,
+      findings: [],
+      outline: [],
+      stats: [],
+      sources: [],
+      evidenceItems: [],
+      contradictions: [],
+      confidenceScore: 30,
+      uncertaintyNotes: [],
+      strategicFollowUps: [],
+      decisionRecommendations: [],
+      runId,
+      query: input.query,
+      mode: input.mode,
+      pipelineSource,
+      costBreakdown: {
+        model: response.model,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+        costUsd: response.estimatedCostUsd,
+      },
+      createdAt: new Date().toISOString(),
+      status: 'ready',
+      durationMs,
+    }
+
+    return {
+      result: rawResult,
+      rawJson: response.content,
+      providerAttempts: attempts.map(a => ({ provider: a.provider, error: a.error })),
     }
   }
+
+  // ─── STRUCTURED JSON PATH ──────────────────────────────────────────
+  const validation = GeminiResearchResponseSchema.safeParse(parsed)
+  if (!validation.success) {
+    const issues = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+    log.warn(`Schema validation failed, falling back to raw text: ${issues}`, { ...ctx, failureStep: 'validate' })
+    
+    // Schema validation failed — try to use whatever we parsed + raw text
+    const durationMs = elapsed()
+    const pipelineSource = response.provider === 'openrouter' ? 'openrouter' as const : 'gemini-direct' as const
+    const partial = parsed as any
+    const rawResult: any = {
+      title: partial?.title || input.query,
+      raw: response.content,
+      executiveSummary: partial?.executiveSummary || null,
+      findings: Array.isArray(partial?.findings) ? partial.findings : [],
+      outline: Array.isArray(partial?.outline) ? partial.outline : [],
+      stats: Array.isArray(partial?.stats) ? partial.stats : [],
+      sources: Array.isArray(partial?.sources) ? partial.sources : [],
+      evidenceItems: Array.isArray(partial?.evidenceItems) ? partial.evidenceItems : [],
+      contradictions: Array.isArray(partial?.contradictions) ? partial.contradictions : [],
+      confidenceScore: typeof partial?.confidenceScore === 'number' ? partial.confidenceScore : 30,
+      uncertaintyNotes: Array.isArray(partial?.uncertaintyNotes) ? partial.uncertaintyNotes : [],
+      strategicFollowUps: Array.isArray(partial?.strategicFollowUps) ? partial.strategicFollowUps : [],
+      decisionRecommendations: Array.isArray(partial?.decisionRecommendations) ? partial.decisionRecommendations : [],
+      runId,
+      query: input.query,
+      mode: input.mode,
+      pipelineSource,
+      costBreakdown: {
+        model: response.model,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+        costUsd: response.estimatedCostUsd,
+      },
+      createdAt: new Date().toISOString(),
+      status: 'ready',
+      durationMs,
+    }
+
+    return {
+      result: rawResult,
+      rawJson: response.content,
+      providerAttempts: attempts.map(a => ({ provider: a.provider, error: a.error })),
+    }
+  }
+
+  let data = validation.data
+  
+  // ─── STAGE 2: Outline Expansion — DISABLED FOR STABILITY ──────────
+  // The continuation system (expandWithContinuation + Promise.all batching)
+  // is temporarily disabled. It was causing:
+  //   1. Timeout budget exhaustion (each expansion = another full AI call)
+  //   2. Promise.all memory spikes on Vercel serverless
+  //   3. Cascading failures when one expansion times out
+  //
+  // The outline sections will contain the short summaries from the initial
+  // AI response. Re-enable once single-call generation is fully stable.
+  //
+  // if (input.mode === 'deep' || input.mode === 'analytica') {
+  //   if (data.outline && data.outline.length > 0) {
+  //     ... expansion logic ...
+  //   }
+  // }
 
   // ─── Quality Audit: mode-aware confidence calibration ───────────────
   log.step('audit', 'Quality audit — mode-aware confidence calibration', ctx)
@@ -206,7 +249,7 @@ export async function runResearchPipeline(input: PipelineInput): Promise<Pipelin
     durationMs,
   }
 
-  log.info(`Pipeline complete via ${response.provider}/${response.model} | confidence=${auditedConfidence} sources=${sourceCount} evidence=${evidenceCount}`, { ...ctx, durationMs, pipelineSource })
+  log.info(`Pipeline complete via ${response.provider}/${response.model} | confidence=${auditedConfidence} sources=${sourceCount} evidence=${evidenceCount} | ${durationMs}ms`, { ...ctx, durationMs, pipelineSource })
 
   return {
     result,

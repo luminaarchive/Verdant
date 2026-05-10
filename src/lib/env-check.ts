@@ -1,61 +1,96 @@
 // ─── Environment Variable Validation ────────────────────────────────────────
-// Call validateEnv() at critical API route entry points for immediate,
-// clear error messages in Vercel logs when env vars are missing.
-//
-// Design: logs which specific variables are missing, never exposes values.
+// validateEnv() is called at API route entry points.
+// It logs clearly which variables are missing and THROWS if AI provider is
+// absent — preventing silent 401/402 loops that waste the entire timeout budget.
 
 export interface EnvStatus {
   valid: boolean
   missing: string[]
   supabase: 'configured' | 'missing_url' | 'missing_key' | 'missing_both'
   ai: 'configured' | 'missing'
+  providers: { openrouter: boolean; gemini: boolean }
 }
 
 /** Returns status without throwing — use for health checks */
 export function checkEnv(): EnvStatus {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
-  // AI provider: check all possible keys
-  const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY)
-  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY
+  // Treat empty strings as missing — Vercel CLI sometimes writes empty strings
+  const hasUrl = !!url && url.length > 0
+  const hasAnonKey = !!anonKey && anonKey.length > 0
+  const hasServiceKey = !!serviceKey && serviceKey.length > 0
+
+  const geminiKey = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_AI_API_KEY?.trim() || process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
+  const openrouterKey = process.env.OPENROUTER_API_KEY?.trim()
+  const hasGemini = !!geminiKey && geminiKey.length > 0
+  const hasOpenRouter = !!openrouterKey && openrouterKey.length > 0
   const hasAI = hasGemini || hasOpenRouter
 
   const missing: string[] = []
-  if (!url) missing.push('NEXT_PUBLIC_SUPABASE_URL')
-  if (!anonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
-  if (!serviceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
-  if (!hasAI) missing.push('GEMINI_API_KEY or OPENROUTER_API_KEY')
+  if (!hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
+  if (!hasAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  if (!hasServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
+  if (!hasAI) missing.push('OPENROUTER_API_KEY (or GEMINI_API_KEY)')
 
   let supabase: EnvStatus['supabase'] = 'configured'
-  if (!url && !serviceKey) supabase = 'missing_both'
-  else if (!url) supabase = 'missing_url'
-  else if (!serviceKey) supabase = 'missing_key'
+  if (!hasUrl && !hasServiceKey) supabase = 'missing_both'
+  else if (!hasUrl) supabase = 'missing_url'
+  else if (!hasServiceKey) supabase = 'missing_key'
 
   return {
     valid: missing.length === 0,
     missing,
     supabase,
     ai: hasAI ? 'configured' : 'missing',
+    providers: { openrouter: hasOpenRouter, gemini: hasGemini },
   }
 }
 
-/** Throws with clear error message if required env vars are missing */
+/**
+ * Validates environment variables and throws a clear error if the AI provider
+ * is not configured. Supabase missing is logged as a warning (degraded mode
+ * is acceptable — in-memory fallback handles it). AI missing is fatal.
+ */
 export function validateEnv(): void {
   const status = checkEnv()
-  if (!status.valid) {
-    const msg = `[ENV CHECK] Missing required environment variables: ${status.missing.join(', ')}`
-    console.error(msg)
-    console.error(`[ENV CHECK] Supabase status: ${status.supabase}`)
-    console.error(`[ENV CHECK] AI provider status: ${status.ai}`)
 
-    // Log diagnostic info (never log actual values)
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    console.error(`[ENV CHECK] SUPABASE_URL present: ${!!url}, length: ${url?.length ?? 0}, starts with: ${url?.slice(0, 20) ?? 'N/A'}`)
-    console.error(`[ENV CHECK] SERVICE_KEY present: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}, length: ${process.env.SUPABASE_SERVICE_ROLE_KEY?.length ?? 0}`)
+  // Always log provider status on first call for debugging
+  console.log(`[ENV] Provider status: OpenRouter=${status.providers.openrouter ? '✓' : '✗'}, Gemini=${status.providers.gemini ? '✓' : '✗'}, Supabase=${status.supabase}`)
 
-    // Don't throw — degrade gracefully. The specific operations that need
-    // DB will throw their own errors with more context.
+  if (status.providers.openrouter) {
+    const key = process.env.OPENROUTER_API_KEY?.trim() ?? ''
+    console.log(`[ENV] OpenRouter key prefix: ${key.slice(0, 10)}... (length: ${key.length})`)
   }
+
+  if (status.ai === 'missing') {
+    const msg = [
+      '[ENV] FATAL: No AI provider configured.',
+      '[ENV] Set OPENROUTER_API_KEY in Vercel: Settings → Environment Variables → Production.',
+      '[ENV] Without this key, all AI generation will fail with 401 errors.',
+      '[ENV] If using .env.local, ensure keys are NOT set to empty strings (this overrides Vercel values).',
+    ].join('\n')
+    console.error(msg)
+    throw new Error('AI provider not configured. Set OPENROUTER_API_KEY in Vercel environment variables.')
+  }
+
+  if (status.supabase !== 'configured') {
+    console.warn(`[ENV] WARNING: Supabase not fully configured (status: ${status.supabase}).`)
+    console.warn('[ENV] Missing:', status.missing.filter(m => !m.includes('OPENROUTER') && !m.includes('GEMINI')).join(', '))
+    console.warn('[ENV] App will run in degraded mode — results will not be persisted.')
+  }
+
+  if (status.valid) {
+    console.log('[ENV] All environment variables configured ✓')
+  }
+}
+
+/** Returns a user-friendly error message for missing AI provider */
+export function getAIProviderError(): string {
+  const status = checkEnv()
+  if (status.ai === 'missing') {
+    return 'AI provider is not configured. Please contact support or try again later.'
+  }
+  return ''
 }
