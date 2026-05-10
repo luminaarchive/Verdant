@@ -1,0 +1,497 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - heading "verdant" [level=1] [ref=e12]
+        - paragraph [ref=e13]: Environmental Intelligence
+      - button "New Thread" [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+        - text: New Thread
+      - generic [ref=e16]:
+        - link "Home" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=e19]
+          - generic [ref=e22]: Home
+        - link "Discover" [ref=e23] [cursor=pointer]:
+          - /url: /discover
+          - img [ref=e24]
+          - generic [ref=e27]: Discover
+        - link "Watchlists" [ref=e28] [cursor=pointer]:
+          - /url: /watchlists
+          - img [ref=e29]
+          - generic [ref=e32]: Watchlists
+        - link "Digest" [ref=e33] [cursor=pointer]:
+          - /url: /digest
+          - img [ref=e34]
+          - generic [ref=e37]: Digest
+        - link "Pulse" [ref=e38] [cursor=pointer]:
+          - /url: /pulse
+          - img [ref=e39]
+          - generic [ref=e41]: Pulse
+        - link "Spaces" [ref=e42] [cursor=pointer]:
+          - /url: /spaces
+          - img [ref=e43]
+          - generic [ref=e45]: Spaces
+        - link "History" [ref=e46] [cursor=pointer]:
+          - /url: /history
+          - img [ref=e47]
+          - generic [ref=e50]: History
+        - link "Journal" [ref=e51] [cursor=pointer]:
+          - /url: /journal
+          - img [ref=e52]
+          - generic [ref=e54]: Journal
+      - generic [ref=e55]:
+        - link "Protocol" [ref=e56] [cursor=pointer]:
+          - /url: /protocol
+          - img [ref=e57]
+          - generic [ref=e60]: Protocol
+        - link "About" [ref=e61] [cursor=pointer]:
+          - /url: /about
+          - img [ref=e62]
+          - generic [ref=e64]: About
+        - link "Help" [ref=e65] [cursor=pointer]:
+          - /url: /help
+          - img [ref=e66]
+          - generic [ref=e69]: Help
+      - generic [ref=e71]:
+        - button "☀ Light" [ref=e72] [cursor=pointer]
+        - button "🌙 Dark" [ref=e73] [cursor=pointer]
+        - button "◐ System" [ref=e74] [cursor=pointer]
+      - generic [ref=e76]:
+        - generic [ref=e77]: verified_user
+        - generic [ref=e78]:
+          - paragraph [ref=e79]: Verdant Intelligence
+          - paragraph [ref=e80]: Zero-hallucination enforced
+      - generic [ref=e81]:
+        - generic [ref=e83] [cursor=pointer]:
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e86]: visibility
+              - text: Observer
+            - generic [ref=e89]: 0d
+          - generic [ref=e90]:
+            - img [ref=e92]
+            - generic [ref=e98]:
+              - generic [ref=e99]: Seedling
+              - generic [ref=e103]: 3d to next level
+        - button "workspace_premium Upgrade to Institutional" [ref=e104] [cursor=pointer]:
+          - generic [ref=e105]: workspace_premium
+          - generic [ref=e106]: Upgrade to Institutional
+    - generic [ref=e107]:
+      - banner [ref=e108]:
+        - navigation [ref=e109]:
+          - button "All" [ref=e110] [cursor=pointer]: All
+          - button "Ecology" [ref=e112] [cursor=pointer]
+          - button "Biodiversity" [ref=e113] [cursor=pointer]
+          - button "Botany" [ref=e114] [cursor=pointer]
+          - button "Mycology" [ref=e115] [cursor=pointer]
+          - button "Geology" [ref=e116] [cursor=pointer]
+          - button "Oceanography" [ref=e117] [cursor=pointer]
+        - generic [ref=e118]:
+          - button "dark_mode" [ref=e119] [cursor=pointer]:
+            - generic [ref=e120]: dark_mode
+          - button "Archive" [ref=e121] [cursor=pointer]:
+            - img [ref=e122]
+            - text: Archive
+          - button "Sign In" [ref=e125] [cursor=pointer]:
+            - img [ref=e126]
+            - text: Sign In
+      - main [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e133]: Environmental Intelligence Platform
+            - heading "verdant" [level=2] [ref=e134]
+            - paragraph [ref=e135]: Decision-grade environmental research. Species risk, climate intelligence, conservation strategy — powered by executive-level AI analysis.
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - textbox "Ask a complex environmental question..." [active] [ref=e139]
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e142]:
+                    - generic [ref=e143]:
+                      - button "Focus" [ref=e144] [cursor=pointer]:
+                        - img [ref=e145]
+                        - text: Focus
+                      - button "Deep Research" [ref=e147] [cursor=pointer]:
+                        - img [ref=e148]
+                        - text: Deep Research
+                      - button "Analytica" [ref=e150] [cursor=pointer]:
+                        - img [ref=e151]
+                        - text: Analytica
+                    - generic [ref=e152]:
+                      - generic [ref=e153]: "Output Language:"
+                      - combobox [ref=e154] [cursor=pointer]:
+                        - option "English" [selected]
+                        - option "Bahasa Indonesia"
+                  - generic [ref=e155]:
+                    - generic [ref=e156]: Quick decision brief
+                    - generic [ref=e157]: •
+                    - generic [ref=e158]: "Est: fast"
+                - button "Submit research query" [disabled] [ref=e159]:
+                  - img [ref=e160]
+            - paragraph [ref=e162]: Press Enter to search · Shift+Enter for new line
+          - generic [ref=e163]:
+            - link "lightbulb Coral reef collapse risk in Indonesia" [ref=e164] [cursor=pointer]:
+              - /url: /research?q=Coral%20reef%20collapse%20risk%20in%20Indonesia&mode=deep
+              - generic [ref=e165]: lightbulb
+              - text: Coral reef collapse risk in Indonesia
+            - link "lightbulb Orangutan extinction impact" [ref=e166] [cursor=pointer]:
+              - /url: /research?q=Orangutan%20extinction%20impact&mode=focus
+              - generic [ref=e167]: lightbulb
+              - text: Orangutan extinction impact
+            - link "lightbulb Mangrove restoration funding opportunities" [ref=e168] [cursor=pointer]:
+              - /url: /research?q=Mangrove%20restoration%20funding%20opportunities&mode=deep
+              - generic [ref=e169]: lightbulb
+              - text: Mangrove restoration funding opportunities
+            - link "lightbulb Climate adaptation strategy for coastal regions" [ref=e170] [cursor=pointer]:
+              - /url: /research?q=Climate%20adaptation%20strategy%20for%20coastal%20regions&mode=analytica
+              - generic [ref=e171]: lightbulb
+              - text: Climate adaptation strategy for coastal regions
+          - link "Today's Brief Monday, May 4, 2026 forest Amazon deforestation alerts surged 23% compared to last month INPE DETER data shows accelerated clearing in Pará and Mato Grosso states. Fire season forecasts suggest continued pressure through Q3." [ref=e173] [cursor=pointer]:
+            - /url: /research?q=Amazon%20deforestation%20INPE%20DETER%202026%20monthly%20analysis
+            - generic [ref=e174]:
+              - generic [ref=e175]: Today's Brief
+              - generic [ref=e176]: Monday, May 4, 2026
+            - generic [ref=e177]:
+              - generic [ref=e178]: forest
+              - generic [ref=e179]:
+                - paragraph [ref=e180]: Amazon deforestation alerts surged 23% compared to last month
+                - paragraph [ref=e181]: INPE DETER data shows accelerated clearing in Pará and Mato Grosso states. Fire season forecasts suggest continued pressure through Q3.
+              - img [ref=e182]
+          - 'link "eco Ecosystem Risk Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss" [ref=e185] [cursor=pointer]':
+            - /url: /research?q=Amazon%20tipping%20point%20study%3A%20deforestation%20threshold%20revised%20downward%20to%2020-25%25%20forest%20loss
+            - generic [ref=e186]: eco
+            - generic [ref=e187]:
+              - generic [ref=e188]: Ecosystem Risk
+              - text: "Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss"
+            - img [ref=e189]
+          - generic [ref=e191]:
+            - generic [ref=e193]:
+              - generic [ref=e194]: tune
+              - heading "I'm researching as" [level=3] [ref=e195]
+            - generic [ref=e196]:
+              - button "volunteer_activism NGO / Conservation" [ref=e197] [cursor=pointer]:
+                - generic [ref=e198]: volunteer_activism
+                - text: NGO / Conservation
+              - button "eco Sustainability Team" [ref=e199] [cursor=pointer]:
+                - generic [ref=e200]: eco
+                - text: Sustainability Team
+              - button "gavel Government / Policy" [ref=e201] [cursor=pointer]:
+                - generic [ref=e202]: gavel
+                - text: Government / Policy
+              - button "science Researcher / Academic" [ref=e203] [cursor=pointer]:
+                - generic [ref=e204]: science
+                - text: Researcher / Academic
+              - button "engineering Environmental Consultant" [ref=e205] [cursor=pointer]:
+                - generic [ref=e206]: engineering
+                - text: Environmental Consultant
+              - button "shield ESG / Compliance" [ref=e207] [cursor=pointer]:
+                - generic [ref=e208]: shield
+                - text: ESG / Compliance
+              - button "thermostat Climate Risk Analyst" [ref=e209] [cursor=pointer]:
+                - generic [ref=e210]: thermostat
+                - text: Climate Risk Analyst
+              - button "savings Conservation Funding" [ref=e211] [cursor=pointer]:
+                - generic [ref=e212]: savings
+                - text: Conservation Funding
+          - generic [ref=e213]:
+            - generic [ref=e215]:
+              - generic [ref=e216]: science
+              - heading "Environmental Intelligence Templates" [level=3] [ref=e217]
+            - generic [ref=e218]:
+              - button "All Templates" [ref=e219] [cursor=pointer]
+              - button "Assessment" [ref=e220] [cursor=pointer]
+              - button "Conservation" [ref=e221] [cursor=pointer]
+              - button "Policy" [ref=e222] [cursor=pointer]
+              - button "Risk" [ref=e223] [cursor=pointer]
+              - button "Research" [ref=e224] [cursor=pointer]
+              - button "Funding" [ref=e225] [cursor=pointer]
+          - generic [ref=e227]:
+            - link "pest_control Species Risk Assessment Which species faces highest extinction risk and why? Run Analysis" [ref=e228] [cursor=pointer]:
+              - /url: /research?q=Conduct%20a%20species%20risk%20assessment%20identifying%20the%20most%20critically%20endangered%20species%20in%20the%20target%20region%2C%20analyzing%20population%20trends%2C%20habitat%20loss%20drivers%2C%20genetic%20diversity%20status%2C%20and%20existing%20protection%20gaps.%20Prioritize%20by%20extinction%20probability%20within%2010%20years.&tpl=species-risk
+              - generic [ref=e229]:
+                - generic [ref=e230]: pest_control
+                - generic [ref=e231]: Species Risk Assessment
+                - generic [ref=e232]: Which species faces highest extinction risk and why?
+              - generic [ref=e233]:
+                - text: Run Analysis
+                - img [ref=e234]
+            - link "warning Biodiversity Threat Analysis What is causing ecosystem decline and where? Run Analysis" [ref=e236] [cursor=pointer]:
+              - /url: /research?q=Analyze%20the%20primary%20threats%20to%20biodiversity%20in%20the%20target%20ecosystem%2C%20including%20habitat%20fragmentation%2C%20invasive%20species%2C%20pollution%2C%20climate%20change%20impacts%2C%20and%20human%20encroachment.%20Map%20threat%20severity%20by%20geographic%20zone%20and%20identify%20tipping%20points.&tpl=biodiversity-threat
+              - generic [ref=e237]:
+                - generic [ref=e238]: warning
+                - generic [ref=e239]: Biodiversity Threat Analysis
+                - generic [ref=e240]: What is causing ecosystem decline and where?
+              - generic [ref=e241]:
+                - text: Run Analysis
+                - img [ref=e242]
+            - link "pin_drop Conservation Priority Mapping Which intervention should be prioritized first? Run Analysis" [ref=e244] [cursor=pointer]:
+              - /url: /research?q=Map%20conservation%20priorities%20for%20the%20target%20region%20using%20systematic%20conservation%20planning%20criteria%3A%20irreplaceability%2C%20vulnerability%2C%20cost-effectiveness%2C%20community%20support%2C%20and%20connectivity.%20Recommend%20the%20top%203%20intervention%20priorities%20with%20evidence-based%20justification.&tpl=conservation-priority
+              - generic [ref=e245]:
+                - generic [ref=e246]: pin_drop
+                - generic [ref=e247]: Conservation Priority Mapping
+                - generic [ref=e248]: Which intervention should be prioritized first?
+              - generic [ref=e249]:
+                - text: Run Analysis
+                - img [ref=e250]
+            - link "gavel Environmental Policy Impact Review What policy creates the greatest environmental impact? Run Analysis" [ref=e252] [cursor=pointer]:
+              - /url: /research?q=Review%20the%20environmental%20impact%20of%20current%20and%20proposed%20policies%20in%20the%20target%20jurisdiction.%20Evaluate%20policy%20effectiveness%20using%20empirical%20evidence%2C%20compare%20with%20international%20best%20practices%2C%20and%20identify%20implementation%20failures%20and%20unintended%20consequences.&tpl=policy-impact
+              - generic [ref=e253]:
+                - generic [ref=e254]: gavel
+                - generic [ref=e255]: Environmental Policy Impact Review
+                - generic [ref=e256]: What policy creates the greatest environmental impact?
+              - generic [ref=e257]:
+                - text: Run Analysis
+                - img [ref=e258]
+            - link "thermostat Climate Risk Intelligence What climate threats create highest future risk? Run Analysis" [ref=e260] [cursor=pointer]:
+              - /url: /research?q=Assess%20climate%20risk%20exposure%20for%20the%20target%20region%20or%20sector%2C%20including%20physical%20risks%20(extreme%20weather%2C%20sea-level%20rise%2C%20temperature%20shifts)%2C%20transition%20risks%20(regulatory%20changes%2C%20market%20shifts)%2C%20and%20ecological%20tipping%20points.%20Quantify%20risk%20probability%20and%20impact%20severity.&tpl=climate-risk
+              - generic [ref=e261]:
+                - generic [ref=e262]: thermostat
+                - generic [ref=e263]: Climate Risk Intelligence
+                - generic [ref=e264]: What climate threats create highest future risk?
+              - generic [ref=e265]:
+                - text: Run Analysis
+                - img [ref=e266]
+            - link "eco Sustainability Risk Assessment What sustainability failures create operational risk? Run Analysis" [ref=e268] [cursor=pointer]:
+              - /url: /research?q=Assess%20sustainability%20risks%20across%20environmental%2C%20social%2C%20and%20governance%20dimensions%20for%20the%20target%20organization%20or%20sector.%20Identify%20material%20risks%2C%20regulatory%20exposure%2C%20supply%20chain%20vulnerabilities%2C%20and%20reputational%20threats%20from%20sustainability%20failures.&tpl=sustainability-risk
+              - generic [ref=e269]:
+                - generic [ref=e270]: eco
+                - generic [ref=e271]: Sustainability Risk Assessment
+                - generic [ref=e272]: What sustainability failures create operational risk?
+              - generic [ref=e273]:
+                - text: Run Analysis
+                - img [ref=e274]
+            - link "shield ESG Exposure Analysis What environmental liabilities threaten the organization? Run Analysis" [ref=e276] [cursor=pointer]:
+              - /url: /research?q=Conduct%20an%20ESG%20exposure%20analysis%20focusing%20on%20environmental%20liabilities%3A%20carbon%20footprint%2C%20water%20usage%2C%20waste%20management%2C%20biodiversity%20impact%2C%20regulatory%20compliance%20gaps%2C%20and%20emerging%20environmental%20litigation%20risks.%20Benchmark%20against%20sector%20peers.&tpl=esg-exposure
+              - generic [ref=e277]:
+                - generic [ref=e278]: shield
+                - generic [ref=e279]: ESG Exposure Analysis
+                - generic [ref=e280]: What environmental liabilities threaten the organization?
+              - generic [ref=e281]:
+                - text: Run Analysis
+                - img [ref=e282]
+            - link "volunteer_activism NGO Grant Research Brief Which environmental initiatives deserve funding priority? Run Analysis" [ref=e284] [cursor=pointer]:
+              - /url: /research?q=Evaluate%20environmental%20initiatives%20competing%20for%20grant%20funding.%20Assess%20each%20by%3A%20measurable%20impact%20potential%2C%20cost-effectiveness%2C%20scalability%2C%20community%20engagement%2C%20scientific%20basis%2C%20and%20alignment%20with%20global%20conservation%20frameworks%20(Kunming-Montreal%2C%20Paris%20Agreement).&tpl=ngo-grant
+              - generic [ref=e285]:
+                - generic [ref=e286]: volunteer_activism
+                - generic [ref=e287]: NGO Grant Research Brief
+                - generic [ref=e288]: Which environmental initiatives deserve funding priority?
+              - generic [ref=e289]:
+                - text: Run Analysis
+                - img [ref=e290]
+            - link "search Environmental Due Diligence What hidden ecological risks exist before action? Run Analysis" [ref=e292] [cursor=pointer]:
+              - /url: /research?q=Conduct%20environmental%20due%20diligence%20for%20the%20target%20project%2C%20site%2C%20or%20investment.%20Identify%3A%20contamination%20risks%2C%20protected%20species%20presence%2C%20water%20resource%20impacts%2C%20regulatory%20compliance%20requirements%2C%20community%20environmental%20concerns%2C%20and%20remediation%20cost%20estimates.&tpl=due-diligence
+              - generic [ref=e293]:
+                - generic [ref=e294]: search
+                - generic [ref=e295]: Environmental Due Diligence
+                - generic [ref=e296]: What hidden ecological risks exist before action?
+              - generic [ref=e297]:
+                - text: Run Analysis
+                - img [ref=e298]
+            - link "park Ecosystem Intervention Decision Which restoration strategy creates highest impact? Run Analysis" [ref=e300] [cursor=pointer]:
+              - /url: /research?q=Evaluate%20ecosystem%20restoration%20strategies%20for%20the%20target%20area.%20Compare%3A%20natural%20regeneration%2C%20assisted%20regeneration%2C%20active%20restoration%2C%20and%20novel%20ecosystem%20approaches.%20Assess%20by%20biodiversity%20outcomes%2C%20carbon%20sequestration%2C%20cost%2C%20timeline%2C%20and%20community%20co-benefits.&tpl=ecosystem-intervention
+              - generic [ref=e301]:
+                - generic [ref=e302]: park
+                - generic [ref=e303]: Ecosystem Intervention Decision
+                - generic [ref=e304]: Which restoration strategy creates highest impact?
+              - generic [ref=e305]:
+                - text: Run Analysis
+                - img [ref=e306]
+            - link "menu_book Scientific Literature Review What does peer-reviewed evidence actually support? Run Analysis" [ref=e308] [cursor=pointer]:
+              - /url: /research?q=Conduct%20a%20systematic%20review%20of%20peer-reviewed%20literature%20on%20the%20target%20environmental%20topic.%20Identify%3A%20scientific%20consensus%2C%20evidence%20strength%2C%20methodology%20gaps%2C%20conflicting%20findings%2C%20and%20emerging%20research%20directions.%20Distinguish%20well-supported%20claims%20from%20preliminary%20findings.&tpl=literature-consensus
+              - generic [ref=e309]:
+                - generic [ref=e310]: menu_book
+                - generic [ref=e311]: Scientific Literature Review
+                - generic [ref=e312]: What does peer-reviewed evidence actually support?
+              - generic [ref=e313]:
+                - text: Run Analysis
+                - img [ref=e314]
+            - link "savings Conservation Funding Decision Where should limited resources be allocated first? Run Analysis" [ref=e316] [cursor=pointer]:
+              - /url: /research?q=Analyze%20conservation%20funding%20allocation%20for%20the%20target%20region%20or%20portfolio.%20Evaluate%3A%20cost-effectiveness%20of%20current%20allocations%2C%20underfunded%20priorities%2C%20donor%20alignment%2C%20measurable%20outcome%20tracking%2C%20and%20optimal%20reallocation%20scenarios%20to%20maximize%20conservation%20impact%20per%20dollar.&tpl=conservation-funding
+              - generic [ref=e317]:
+                - generic [ref=e318]: savings
+                - generic [ref=e319]: Conservation Funding Decision
+                - generic [ref=e320]: Where should limited resources be allocated first?
+              - generic [ref=e321]:
+                - text: Run Analysis
+                - img [ref=e322]
+            - link "scuba_diving Coral Reef Health Assessment What is the current status and trajectory of reef ecosystems? Run Analysis" [ref=e324] [cursor=pointer]:
+              - /url: /research?q=Assess%20coral%20reef%20health%20for%20the%20target%20region%20including%20bleaching%20frequency%2C%20species%20diversity%2C%20water%20temperature%20trends%2C%20acidification%20impact%2C%20and%20recovery%20patterns.%20Compare%20with%20baseline%20data%20and%20global%20reef%20health%20indices.&tpl=coral-reef-health
+              - generic [ref=e325]:
+                - generic [ref=e326]: scuba_diving
+                - generic [ref=e327]: Coral Reef Health Assessment
+                - generic [ref=e328]: What is the current status and trajectory of reef ecosystems?
+              - generic [ref=e329]:
+                - text: Run Analysis
+                - img [ref=e330]
+            - link "hub Mycorrhizal Network Analysis How do fungal networks affect forest ecosystem resilience? Run Analysis" [ref=e332] [cursor=pointer]:
+              - /url: /research?q=Analyze%20mycorrhizal%20network%20dynamics%20in%20the%20target%20forest%20ecosystem.%20Assess%3A%20fungal%20species%20diversity%2C%20host%20tree%20connectivity%2C%20nutrient%20transfer%20efficiency%2C%20carbon%20sequestration%20contribution%2C%20and%20resilience%20to%20disturbance.%20Identify%20implications%20for%20forest%20management.&tpl=mycorrhizal-assessment
+              - generic [ref=e333]:
+                - generic [ref=e334]: hub
+                - generic [ref=e335]: Mycorrhizal Network Analysis
+                - generic [ref=e336]: How do fungal networks affect forest ecosystem resilience?
+              - generic [ref=e337]:
+                - text: Run Analysis
+                - img [ref=e338]
+            - link "landslide Geological Hazard Assessment What geological risks threaten the target region? Run Analysis" [ref=e340] [cursor=pointer]:
+              - /url: /research?q=Assess%20geological%20hazards%20for%20the%20target%20area%20including%20seismic%20activity%2C%20volcanic%20risk%2C%20landslide%20susceptibility%2C%20subsidence%2C%20and%20coastal%20erosion.%20Evaluate%20risk%20magnitude%2C%20population%20exposure%2C%20and%20infrastructure%20vulnerability.%20Recommend%20mitigation%20priorities.&tpl=geological-hazard
+              - generic [ref=e341]:
+                - generic [ref=e342]: landslide
+                - generic [ref=e343]: Geological Hazard Assessment
+                - generic [ref=e344]: What geological risks threaten the target region?
+              - generic [ref=e345]:
+                - text: Run Analysis
+                - img [ref=e346]
+            - link "grass Flora Inventory & Red List Which plant species are at risk in this ecosystem? Run Analysis" [ref=e348] [cursor=pointer]:
+              - /url: /research?q=Conduct%20a%20comprehensive%20flora%20inventory%20for%20the%20target%20region.%20Identify%3A%20endemic%20species%2C%20threatened%20species%20per%20IUCN%20criteria%2C%20invasive%20plant%20species%2C%20medicinal%20plant%20resources%2C%20and%20habitat-specific%20plant%20communities.%20Assess%20conservation%20priority%20by%20rarity%20and%20ecological%20function.&tpl=flora-inventory
+              - generic [ref=e349]:
+                - generic [ref=e350]: grass
+                - generic [ref=e351]: Flora Inventory & Red List
+                - generic [ref=e352]: Which plant species are at risk in this ecosystem?
+              - generic [ref=e353]:
+                - text: Run Analysis
+                - img [ref=e354]
+            - link "water_drop Ocean Acidification Impact Study How is acidification affecting marine ecosystems? Run Analysis" [ref=e356] [cursor=pointer]:
+              - /url: /research?q=Analyze%20ocean%20acidification%20trends%20and%20biological%20impacts%20in%20the%20target%20marine%20region.%20Assess%3A%20pH%20trends%2C%20carbonate%20chemistry%20changes%2C%20shellfish%20and%20coral%20vulnerability%2C%20fisheries%20impact%2C%20and%20socioeconomic%20consequences%20for%20coastal%20communities.&tpl=ocean-acidification
+              - generic [ref=e357]:
+                - generic [ref=e358]: water_drop
+                - generic [ref=e359]: Ocean Acidification Impact Study
+                - generic [ref=e360]: How is acidification affecting marine ecosystems?
+              - generic [ref=e361]:
+                - text: Run Analysis
+                - img [ref=e362]
+          - generic [ref=e364]:
+            - generic [ref=e366]:
+              - generic [ref=e367]: satellite_alt
+              - heading "Planet Pulse" [level=3] [ref=e368]
+            - generic [ref=e369]:
+              - link "cloud Atmospheric CO₂ 427.3ppm +2.8 · NOAA/Mauna Loa" [ref=e370] [cursor=pointer]:
+                - /url: /research?q=Atmospheric%20CO%E2%82%82%20Global%20analysis
+                - generic [ref=e371]:
+                  - generic [ref=e372]:
+                    - generic [ref=e373]: cloud
+                    - generic [ref=e374]: Atmospheric CO₂
+                  - paragraph [ref=e375]: 427.3ppm
+                  - paragraph [ref=e376]: +2.8 · NOAA/Mauna Loa
+              - link "thermostat Ocean SST Anomaly +1.42°C +0.09 · NOAA OISST" [ref=e377] [cursor=pointer]:
+                - /url: /research?q=Ocean%20SST%20Anomaly%20Global%20analysis
+                - generic [ref=e378]:
+                  - generic [ref=e379]:
+                    - generic [ref=e380]: thermostat
+                    - generic [ref=e381]: Ocean SST Anomaly
+                  - paragraph [ref=e382]: +1.42°C
+                  - paragraph [ref=e383]: +0.09 · NOAA OISST
+              - link "ac_unit Arctic Sea Ice 12.1M km² -0.8 · NSIDC" [ref=e384] [cursor=pointer]:
+                - /url: /research?q=Arctic%20Sea%20Ice%20Arctic%20analysis
+                - generic [ref=e385]:
+                  - generic [ref=e386]:
+                    - generic [ref=e387]: ac_unit
+                    - generic [ref=e388]: Arctic Sea Ice
+                  - paragraph [ref=e389]: 12.1M km²
+                  - paragraph [ref=e390]: "-0.8 · NSIDC"
+              - link "forest Forest Loss YTD 1.8M hectares +0.3 · Global Forest Watch" [ref=e391] [cursor=pointer]:
+                - /url: /research?q=Forest%20Loss%20YTD%20Global%20analysis
+                - generic [ref=e392]:
+                  - generic [ref=e393]:
+                    - generic [ref=e394]: forest
+                    - generic [ref=e395]: Forest Loss YTD
+                  - paragraph [ref=e396]: 1.8M hectares
+                  - paragraph [ref=e397]: +0.3 · Global Forest Watch
+              - link "scuba_diving Coral Bleaching Alert Level 2 Elevated · NOAA Coral Reef Watch" [ref=e398] [cursor=pointer]:
+                - /url: /research?q=Coral%20Bleaching%20Alert%20Indo-Pacific%20analysis
+                - generic [ref=e399]:
+                  - generic [ref=e400]:
+                    - generic [ref=e401]: scuba_diving
+                    - generic [ref=e402]: Coral Bleaching Alert
+                  - paragraph [ref=e403]: Level 2
+                  - paragraph [ref=e404]: Elevated · NOAA Coral Reef Watch
+              - link "pest_control IUCN Threatened 44,016species +291 · IUCN Red List" [ref=e405] [cursor=pointer]:
+                - /url: /research?q=IUCN%20Threatened%20Global%20analysis
+                - generic [ref=e406]:
+                  - generic [ref=e407]:
+                    - generic [ref=e408]: pest_control
+                    - generic [ref=e409]: IUCN Threatened
+                  - paragraph [ref=e410]: 44,016species
+                  - paragraph [ref=e411]: +291 · IUCN Red List
+          - generic [ref=e412]:
+            - generic [ref=e414]:
+              - generic [ref=e415]: public
+              - heading "Verdant Nature Index" [level=3] [ref=e416]
+            - generic [ref=e417]:
+              - link "pets ↓ Declining 34/100 Biodiversity Risk Index Global measure of species extinction risk acceleration across all taxonomic grou..." [ref=e418] [cursor=pointer]:
+                - /url: /research?q=Biodiversity%20Risk%20Index%20current%20status
+                - generic [ref=e419]:
+                  - generic [ref=e420]:
+                    - generic [ref=e421]: pets
+                    - generic [ref=e422]: ↓ Declining
+                  - paragraph [ref=e423]:
+                    - text: "34"
+                    - generic [ref=e424]: /100
+                  - paragraph [ref=e425]: Biodiversity Risk Index
+                  - paragraph [ref=e426]: Global measure of species extinction risk acceleration across all taxonomic grou...
+              - link "scuba_diving ⚠ Critical 41/100 Coral Survival Index Aggregate health score for global reef systems based on bleaching frequency, rec..." [ref=e427] [cursor=pointer]:
+                - /url: /research?q=Coral%20Survival%20Index%20current%20status
+                - generic [ref=e428]:
+                  - generic [ref=e429]:
+                    - generic [ref=e430]: scuba_diving
+                    - generic [ref=e431]: ⚠ Critical
+                  - paragraph [ref=e432]:
+                    - text: "41"
+                    - generic [ref=e433]: /100
+                  - paragraph [ref=e434]: Coral Survival Index
+                  - paragraph [ref=e435]: Aggregate health score for global reef systems based on bleaching frequency, rec...
+              - link "forest ↓ Declining 62/100 Forest Cover Integrity Ratio of intact primary forest to historical baseline, weighted by carbon densit..." [ref=e436] [cursor=pointer]:
+                - /url: /research?q=Forest%20Cover%20Integrity%20current%20status
+                - generic [ref=e437]:
+                  - generic [ref=e438]:
+                    - generic [ref=e439]: forest
+                    - generic [ref=e440]: ↓ Declining
+                  - paragraph [ref=e441]:
+                    - text: "62"
+                    - generic [ref=e442]: /100
+                  - paragraph [ref=e443]: Forest Cover Integrity
+                  - paragraph [ref=e444]: Ratio of intact primary forest to historical baseline, weighted by carbon densit...
+              - link "water_drop ↑ Improving 8.4/100 Ocean Protection Index Percentage of ocean area under effective marine protection with enforcement veri..." [ref=e445] [cursor=pointer]:
+                - /url: /research?q=Ocean%20Protection%20Index%20current%20status
+                - generic [ref=e446]:
+                  - generic [ref=e447]:
+                    - generic [ref=e448]: water_drop
+                    - generic [ref=e449]: ↑ Improving
+                  - paragraph [ref=e450]:
+                    - text: "8.4"
+                    - generic [ref=e451]: /100
+                  - paragraph [ref=e452]: Ocean Protection Index
+                  - paragraph [ref=e453]: Percentage of ocean area under effective marine protection with enforcement veri...
+          - generic [ref=e454]:
+            - paragraph [ref=e456]:
+              - text: Verdant is an Environmental Intelligence Authority. Every claim is source-traced. Every recommendation is evidence-backed.
+              - text: Powered by a network of 8 specialized environmental AI agents.
+            - link "Read the Verdant Protocol →" [ref=e457] [cursor=pointer]:
+              - /url: /protocol
+  - generic [ref=e459]:
+    - generic [ref=e460]:
+      - generic [ref=e461]:
+        - generic [ref=e462]: verified_user
+        - generic [ref=e463]: Verdant Intelligence Protocol
+      - heading "Welcome to Verdant" [level=2] [ref=e464]
+      - paragraph [ref=e465]: The institution-grade environmental intelligence operating system.
+    - generic [ref=e467]:
+      - generic [ref=e468]:
+        - generic [ref=e470]: bolt
+        - generic [ref=e471]:
+          - heading "Fast Answers" [level=4] [ref=e472]
+          - paragraph [ref=e473]: Quick decision briefs using real-time global monitoring data.
+      - generic [ref=e474]:
+        - generic [ref=e476]: travel_explore
+        - generic [ref=e477]:
+          - heading "Deep Research" [level=4] [ref=e478]
+          - paragraph [ref=e479]: Consulting-grade research synthesizing multiple scientific sources.
+      - generic [ref=e480]:
+        - generic [ref=e482]: library_books
+        - generic [ref=e483]:
+          - heading "Journal-Grade Analysis" [level=4] [ref=e484]
+          - paragraph [ref=e485]: Comprehensive institutional reports with contradiction resolution.
+    - button "Continue" [ref=e488] [cursor=pointer]
+  - alert [ref=e489]
