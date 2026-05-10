@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox, Activity, FileText } from 'lucide-react'
+import { Home, Compass, FolderOpen, Clock, Plus, BookOpen, HelpCircle, Info, X, Eye, Inbox, Activity, FileText, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { useAppLayout } from './AppLayout'
 import { getStreak } from '@/lib/streak/client'
 import { getPrestigeLevel } from '@/lib/intelligence/prestige'
@@ -447,7 +448,7 @@ export function Sidebar() {
             const ev = new CustomEvent('verdant_paywall_open', { detail: { source: 'sidebar' } })
             window.dispatchEvent(ev)
           }}
-          className="btn btn-primary mt-3 w-full"
+          className="btn btn-primary mt-2 w-full"
           style={{
             background: 'linear-gradient(135deg, #1A2F23, #2E5D3E)',
             border: 'none',
@@ -462,6 +463,44 @@ export function Sidebar() {
         >
           <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#D1FAE5' }}>workspace_premium</span>
           <span style={{ color: '#D1FAE5', fontWeight: '600', letterSpacing: '0.02em' }}>Upgrade to Institutional</span>
+        </button>
+
+        {/* Sign Out */}
+        <button
+          onClick={async () => {
+            const sb = createClient()
+            await sb.auth.signOut()
+            router.push('/auth')
+            router.refresh()
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 14px',
+            marginTop: '8px',
+            borderRadius: '10px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            width: '100%',
+            transition: 'all 0.2s ease',
+            color: 'var(--text-muted)',
+            fontFamily: "'Manrope', system-ui, sans-serif",
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = 'var(--border-section)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'
+          }}
+        >
+          <LogOut size={15} strokeWidth={1.8} />
+          Sign out
         </button>
       </div>
     </nav>

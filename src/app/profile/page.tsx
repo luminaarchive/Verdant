@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AppLayout } from '@/components/verdant/AppLayout'
 import { useToast } from '@/components/verdant/Toast'
-import { Settings, LogOut, Flame, BookOpen, Search, FileText, Eye, Download } from 'lucide-react'
+import { AvatarModal } from '@/components/verdant/AvatarModal'
+import { Settings, LogOut, Flame, BookOpen, Search, Eye, Download, Camera, MapPin, Globe, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getStreak } from '@/lib/streak/client'
 import { getTopSpecializations, getMemory } from '@/lib/intelligence/memory'
@@ -15,6 +16,9 @@ import { useLanguage } from '@/components/providers/LanguageProvider'
 
 interface UserProfile {
   display_name: string | null
+  username?: string | null
+  bio?: string | null
+  avatar_url?: string | null
   subscription_tier: string
   research_count: number
   streak_days: number
@@ -22,146 +26,96 @@ interface UserProfile {
   organization?: string | null
   role?: string | null
   research_focus?: string | null
+  location?: string | null
+  website?: string | null
 }
 
-interface RecentRun {
-  run_id: string
-  query: string
-  mode: string
-  created_at: string
-}
+const TIER_LABELS: Record<string, string> = { seeds: 'Seeds Free', sapling: 'Sapling', forest_keeper: 'Forest Keeper' }
 
-const TIER_LABELS: Record<string, string> = {
-  seeds: 'Seeds Free',
-  sapling: 'Sapling',
-  forest_keeper: 'Forest Keeper',
-}
-
-function detectCategory(query: string): string {
-  const q = query.toLowerCase()
-  if (/ocean|coral|marine/.test(q)) return 'Oceanography'
-  if (/plant|flora|botany/.test(q)) return 'Botany'
-  if (/fung|mycor|mushroom/.test(q)) return 'Mycology'
-  if (/geol|tectonic|volcanic/.test(q)) return 'Geology'
-  if (/bird|mammal|species/.test(q)) return 'Biodiversity'
-  return 'Ecology'
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const hrs = Math.floor(diff / 3600000)
-  if (hrs < 1) return 'Just now'
-  if (hrs < 24) return `${hrs} hours ago`
-  const days = Math.floor(hrs / 24)
-  if (days === 1) return 'Yesterday'
-  return `${days} days ago`
+const inputStyle = {
+  width: '100%', padding: '10px 14px', borderRadius: '8px',
+  border: '1.5px solid var(--border-strong)', background: 'var(--bg-surface)',
+  fontFamily: "'Manrope', system-ui, sans-serif" as const, fontSize: '14px',
+  color: 'var(--text-main)', outline: 'none', boxSizing: 'border-box' as const,
+  transition: 'border-color 0.15s, box-shadow 0.15s',
 }
 
 export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
   const { language, setLanguage } = useLanguage()
-  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [email, setEmail] = useState('')
-  const [recentActivity, setRecentActivity] = useState<RecentRun[]>([])
+  const [userId, setUserId] = useState('')
+  const [showAvatar, setShowAvatar] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [streakDays, setStreakDays] = useState(0)
   const [journalCount, setJournalCount] = useState(0)
   const [watchlistCount, setWatchlistCount] = useState(0)
   const [exportsCount, setExportsCount] = useState(0)
-  const [streakDays, setStreakDays] = useState(0)
-  const [editing, setEditing] = useState(false)
-  const [editOrg, setEditOrg] = useState('')
-  const [editRole, setEditRole] = useState('')
-  const [editFocus, setEditFocus] = useState('')
-  const [saving, setSaving] = useState(false)
+
+  // Edit form state
+  const [form, setForm] = useState({ displayName: '', username: '', bio: '', organization: '', role: '', research_focus: '', location: '', website: '' })
 
   useEffect(() => {
     async function load() {
       const sb = createClient()
       const { data: { user } } = await sb.auth.getUser()
       if (!user) { router.push('/auth'); return }
-
       setEmail(user.email || '')
+      setUserId(user.id)
 
-      // Fetch profile
-      const { data: profileData } = await sb
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profileData) {
-        setProfile(profileData)
-        setEditOrg(profileData.organization || '')
-        setEditRole(profileData.role || '')
-        setEditFocus(profileData.research_focus || '')
+      const { data: p } = await sb.from('user_profiles').select('*').eq('id', user.id).single()
+      if (p) {
+        setProfile(p)
+        setForm({
+          displayName: p.display_name || '', username: p.username || '',
+          bio: p.bio || '', organization: p.organization || '',
+          role: p.role || '', research_focus: p.research_focus || '',
+          location: p.location || '', website: p.website || '',
+        })
       }
 
-      // Recent activity
-      try {
-        const res = await fetch('/api/history')
-        if (res.ok) {
-          const data = await res.json()
-          const runs = data.runs || data || []
-          setRecentActivity(runs.slice(0, 5))
-        }
-      } catch { /* ignore */ }
-
-      // Journal count from localStorage
-      try {
-        const journal = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]')
-        setJournalCount(journal.length)
-      } catch { /* ignore */ }
-
-      // Watchlist count from localStorage
-      try {
-        const wl = JSON.parse(localStorage.getItem('verdant-watchlists') ?? '[]')
-        setWatchlistCount(wl.length)
-      } catch { /* ignore */ }
-
-      // Exports count from localStorage
-      try {
-        const exp = parseInt(localStorage.getItem('verdant-exports-count') ?? '0', 10)
-        setExportsCount(exp)
-      } catch { /* ignore */ }
-
-      // Streak from localStorage
-      const streak = getStreak()
-      setStreakDays(streak.days)
-
+      try { const j = JSON.parse(localStorage.getItem('verdant-journal') ?? '[]'); setJournalCount(j.length) } catch {}
+      try { const w = JSON.parse(localStorage.getItem('verdant-watchlists') ?? '[]'); setWatchlistCount(w.length) } catch {}
+      try { setExportsCount(parseInt(localStorage.getItem('verdant-exports-count') ?? '0', 10)) } catch {}
+      setStreakDays(getStreak().days)
       setLoading(false)
     }
     load()
   }, [router])
 
-  const handleSignOut = async () => {
-    setShowSignOutConfirm(false)
-    const sb = createClient()
-    await sb.auth.signOut()
-    toast('Signed out successfully', { icon: 'logout' })
-    setTimeout(() => router.push('/auth'), 800)
-  }
-
-  const handleSaveProfile = async () => {
+  const handleSave = async () => {
     setSaving(true)
     try {
       const sb = createClient()
-      const { data: { user } } = await sb.auth.getUser()
-      if (user) {
-        await sb.from('user_profiles').update({
-          organization: editOrg || null,
-          role: editRole || null,
-          research_focus: editFocus || null,
-        }).eq('id', user.id)
-        setProfile(prev => prev ? { ...prev, organization: editOrg, role: editRole, research_focus: editFocus } : prev)
+      const { error } = await sb.from('user_profiles').update({
+        display_name: form.displayName || null, username: form.username || null,
+        bio: form.bio || null, organization: form.organization || null,
+        role: form.role || null, research_focus: form.research_focus || null,
+        location: form.location || null, website: form.website || null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', userId)
+
+      if (error) {
+        if (error.code === '23505') toast('Username already taken', { type: 'error' })
+        else toast('Failed to save', { type: 'error' })
+      } else {
+        setProfile(prev => prev ? { ...prev, ...form, display_name: form.displayName } : prev)
         toast('Profile updated', { type: 'success', icon: 'save' })
+        setEditing(false)
       }
-    } catch {
-      toast('Failed to update profile', { type: 'error' })
-    }
+    } catch { toast('Failed to save', { type: 'error' }) }
     setSaving(false)
-    setEditing(false)
+  }
+
+  const handleSignOut = async () => {
+    const sb = createClient()
+    await sb.auth.signOut()
+    router.push('/auth')
+    router.refresh()
   }
 
   const displayName = profile?.display_name || email.split('@')[0] || 'Researcher'
@@ -169,28 +123,21 @@ export default function ProfilePage() {
   const tier = TIER_LABELS[profile?.subscription_tier ?? 'seeds'] || 'Seeds Free'
   const joinedDate = profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''
   const researchCount = profile?.research_count ?? 0
+  const avatarUrl = profile?.avatar_url
 
   const stats = [
-    { label: 'Research Sessions', value: String(researchCount), icon: Search },
-    { label: 'Day Streak', value: String(streakDays), icon: Flame },
-    { label: 'Journal Entries', value: String(journalCount), icon: BookOpen },
+    { label: 'Research', value: String(researchCount), icon: Search },
+    { label: 'Streak', value: `${streakDays}d`, icon: Flame },
+    { label: 'Journal', value: String(journalCount), icon: BookOpen },
     { label: 'Watchlists', value: String(watchlistCount), icon: Eye },
-    { label: 'Reports Exported', value: String(exportsCount), icon: Download },
+    { label: 'Exports', value: String(exportsCount), icon: Download },
   ]
-
-  const inputStyle = {
-    width: '100%', padding: '8px 12px', borderRadius: '8px',
-    border: '1px solid var(--border, rgba(0,0,0,0.08))',
-    background: 'var(--bg-elevated, #F3F1EB)',
-    fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: '#1A2F23',
-    outline: 'none', boxSizing: 'border-box' as const,
-  }
 
   if (loading) {
     return (
       <AppLayout>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>Loading profile...</p>
+          <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>Loading profile...</p>
         </div>
       </AppLayout>
     )
@@ -201,203 +148,160 @@ export default function ProfilePage() {
       <div style={{ padding: '36px 32px 60px' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto' }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }} className="slide-up">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }} className="slide-up">
             <div>
               <h1 className="heading-page" style={{ marginBottom: '6px' }}>Profile</h1>
-              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>Your Verdant researcher profile.</p>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'var(--text-muted)' }}>Your Verdant researcher profile.</p>
             </div>
-            <button
-              onClick={() => router.push('/settings')}
-              className="btn btn-ghost"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '38px' }}
-            >
-              <Settings size={15} />
-              Settings
+            <button onClick={() => router.push('/settings')} className="btn btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '38px' }}>
+              <Settings size={15} /> Settings
             </button>
           </div>
 
-          {/* Profile Card */}
-          <div className="card-premium slide-up stagger-1" style={{ padding: '28px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '20px' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #D1FAE5, #1A2F23)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Georgia, serif', fontSize: '24px', color: '#FFFFFF' }}>{initial}</span>
+          {/* Profile Hero Card */}
+          <div className="card-premium slide-up stagger-1" style={{ padding: '32px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
+              {/* Avatar with edit overlay */}
+              <div style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }} onClick={() => setShowAvatar(true)}>
+                <div style={{ width: '96px', height: '96px', borderRadius: '50%', background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, #D1FAE5, #1A2F23)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '3px solid var(--bg-surface)', boxShadow: 'var(--shadow-md)' }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '36px', color: '#FFFFFF' }}>{initial}</span>
+                  )}
+                </div>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0' }}>
+                  <Camera size={20} color="#FFFFFF" />
+                </div>
               </div>
+
               <div style={{ flex: 1 }}>
-                <p className="heading-card" style={{ fontSize: '24px', marginBottom: '4px' }}>{displayName}</p>
-                <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                <p className="heading-card" style={{ fontSize: '26px', marginBottom: '2px' }}>{displayName}</p>
+                {profile?.username && (
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>@{profile.username}</p>
+                )}
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
                   {profile?.role || 'Environmental Researcher'}
                   {profile?.organization && <span> · {profile.organization}</span>}
                 </p>
-                {profile?.research_focus && (
-                  <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                    Focus: {profile.research_focus}
-                  </p>
+                {profile?.bio && (
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.5' }}>{profile.bio}</p>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <span className="badge badge-green" style={{ fontSize: '10px' }}>{tier}</span>
-                  {(profile?.subscription_tier === 'seeds' || !profile?.subscription_tier) && (
-                    <Link href="/pricing" style={{ textDecoration: 'none' }}>
-                      <button style={{ background: 'var(--green-dark)', color: '#FFFFFF', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '9px', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Upgrade
-                      </button>
-                    </Link>
+                  {joinedDate && <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif" }}>Joined {joinedDate}</span>}
+                  {profile?.location && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Manrope', sans-serif" }}>
+                      <MapPin size={11} /> {profile.location}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '16px', paddingBottom: '20px', marginBottom: '20px', borderBottom: '1px solid var(--border)' }}>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
               {stats.map(s => {
                 const Icon = s.icon
                 return (
-                  <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon size={14} style={{ color: 'var(--green-mid)' }} />
-                      <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '28px', fontWeight: '400', color: '#1A2F23', lineHeight: '1' }}>{s.value}</p>
+                  <div key={s.label} style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <Icon size={13} style={{ color: 'var(--green-mid)' }} />
+                      <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '24px', color: 'var(--green-dark)', lineHeight: '1' }}>{s.value}</p>
                     </div>
-                    <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{s.label}</p>
+                    <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>{s.label}</p>
                   </div>
                 )
               })}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                {joinedDate ? `Joined ${joinedDate}` : ''}
-              </p>
-              {!showSignOutConfirm ? (
-                <button
-                  onClick={() => setShowSignOutConfirm(true)}
-                  style={{
-                    background: 'transparent', color: 'var(--destructive)', border: 'none',
-                    fontSize: '13px', fontFamily: "'Inter', system-ui, sans-serif", fontWeight: '500',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'opacity 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-                >
-                  <LogOut size={13} />
-                  Sign Out
-                </button>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>Confirm?</p>
-                  <button
-                    onClick={handleSignOut}
-                    style={{ background: 'var(--destructive)', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '12.5px', fontFamily: "'Inter', sans-serif", fontWeight: '600', cursor: 'pointer' }}
-                  >
-                    Yes, sign out
+            {/* Quick actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+              {(profile?.subscription_tier === 'seeds' || !profile?.subscription_tier) && (
+                <Link href="/pricing" style={{ textDecoration: 'none' }}>
+                  <button className="btn btn-primary" style={{ height: '32px', fontSize: '12px', gap: '4px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>workspace_premium</span> Upgrade
                   </button>
-                  <button
-                    onClick={() => setShowSignOutConfirm(false)}
-                    style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', fontSize: '12.5px', fontFamily: "'Inter', sans-serif", cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
+                </Link>
               )}
+              <button onClick={() => setEditing(true)} className="btn btn-ghost" style={{ height: '32px', fontSize: '12px', marginLeft: 'auto' }}>
+                Edit Profile
+              </button>
             </div>
           </div>
 
-          {/* Status Layer Insights */}
-          {(() => {
-            if (typeof window === 'undefined') return null
-            const insights = getStatusInsights(journalCount, streakDays, journalCount, watchlistCount)
-            if (insights.length === 0) return null
-            return (
-              <div className="slide-up stagger-2" style={{ marginBottom: '16px' }}>
-                <div className="section-frame">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>bar_chart</span>
-                    <h3 className="heading-section" style={{ margin: 0 }}>Researcher Status</h3>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {insights.map((s, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(209,250,229,0.15)', border: '1px solid rgba(46,93,62,0.08)' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: s.color }}>{s.icon}</span>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{s.text}</span>
-                      <span className="chip" style={{ fontSize: '10px' }}>{s.metric}</span>
-                    </div>
-                  ))}
+          {/* Edit Profile Form */}
+          {editing && (
+            <div className="card-premium slide-up" style={{ padding: '28px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 className="heading-card" style={{ fontSize: '18px', margin: 0 }}>Edit Profile</h2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleSave} disabled={saving} className="btn btn-primary" style={{ height: '34px', fontSize: '12px', opacity: saving ? 0.6 : 1 }}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button onClick={() => setEditing(false)} className="btn btn-ghost" style={{ height: '34px', fontSize: '12px' }}>Cancel</button>
                 </div>
               </div>
-            )
-          })()}
-
-          {/* Research Profile Section */}
-          <div className="card-premium slide-up stagger-3" style={{ padding: '24px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Research Profile</p>
-              {!editing ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--green-mid)' }}
-                >
-                  Edit
-                </button>
-              ) : (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                    style={{ background: '#1A2F23', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '4px 14px', fontSize: '12px', fontFamily: "'Inter', sans-serif", fontWeight: '600', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </button>
-                  <button
-                    onClick={() => { setEditing(false); setEditOrg(profile?.organization || ''); setEditRole(profile?.role || ''); setEditFocus(profile?.research_focus || '') }}
-                    style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', fontSize: '12px', fontFamily: "'Inter', sans-serif", cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {editing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Organization</label>
-                  <input type="text" value={editOrg} onChange={e => setEditOrg(e.target.value)} placeholder="e.g. WWF, Stanford University, UNEP" style={inputStyle} />
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Display Name</label>
+                  <input type="text" value={form.displayName} onChange={e => setForm(p => ({ ...p, displayName: e.target.value }))} placeholder="Dr. Jane Wilson" style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,47,35,0.06)' }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.boxShadow = 'none' }} />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Role / Title</label>
-                  <input type="text" value={editRole} onChange={e => setEditRole(e.target.value)} placeholder="e.g. Senior Ecologist, PhD Candidate" style={inputStyle} />
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Username</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '14px', fontFamily: "'Manrope', sans-serif" }}>@</span>
+                    <input type="text" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase() }))} placeholder="janewilson" style={{ ...inputStyle, paddingLeft: '28px' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,47,35,0.06)' }}
+                      onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.boxShadow = 'none' }} />
+                  </div>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Bio <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({form.bio.length}/160)</span></label>
+                  <textarea value={form.bio} onChange={e => { if (e.target.value.length <= 160) setForm(p => ({ ...p, bio: e.target.value })) }} placeholder="Environmental researcher focused on..." rows={2}
+                    style={{ ...inputStyle, resize: 'vertical' as const, minHeight: '60px' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,47,35,0.06)' }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.boxShadow = 'none' }} />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Research Focus</label>
-                  <input type="text" value={editFocus} onChange={e => setEditFocus(e.target.value)} placeholder="e.g. Coral reef ecology, mycorrhizal networks" style={inputStyle} />
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Organization</label>
+                  <input type="text" value={form.organization} onChange={e => setForm(p => ({ ...p, organization: e.target.value }))} placeholder="e.g. WWF, Stanford" style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)' }} onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)' }} />
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', fontWeight: '500', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Preferred Intelligence Language</label>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Role / Title</label>
+                  <input type="text" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} placeholder="e.g. Senior Ecologist" style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)' }} onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)' }} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Location</label>
+                  <input type="text" value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} placeholder="e.g. Jakarta, Indonesia" style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)' }} onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)' }} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Website</label>
+                  <input type="url" value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://..." style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)' }} onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)' }} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Research Focus</label>
+                  <input type="text" value={form.research_focus} onChange={e => setForm(p => ({ ...p, research_focus: e.target.value }))} placeholder="e.g. Coral reef ecology" style={inputStyle}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--green-dark)' }} onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-strong)' }} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Intelligence Language</label>
                   <select value={language} onChange={e => setLanguage(e.target.value as 'en' | 'id')} style={inputStyle}>
                     <option value="en">English (US)</option>
                     <option value="id">Bahasa Indonesia</option>
                   </select>
                 </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {[
-                  { label: 'Organization', value: profile?.organization || '—', icon: FileText },
-                  { label: 'Role', value: profile?.role || '—', icon: Search },
-                  { label: 'Research Focus', value: profile?.research_focus || '—', icon: BookOpen },
-                  { label: 'Preferred Language', value: language === 'id' ? 'Bahasa Indonesia' : 'English', icon: Eye },
-                  { label: 'Email', value: email, icon: FileText },
-                ].map(item => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <item.icon size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    <div>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</p>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13.5px', color: '#1A2F23' }}>{item.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Research Memory */}
           {(() => {
@@ -405,17 +309,17 @@ export default function ProfilePage() {
             const mem = typeof window !== 'undefined' ? getMemory() : null
             if (specializations.length === 0) return null
             return (
-              <div className="card-premium slide-up stagger-4" style={{ padding: '24px', marginBottom: '16px' }}>
+              <div className="card-premium slide-up stagger-2" style={{ padding: '24px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Environmental Memory</p>
-                  {mem?.specialization && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', background: 'rgba(209,250,229,0.4)', color: '#1A2F23', padding: '3px 10px', borderRadius: '10px', fontWeight: '500' }}>Specialization: {mem.specialization}</span>}
+                  <p className="heading-card" style={{ fontSize: '18px', margin: 0 }}>Environmental Memory</p>
+                  {mem?.specialization && <span className="chip" style={{ fontSize: '10px' }}>{mem.specialization}</span>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {specializations.map(s => (
                     <div key={s.topic} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: 'var(--bg-main)' }}>
                       <div>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '500', color: '#1A2F23' }}>{s.topic}</p>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{s.count} session{s.count !== 1 ? 's' : ''}</p>
+                        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--text-main)' }}>{s.topic}</p>
+                        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{s.count} session{s.count !== 1 ? 's' : ''}</p>
                       </div>
                       <div style={{ width: `${Math.min(100, s.count * 15)}px`, height: '4px', borderRadius: '2px', background: 'rgba(26,47,35,0.08)' }}>
                         <div style={{ width: '100%', height: '100%', borderRadius: '2px', background: '#1A2F23' }} />
@@ -423,83 +327,41 @@ export default function ProfilePage() {
                     </div>
                   ))}
                 </div>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>Verdant remembers your research context across sessions to surface relevant prior work.</p>
               </div>
             )
           })()}
 
-          {/* Reputation Protocol */}
-          {(() => {
-            const prestige = typeof window !== 'undefined' ? getPrestigeLevel(journalCount, streakDays) : null
-            return (
-              <div className="card-premium slide-up stagger-5" style={{ padding: '24px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <p className="heading-card" style={{ fontSize: '18px', marginBottom: 0 }}>Research Reputation</p>
-                  {prestige && prestige.id !== 'observer' && (
-                    <div className="prestige-badge">
-                      <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{prestige.icon}</span>
-                      {prestige.title}
-                    </div>
-                  )}
+          {/* Account & Danger Zone */}
+          <div className="card-premium slide-up stagger-3" style={{ padding: '24px' }}>
+            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>Account</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13.5px', color: 'var(--text-main)' }}>{email}</p>
                 </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              {[
-                { label: 'Research Consistency', value: researchCount > 5 ? 'High' : researchCount > 0 ? 'Moderate' : 'New', color: researchCount > 5 ? '#2E5D3E' : '#B45309' },
-                { label: 'Source Quality', value: 'Verified', color: '#2E5D3E' },
-                { label: 'Trust Status', value: streakDays > 7 ? 'Established' : streakDays > 0 ? 'Building' : 'New', color: streakDays > 7 ? '#2E5D3E' : '#B45309' },
-              ].map(r => (
-                <div key={r.label} style={{ padding: '10px', borderRadius: '8px', background: 'var(--bg-main)', textAlign: 'center' }}>
-                  <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '20px', fontWeight: '400', color: r.color, marginBottom: '4px' }}>{r.value}</p>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)' }}>{r.label}</p>
-                </div>
-              ))}
-            </div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px' }}>Your reputation is computed from research consistency, source quality, and platform engagement.</p>
+                <span className="badge badge-green">{tier}</span>
               </div>
-            )
-          })()}
-
-          {/* Recent Activity */}
-          <div className="card-premium slide-up stagger-6" style={{ padding: '24px' }}>
-            <p className="heading-card" style={{ fontSize: '18px', marginBottom: '16px' }}>Recent Activity</p>
-            {recentActivity.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recentActivity.map(a => {
-                  const category = detectCategory(a.query)
-                  return (
-                    <Link key={a.run_id} href={`/research?q=${encodeURIComponent(a.query)}`} style={{ textDecoration: 'none' }}>
-                      <div
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', transition: 'background 0.15s', cursor: 'pointer' }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                      >
-                        <div>
-                          <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '18px', color: '#1A2F23', marginBottom: '4px', lineHeight: '1.2' }}>{a.query}</p>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{category}</span>
-                            {a.mode && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', fontWeight: '600', textTransform: 'uppercase' }}>{a.mode}</span>}
-                          </div>
-                        </div>
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11.5px', color: 'var(--text-muted)', flexShrink: 0 }}>{timeAgo(a.created_at)}</span>
-                      </div>
-                    </Link>
-                  )
-                })}
+              <div style={{ height: '1px', background: 'var(--border)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button onClick={handleSignOut}
+                  style={{ background: 'transparent', color: 'var(--destructive)', border: 'none', fontSize: '13px', fontFamily: "'Manrope', sans-serif", fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <LogOut size={13} /> Sign Out
+                </button>
+                <button onClick={() => toast('Account deletion coming soon', { type: 'info', icon: 'info' })}
+                  style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', fontSize: '12px', fontFamily: "'Manrope', sans-serif", cursor: 'pointer' }}>
+                  Delete account
+                </button>
               </div>
-            ) : (
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>No recent activity yet. Start your first research session!</p>
-            )}
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-              <Link href="/history" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--green-mid)', textDecoration: 'none', fontWeight: '500' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.textDecoration = 'underline'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.textDecoration = 'none'}
-              >
-                View full history →
-              </Link>
             </div>
           </div>
         </div>
       </div>
+
+      {showAvatar && (
+        <AvatarModal userId={userId} currentUrl={avatarUrl || null} onClose={() => setShowAvatar(false)}
+          onUpdate={url => setProfile(prev => prev ? { ...prev, avatar_url: url } : prev)} />
+      )}
     </AppLayout>
   )
 }
