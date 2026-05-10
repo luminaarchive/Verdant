@@ -1,30 +1,27 @@
-// ─── Provider Manager — Orchestrator with Intelligent Failover ──────────────
-// This is the ONLY module the research pipeline calls.
-// It handles: provider selection → execution → retry → failover → health tracking.
+// ─── Provider Manager — Production-Hardened Orchestrator ────────────────────
+// Single entry point for the research pipeline.
+// Handles: provider selection → execution → retry → failover → health tracking.
 //
-// IMPORTANT: All provider calls are SEQUENTIAL (for loop, not Promise.all).
-// Parallel calls cause memory spikes and Vercel freezes on free tier.
+// ARCHITECTURE: OpenRouter-only (Gemini disabled by user request).
+// All provider calls are SEQUENTIAL to prevent Vercel memory spikes.
 
 import type { AIProvider, ProviderRequest, ProviderResponse, ProviderFailure } from './types'
 import { classifyError } from './types'
 import { OpenRouterProvider } from './openrouter'
-// import { GeminiProvider } from './gemini-provider'  // DISABLED — user wants OpenRouter only
 import { recordSuccess, recordFailure, hasRecentFailure, getSuccessRate } from './health'
+import { isCircuitAllowed, getCircuitState, getAllCircuitStates } from './circuit-breaker'
+import { getUnhealthyModels } from './model-health'
 import { log, type LogContext } from '../research/logger'
 
 // ─── Provider Registry ──────────────────────────────────────────────────────
 const providers: AIProvider[] = [
   new OpenRouterProvider(),
-  // GeminiProvider disabled — OpenRouter only
 ]
 
 // ─── Failover Configuration ─────────────────────────────────────────────────
 const MAX_RETRIES_PER_PROVIDER = 1
 const RETRY_DELAY_MS = 1500
-
-// Overall timeout for callWithFailover — must stay under Vercel's 60s limit
-// OpenRouter gets ~35s, then Gemini gets the remaining ~20s
-const FAILOVER_BUDGET_MS = 55_000
+const FAILOVER_BUDGET_MS = 55_000  // Must stay under Vercel's 60s limit
 
 interface ProviderManagerResult {
   response: ProviderResponse
@@ -39,7 +36,6 @@ export async function callWithFailover(
   const attempts: ProviderFailure[] = []
   const startTime = Date.now()
 
-  // Build ordered provider list based on health
   const ordered = getProviderOrder()
 
   if (ordered.length === 0) {
@@ -51,6 +47,16 @@ export async function callWithFailover(
 
   log.info(`Provider order: [${ordered.map(p => p.name).join(' → ')}]`, ctx)
 
+  // Log circuit breaker and model health state
+  const circuitStates = getAllCircuitStates()
+  const unhealthyModels = getUnhealthyModels()
+  if (Object.keys(circuitStates).length > 0) {
+    console.log(`[provider-manager] Circuit states: ${JSON.stringify(circuitStates)}`)
+  }
+  if (unhealthyModels.length > 0) {
+    console.log(`[provider-manager] Unhealthy models: ${unhealthyModels.map(m => `${m.model}(${m.reason})`).join(', ')}`)
+  }
+
   for (const provider of ordered) {
     // Check overall budget
     const budgetRemaining = FAILOVER_BUDGET_MS - (Date.now() - startTime)
@@ -59,8 +65,24 @@ export async function callWithFailover(
       break
     }
 
+    // Check circuit breaker
+    if (!isCircuitAllowed(provider.name)) {
+      const state = getCircuitState(provider.name)
+      log.warn(
+        `Circuit breaker OPEN for ${provider.name} — ` +
+        `cooldown=${Math.round(state.cooldownRemainingMs / 1000)}s, skipping`,
+        ctx
+      )
+      attempts.push({
+        provider: provider.name,
+        error: `Circuit breaker OPEN (${state.recentFailures} recent failures)`,
+        type: 'non-retryable',
+        durationMs: 0,
+      })
+      continue
+    }
+
     for (let retry = 0; retry <= MAX_RETRIES_PER_PROVIDER; retry++) {
-      // Re-check budget before each retry
       if (FAILOVER_BUDGET_MS - (Date.now() - startTime) < 5_000) break
 
       try {
@@ -79,11 +101,11 @@ export async function callWithFailover(
         // Success
         recordSuccess(provider.name, response.durationMs)
 
-        log.info(`Provider ${provider.name} succeeded in ${response.durationMs}ms`, {
-          ...ctx,
-          pipelineSource: provider.name as any,
-          durationMs: response.durationMs,
-        })
+        log.info(
+          `Provider ${provider.name} succeeded in ${response.durationMs}ms ` +
+          `(model=${response.model}, tokens=${response.inputTokens}+${response.outputTokens})`,
+          { ...ctx, pipelineSource: provider.name as any, durationMs: response.durationMs }
+        )
 
         return {
           response,
@@ -98,7 +120,7 @@ export async function callWithFailover(
 
         const failure: ProviderFailure = {
           provider: provider.name,
-          error: message.slice(0, 200),
+          error: message.slice(0, 300),
           type: failureType,
           httpStatus,
           durationMs: Date.now() - startTime,
@@ -106,14 +128,11 @@ export async function callWithFailover(
         attempts.push(failure)
         recordFailure(provider.name, message)
 
-        log.error(`Provider ${provider.name} failed: ${message.slice(0, 150)}`, {
-          ...ctx,
-          pipelineSource: provider.name as any,
-          failureStep: 'provider-call',
-          retryCount: retry,
-        })
+        log.error(
+          `Provider ${provider.name} failed (retry ${retry}): ${message.slice(0, 200)}`,
+          { ...ctx, pipelineSource: provider.name as any, failureStep: 'provider-call', retryCount: retry }
+        )
 
-        // Non-retryable errors: skip to next provider immediately
         if (failureType === 'non-retryable') {
           log.warn(`Non-retryable error from ${provider.name}, moving to next provider`, ctx)
           break
@@ -121,11 +140,10 @@ export async function callWithFailover(
       }
     }
 
-    log.warn(`All retries exhausted for ${provider.name}, falling back`, ctx)
+    log.warn(`All retries exhausted for ${provider.name}`, ctx)
   }
 
   // All providers failed
-  const lastAttempt = attempts[attempts.length - 1]
   const allErrors = attempts.map((a, i) => `[${i+1}] ${a.provider}: ${a.error}`).join(' | ')
   throw new ProviderExhaustedError(
     `All providers failed (${attempts.length} attempts). Errors: ${allErrors}`,
@@ -133,18 +151,14 @@ export async function callWithFailover(
   )
 }
 
-// ─── Intelligent Provider Ordering ──────────────────────────────────────────
-
+// ─── Provider Ordering ──────────────────────────────────────────────────────
 function getProviderOrder(): AIProvider[] {
   return [...providers]
     .filter(p => p.isConfigured())
     .sort((a, b) => {
-      // Deprioritize providers with recent failures
       const aRecent = hasRecentFailure(a.name) ? 1 : 0
       const bRecent = hasRecentFailure(b.name) ? 1 : 0
       if (aRecent !== bRecent) return aRecent - bRecent
-
-      // Prefer higher success rate
       const aRate = getSuccessRate(a.name)
       const bRate = getSuccessRate(b.name)
       return bRate - aRate
@@ -152,7 +166,6 @@ function getProviderOrder(): AIProvider[] {
 }
 
 // ─── Custom Error ───────────────────────────────────────────────────────────
-
 export class ProviderExhaustedError extends Error {
   attempts: ProviderFailure[]
   constructor(message: string, attempts: ProviderFailure[]) {

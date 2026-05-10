@@ -1,12 +1,18 @@
+// ─── OpenRouter Provider — Production-Hardened ──────────────────────────────
+// Sequential model fallback with:
+//   - Model health cache (skip dead models)
+//   - Circuit breaker integration
+//   - Raw response forensics
+//   - Multi-layer timeout protection
+//   - Structured observability logging
+
 import type { AIProvider, ProviderRequest, ProviderResponse } from './types'
 import { log, timer } from '../research/logger'
+import { isModelHealthy, markModelUnhealthy, markModelHealthy, type UnhealthyReason } from './model-health'
+import { isCircuitAllowed, recordCircuitSuccess, recordCircuitFailure } from './circuit-breaker'
 
-// ─── FREE-FIRST model fallback chain ────────────────────────────────────────
-// Primary: deepseek/deepseek-chat-v3-0324:free
-// Fallbacks: google/gemma-3-27b-it:free → meta-llama/llama-3.3-70b-instruct:free
-//            → mistralai/mistral-small-3.1-24b-instruct:free
-// Paid models are NEVER attempted unless a paid key is explicitly configured.
-
+// ─── Verified Working Free Models (tested 2026-05-10) ───────────────────────
+// These were tested live against OpenRouter API. Ordered by latency.
 const FREE_MODELS = [
   'openai/gpt-oss-20b:free',                    // 397ms — fastest
   'google/gemma-4-26b-a4b-it:free',             // 544ms — very reliable
@@ -15,95 +21,143 @@ const FREE_MODELS = [
   'minimax/minimax-m2.5:free',                   // 3550ms — last resort
 ]
 
-// ─── Max tokens per mode — must be large enough for full JSON schema output ──
-// The schema requires: title, executiveSummary (5 fields), findings[], 
-// decisionRecommendations[], outline[], stats[], sources[], evidenceItems[],
-// contradictions[], confidenceScore, uncertaintyNotes[], strategicFollowUps[]
-// This needs ~3000-5000 tokens minimum.
+// ─── Max tokens per mode ────────────────────────────────────────────────────
 const MODE_MAX_TOKENS: Record<string, number> = {
   focus:     4000,
   deep:      6000,
   analytica: 8000,
 }
 
-// Per-model timeout — OpenRouter is the only provider, give each model more time
-const MODEL_TIMEOUT_MS = 22_000
+// ─── Timeout Configuration ──────────────────────────────────────────────────
+const MODEL_TIMEOUT_MS = 22_000     // Per-model hard timeout
+const PIPELINE_BUDGET_MS = 50_000   // Total budget across all models
+const INTER_MODEL_DELAY_MS = 500    // Delay between attempts (rate limit protection)
+const RATE_LIMIT_DELAY_MS = 2000    // Extra delay after 429
 
-// Overall budget for all OpenRouter model attempts — stay under Vercel 60s limit
-const PIPELINE_BUDGET_MS = 50_000
-
-// Delay between model attempts (helps avoid rate limit cascades)
-const INTER_MODEL_DELAY_MS = 500
-
-// Delay after 429 rate limit
-const RATE_LIMIT_DELAY_MS = 2000
-
-// ─── Universal fetch wrapper with hard timeout ──────────────────────────────
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
+// ─── Hard fetch timeout wrapper ─────────────────────────────────────────────
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController()
-  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
+  const existingSignal = options.signal
 
-  try {
-    const res = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    })
-    return res
-  } finally {
-    clearTimeout(timeoutHandle)
+  // Merge abort signals if the caller provided one
+  if (existingSignal) {
+    existingSignal.addEventListener('abort', () => controller.abort())
   }
+
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+// ─── Response forensics logger ──────────────────────────────────────────────
+function logResponseForensics(
+  model: string,
+  httpStatus: number,
+  body: string,
+  headers: Record<string, string>,
+  durationMs: number,
+  context: string
+): void {
+  const sanitized = body.replace(/sk-or-[a-zA-Z0-9-]+/g, 'sk-or-***REDACTED***')
+  const truncated = sanitized.length > 3000 ? sanitized.slice(0, 3000) + `...[truncated ${sanitized.length - 3000} chars]` : sanitized
+  
+  console.error(
+    `[openrouter-forensics] ${context}\n` +
+    `  model: ${model}\n` +
+    `  status: ${httpStatus}\n` +
+    `  duration: ${durationMs}ms\n` +
+    `  content-type: ${headers['content-type'] || 'unknown'}\n` +
+    `  body_length: ${body.length}\n` +
+    `  body_preview: ${truncated.slice(0, 500)}`
+  )
+}
+
+// ─── Map HTTP/failure to health reason ──────────────────────────────────────
+function toHealthReason(httpStatus: number, context: string): UnhealthyReason {
+  if (httpStatus === 404) return 'http_404'
+  if (httpStatus === 429) return 'http_429'
+  if (httpStatus >= 500) return 'http_5xx'
+  if (context === 'timeout') return 'timeout'
+  if (context === 'empty') return 'empty_body'
+  if (context === 'json') return 'invalid_json'
+  if (context === 'content') return 'empty_content'
+  return 'provider_unavailable'
 }
 
 export class OpenRouterProvider implements AIProvider {
   name = 'openrouter'
 
   isConfigured(): boolean {
-    const key = process.env.OPENROUTER_API_KEY
-    // Treat empty string as not configured — prevents silent 401 loops
-    return typeof key === 'string' && key.trim().length > 0
+    const key = process.env.OPENROUTER_API_KEY?.trim()
+    return typeof key === 'string' && key.length > 0
   }
 
   async call(req: ProviderRequest): Promise<ProviderResponse> {
     const apiKey = process.env.OPENROUTER_API_KEY?.trim()
     if (!apiKey) {
-      throw new Error('OPENROUTER_API_KEY is not configured or is empty. Set it in Vercel Environment Variables.')
+      throw new Error('OPENROUTER_API_KEY is not configured or is empty.')
     }
 
-    const maxTokens = MODE_MAX_TOKENS[req.mode] ?? 1200
+    // ─── Circuit breaker check ──────────────────────────────────────
+    if (!isCircuitAllowed('openrouter')) {
+      throw new Error('OpenRouter circuit breaker is OPEN — provider temporarily blocked due to high failure rate')
+    }
+
+    const maxTokens = MODE_MAX_TOKENS[req.mode] ?? 4000
     const pipelineStart = Date.now()
     const elapsed = timer()
     const errors: string[] = []
+    const requestId = `or_${Date.now().toString(36)}`
 
-    console.log(`[openrouter] Starting call — mode=${req.mode}, max_tokens=${maxTokens}, models=${FREE_MODELS.length}, key_prefix=${apiKey.slice(0, 8)}...`)
+    // ─── Filter healthy models ──────────────────────────────────────
+    const healthyModels = FREE_MODELS.filter(m => isModelHealthy(m))
+    const skippedModels = FREE_MODELS.filter(m => !isModelHealthy(m))
 
-    for (let modelIdx = 0; modelIdx < FREE_MODELS.length; modelIdx++) {
-      const model = FREE_MODELS[modelIdx]
+    if (skippedModels.length > 0) {
+      console.log(`[openrouter] ⏭️ Skipping ${skippedModels.length} unhealthy models: ${skippedModels.join(', ')}`)
+    }
 
-      // Abort if we're approaching the overall pipeline budget
+    if (healthyModels.length === 0) {
+      console.warn(`[openrouter] ⚠️ All models unhealthy — forcing retry on all models`)
+      healthyModels.push(...FREE_MODELS) // Force retry when everything is marked dead
+    }
+
+    console.log(
+      `[openrouter] 🚀 Starting | reqId=${requestId} mode=${req.mode} ` +
+      `max_tokens=${maxTokens} models=${healthyModels.length}/${FREE_MODELS.length} ` +
+      `key_prefix=${apiKey.slice(0, 8)}...`
+    )
+
+    for (let modelIdx = 0; modelIdx < healthyModels.length; modelIdx++) {
+      const model = healthyModels[modelIdx]
+
+      // ─── Budget check ───────────────────────────────────────────
       const budgetRemaining = PIPELINE_BUDGET_MS - (Date.now() - pipelineStart)
       if (budgetRemaining < 5_000) {
-        const msg = `Pipeline budget exhausted after ${Date.now() - pipelineStart}ms — aborting remaining models`
-        console.warn(`[openrouter] ${msg}`)
+        const msg = `Pipeline budget exhausted after ${Date.now() - pipelineStart}ms`
+        console.warn(`[openrouter] ⏱️ ${msg}`)
         errors.push(msg)
         break
       }
 
-      // Add delay between model attempts (not before first)
+      // ─── Inter-model delay ──────────────────────────────────────
       if (modelIdx > 0) {
         await new Promise(r => setTimeout(r, INTER_MODEL_DELAY_MS))
       }
 
       const modelTimeout = Math.min(MODEL_TIMEOUT_MS, budgetRemaining - 2_000)
+      const modelStart = Date.now()
 
       try {
-        console.log(`[openrouter] Trying model ${modelIdx + 1}/${FREE_MODELS.length}: ${model} (timeout=${modelTimeout}ms, budget_remaining=${budgetRemaining}ms)`)
-        log.step('openrouter', `Calling ${model} (max_tokens=${maxTokens})`, { pipelineSource: 'openrouter' })
+        console.log(
+          `[openrouter] 📡 Model ${modelIdx + 1}/${healthyModels.length}: ${model} ` +
+          `(timeout=${modelTimeout}ms, budget=${budgetRemaining}ms)`
+        )
 
-        // ─── Fetch with hard timeout wrapper ────────────────────────────
+        // ─── Fetch with hard timeout ────────────────────────────
         let response: Response
         try {
           response = await fetchWithTimeout(
@@ -124,78 +178,92 @@ export class OpenRouterProvider implements AIProvider {
                 ],
                 temperature: 0.3,
                 max_tokens: maxTokens,
-                stream: false, // Non-streaming for stability — no partial JSON, no ReadableStream crashes
-                // NOTE: Do NOT set response_format or json_schema — free models fail with structured output
+                stream: false,
               }),
             },
             modelTimeout
           )
         } catch (fetchErr) {
+          const modelMs = Date.now() - modelStart
           const isAbort = fetchErr instanceof Error && (fetchErr.name === 'AbortError' || fetchErr.message.includes('abort'))
           const msg = isAbort
-            ? `Model ${model} timed out after ${modelTimeout}ms`
-            : `Model ${model} fetch error: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`
+            ? `⏱️ ${model} timed out after ${modelMs}ms`
+            : `❌ ${model} fetch error: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`
           console.error(`[openrouter] ${msg}`)
           errors.push(msg)
+          markModelUnhealthy(model, isAbort ? 'timeout' : 'provider_unavailable')
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // ─── HTTP error handling ────────────────────────────────────────
+        // ─── HTTP error handling ────────────────────────────────
         if (!response.ok) {
+          const modelMs = Date.now() - modelStart
           const errText = await response.text().catch(() => 'no body')
-          const msg = `OpenRouter HTTP ${response.status} [${model}]: ${errText.slice(0, 300)}`
-          console.error(`[openrouter] ${msg}`)
+          const msg = `HTTP ${response.status} [${model}]: ${errText.slice(0, 200)}`
+          console.error(`[openrouter] ❌ ${msg}`)
           errors.push(msg)
 
-          // 429 rate limit — wait then try next model
+          // Forensics for non-200 responses
+          const headers: Record<string, string> = {}
+          response.headers.forEach((v, k) => { headers[k] = v })
+          logResponseForensics(model, response.status, errText, headers, modelMs, 'HTTP_ERROR')
+
+          // Mark model unhealthy based on status
+          markModelUnhealthy(model, toHealthReason(response.status, ''))
+
           if (response.status === 429) {
-            console.warn(`[openrouter] Rate limited on ${model}, waiting ${RATE_LIMIT_DELAY_MS}ms then trying next`)
+            console.warn(`[openrouter] 🔄 Rate limited on ${model}, delaying ${RATE_LIMIT_DELAY_MS}ms`)
             await new Promise(r => setTimeout(r, RATE_LIMIT_DELAY_MS))
-            continue
           }
 
-          // Non-retryable HTTP errors — skip to next model immediately
-          if ([400, 401, 403, 404, 422].includes(response.status)) {
-            console.warn(`[openrouter] Non-retryable status ${response.status} for ${model}, trying next`)
-            continue
-          }
-
-          // 5xx — try next model
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // ─── Response body validation ───────────────────────────────────
-        // OpenRouter can return HTML error pages, Cloudflare pages, or empty bodies
+        // ─── Response body validation ───────────────────────────
         const text = await response.text().catch(() => '')
+        const modelMs = Date.now() - modelStart
 
         if (!text || !text.trim()) {
-          const msg = `Model ${model} returned empty response body`
-          console.error(`[openrouter] ${msg}`)
+          const msg = `${model} returned empty body`
+          console.error(`[openrouter] ❌ ${msg}`)
           errors.push(msg)
+          markModelUnhealthy(model, 'empty_body')
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // Reject HTML responses (Cloudflare error pages, etc.)
+        // Reject HTML responses
         if (text.trim().startsWith('<') || text.trim().startsWith('<!')) {
-          const msg = `Model ${model} returned HTML instead of JSON (likely Cloudflare/proxy error)`
-          console.error(`[openrouter] ${msg}`)
+          const msg = `${model} returned HTML (Cloudflare/proxy error)`
+          console.error(`[openrouter] ❌ ${msg}`)
           errors.push(msg)
+          const headers: Record<string, string> = {}
+          response.headers.forEach((v, k) => { headers[k] = v })
+          logResponseForensics(model, 200, text, headers, modelMs, 'HTML_RESPONSE')
+          markModelUnhealthy(model, 'invalid_json')
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // ─── JSON parsing ───────────────────────────────────────────────
+        // ─── JSON parsing ───────────────────────────────────────
         let data: unknown
         try {
           data = JSON.parse(text)
         } catch (parseErr) {
-          const msg = `Model ${model} returned non-JSON response: ${(parseErr as Error).message}. Body preview: ${text.slice(0, 200)}`
-          console.error(`[openrouter] ${msg}`)
+          const msg = `${model} non-JSON response: ${(parseErr as Error).message}`
+          console.error(`[openrouter] ❌ ${msg}`)
           errors.push(msg)
+          const headers: Record<string, string> = {}
+          response.headers.forEach((v, k) => { headers[k] = v })
+          logResponseForensics(model, 200, text, headers, modelMs, 'JSON_PARSE_FAILURE')
+          markModelUnhealthy(model, 'invalid_json')
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // ─── Content extraction (safe — handles multiple provider schemas) ─
-        const durationMs = elapsed()
+        // ─── Content extraction ─────────────────────────────────
         const content =
           (data as any)?.choices?.[0]?.message?.content ||
           (data as any)?.choices?.[0]?.text ||
@@ -204,23 +272,33 @@ export class OpenRouterProvider implements AIProvider {
           ''
 
         if (!content || typeof content !== 'string' || content.trim().length === 0) {
-          const msg = `Model ${model} returned empty or missing content. Keys: ${Object.keys(data as any).join(', ')}`
-          console.error(`[openrouter] ${msg}`)
+          const msg = `${model} returned empty content. Keys: ${Object.keys(data as any).join(', ')}`
+          console.error(`[openrouter] ❌ ${msg}`)
           errors.push(msg)
+          markModelUnhealthy(model, 'empty_content')
+          recordCircuitFailure('openrouter')
           continue
         }
 
-        // Reject suspiciously short responses (likely error messages, not real output)
         if (content.trim().length < 50) {
-          const msg = `Model ${model} returned suspiciously short content (${content.trim().length} chars): "${content.trim().slice(0, 100)}"`
-          console.warn(`[openrouter] ${msg}`)
+          const msg = `${model} suspiciously short (${content.trim().length} chars): "${content.trim().slice(0, 100)}"`
+          console.warn(`[openrouter] ⚠️ ${msg}`)
           errors.push(msg)
-          continue
+          continue // Don't mark unhealthy — might be a transient issue
         }
 
+        // ─── SUCCESS ────────────────────────────────────────────
+        const durationMs = elapsed()
         const usage = (data as any)?.usage ?? {}
-        console.log(`[openrouter] ✓ Success with ${model} in ${durationMs}ms, content_length=${content.length}, tokens=${usage.prompt_tokens ?? '?'}+${usage.completion_tokens ?? '?'}`)
-        log.step('openrouter', `Response from ${model} in ${durationMs}ms`, { durationMs })
+
+        console.log(
+          `[openrouter] ✅ SUCCESS | model=${model} reqId=${requestId} ` +
+          `duration=${durationMs}ms content_length=${content.length} ` +
+          `tokens=${usage.prompt_tokens ?? '?'}+${usage.completion_tokens ?? '?'}`
+        )
+
+        markModelHealthy(model)
+        recordCircuitSuccess('openrouter')
 
         return {
           content,
@@ -229,24 +307,26 @@ export class OpenRouterProvider implements AIProvider {
           inputTokens: usage.prompt_tokens ?? 0,
           outputTokens: usage.completion_tokens ?? 0,
           durationMs,
-          estimatedCostUsd: 0, // Free models
+          estimatedCostUsd: 0,
         }
 
       } catch (err) {
+        const modelMs = Date.now() - modelStart
         const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('abort'))
         const msg = isAbort
-          ? `Model ${model} timed out after ${modelTimeout}ms`
-          : `Model ${model} error: ${err instanceof Error ? err.message : String(err)}`
+          ? `⏱️ ${model} timed out after ${modelMs}ms`
+          : `❌ ${model} error: ${err instanceof Error ? err.message : String(err)}`
         console.error(`[openrouter] ${msg}`)
         errors.push(msg)
+        recordCircuitFailure('openrouter')
         continue
       }
     }
 
-    // All models failed
+    // ─── All models failed ──────────────────────────────────────────
     const totalMs = Date.now() - pipelineStart
-    const fullError = `All OpenRouter free models failed after ${totalMs}ms.\nErrors:\n${errors.map((e, i) => `  [${i + 1}] ${e}`).join('\n')}`
-    console.error(`[openrouter] ${fullError}`)
+    const fullError = `All ${healthyModels.length} OpenRouter models failed in ${totalMs}ms. Errors: ${errors.map((e, i) => `[${i + 1}] ${e}`).join(' | ')}`
+    console.error(`[openrouter] 🔴 ${fullError}`)
     throw new Error(fullError)
   }
 }

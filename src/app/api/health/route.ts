@@ -1,51 +1,97 @@
-// ─── /api/health — Production Health Check ──────────────────────────────────
-// Quick diagnostic endpoint to verify:
-//   1. Environment variables are configured
-//   2. OpenRouter is reachable
-//   3. Supabase is reachable
+// ─── /api/health — Production Health Check + Provider Warmup ────────────────
+// Diagnostic endpoint that also performs provider warmup:
+//   1. Validates environment variables
+//   2. Pings OpenRouter (warmup)
+//   3. Pings Supabase
+//   4. Reports model health cache status
+//   5. Reports circuit breaker states
 //
-// Use this to debug production failures without reading function logs.
-// GET /api/health → { status, env, openrouter, supabase, timestamp }
+// GET /api/health → { status, env, openrouter, supabase, models, circuits }
 
 import { NextResponse } from 'next/server'
 import { checkEnv } from '@/lib/env-check'
 import { getAllHealth } from '@/lib/ai/health'
+import { getUnhealthyModels, getUnhealthyCount } from '@/lib/ai/model-health'
+import { getAllCircuitStates } from '@/lib/ai/circuit-breaker'
 
 export const runtime = 'nodejs'
+
+// ─── Warmup: lightweight model ping ─────────────────────────────────────────
+async function warmupOpenRouter(apiKey: string): Promise<{
+  reachable: boolean
+  latencyMs: number
+  warmupModel?: string
+  error?: string
+}> {
+  const start = Date.now()
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 6000)
+
+    // Lightweight ping — tiny prompt, tiny max_tokens
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://verdantai.vercel.app',
+        'X-Title': 'Verdant-Warmup',
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-20b:free', // Fastest verified model
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 5,
+        stream: false,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeout)
+    const latencyMs = Date.now() - start
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      return {
+        reachable: false,
+        latencyMs,
+        warmupModel: 'openai/gpt-oss-20b:free',
+        error: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      }
+    }
+
+    const data = await res.json().catch(() => null)
+    const content = data?.choices?.[0]?.message?.content || ''
+
+    console.log(`[health] Warmup successful: model=openai/gpt-oss-20b:free latency=${latencyMs}ms response="${content.slice(0, 20)}"`)
+
+    return {
+      reachable: true,
+      latencyMs,
+      warmupModel: 'openai/gpt-oss-20b:free',
+    }
+  } catch (e) {
+    return {
+      reachable: false,
+      latencyMs: Date.now() - start,
+      error: (e as Error).message,
+    }
+  }
+}
 
 export async function GET() {
   const startTime = Date.now()
   const envStatus = checkEnv()
 
-  // ─── OpenRouter ping ──────────────────────────────────────────────────────
-  let openrouterStatus: { reachable: boolean; latencyMs: number; error?: string } = {
+  // ─── OpenRouter warmup ping ────────────────────────────────────────────────
+  let openrouterStatus: { reachable: boolean; latencyMs: number; warmupModel?: string; error?: string } = {
     reachable: false,
     latencyMs: 0,
   }
 
   if (envStatus.providers.openrouter) {
-    const orStart = Date.now()
-    try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 8000)
-      const res = await fetch('https://openrouter.ai/api/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY?.trim()}`,
-        },
-        signal: controller.signal,
-      })
-      clearTimeout(timeout)
-      openrouterStatus = {
-        reachable: res.ok,
-        latencyMs: Date.now() - orStart,
-        error: res.ok ? undefined : `HTTP ${res.status}`,
-      }
-    } catch (e) {
-      openrouterStatus = {
-        reachable: false,
-        latencyMs: Date.now() - orStart,
-        error: (e as Error).message,
-      }
+    const apiKey = process.env.OPENROUTER_API_KEY?.trim()
+    if (apiKey) {
+      openrouterStatus = await warmupOpenRouter(apiKey)
     }
   } else {
     openrouterStatus.error = 'OPENROUTER_API_KEY not configured'
@@ -83,8 +129,10 @@ export async function GET() {
     supabaseStatus.error = `Supabase status: ${envStatus.supabase}`
   }
 
-  // ─── Provider health history ──────────────────────────────────────────────
+  // ─── Model health + circuit breaker diagnostics ───────────────────────────
   const providerHealth = getAllHealth()
+  const unhealthyModels = getUnhealthyModels()
+  const circuitStates = getAllCircuitStates()
 
   // ─── Overall status ───────────────────────────────────────────────────────
   const healthy = envStatus.ai === 'configured' && openrouterStatus.reachable
@@ -103,6 +151,11 @@ export async function GET() {
     openrouter: openrouterStatus,
     supabase: supabaseStatus,
     providerHealth,
+    modelHealth: {
+      unhealthyCount: getUnhealthyCount(),
+      unhealthyModels,
+    },
+    circuitBreakers: circuitStates,
   }, {
     status: healthy ? 200 : 503,
   })
