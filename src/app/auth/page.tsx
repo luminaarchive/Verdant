@@ -9,6 +9,7 @@ function AuthForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
+  const urlError = searchParams.get('error')
   const { language, setLanguage, t } = useLanguage()
 
   const [isSignUp, setIsSignUp] = useState(false)
@@ -16,7 +17,7 @@ function AuthForm() {
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [organization, setOrganization] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(urlError || '')
   const humanizeAuthError = (message: string) => {
     const m = message.toLowerCase()
     if (m.includes('database error saving new user')) {
@@ -74,10 +75,12 @@ function AuthForm() {
       }
 
       if (isSignUp) {
+        const origin = typeof window !== 'undefined' ? window.location.origin : ''
         const signUpResult = await supabase.auth.signUp({
           email: safeEmail,
           password: safePassword,
           options: {
+            emailRedirectTo: `${origin}/auth/callback`,
             data: {
               display_name: safeDisplayName || safeEmail.split('@')[0],
               organization: safeOrganization || null,
@@ -92,6 +95,9 @@ function AuthForm() {
           const retry = await supabase.auth.signUp({
             email: safeEmail,
             password: safePassword,
+            options: {
+              emailRedirectTo: `${origin}/auth/callback`,
+            },
           })
           signUpData = retry.data
           signUpError = retry.error
@@ -130,6 +136,7 @@ function AuthForm() {
         }
 
         router.push(redirect)
+        router.refresh()
       }
     } catch {
       setError(language === 'id' ? 'Terjadi kesalahan tak terduga. Silakan coba lagi.' : 'An unexpected error occurred. Please try again.')
@@ -211,6 +218,7 @@ function AuthForm() {
                   type="text"
                   value={displayName}
                   onChange={e => setDisplayName(e.target.value)}
+                  disabled={loading}
                   placeholder="Dr. Jane Wilson"
                   style={inputStyle}
                   onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
@@ -223,6 +231,7 @@ function AuthForm() {
                   type="text"
                   value={organization}
                   onChange={e => setOrganization(e.target.value)}
+                  disabled={loading}
                   placeholder="e.g. WWF, Stanford, UNEP"
                   style={inputStyle}
                   onFocus={e => (e.currentTarget.style.borderColor = 'rgba(26,47,35,0.3)')}
@@ -238,6 +247,7 @@ function AuthForm() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              disabled={loading}
               placeholder="you@institution.edu"
               required
               style={inputStyle}
@@ -252,6 +262,7 @@ function AuthForm() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              disabled={loading}
               placeholder="••••••••"
               required
               minLength={6}

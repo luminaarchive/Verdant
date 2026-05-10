@@ -1,44 +1,43 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+
+  if (!code) {
+    return NextResponse.redirect(new URL('/auth?error=no_code', requestUrl.origin))
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  // Determine where to redirect on success — default to home
   const requestedRedirect = requestUrl.searchParams.get('redirect') || '/'
   const redirect = requestedRedirect.startsWith('/') ? requestedRedirect : '/'
 
-  if (code) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Server component — ignore
-            }
-          },
-        },
-      }
-    )
+  const response = NextResponse.redirect(new URL(redirect, requestUrl.origin))
 
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    if (exchangeError) {
-      const errorUrl = requestUrl.clone()
-      errorUrl.pathname = '/auth'
-      return NextResponse.redirect(errorUrl)
-    }
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
+      },
+    },
+  })
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) {
+    return NextResponse.redirect(
+      new URL(`/auth?error=${encodeURIComponent(error.message)}`, requestUrl.origin)
+    )
   }
 
-  return NextResponse.redirect(new URL(redirect, requestUrl.origin))
+  return response
 }
