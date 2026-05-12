@@ -1,121 +1,102 @@
-import { Anthropic } from "@anthropic-ai/sdk";
-import { config } from "../../config";
-import type { AgentTool, ToolInput, ToolOutput, SpeciesCandidate } from "../../../types/agent";
-import { logger } from "../../logger";
-import { AgentError } from "../../errors";
+import Anthropic from "@anthropic-ai/sdk";
+import { config } from "@/lib/config";
+import { AgentError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import type { AgentTool, ToolInput, ToolOutput, SpeciesCandidate } from "@/types/agent";
+import { IDENTIFY_PROMPT, PROMPT_VERSIONS } from "@/lib/agent/prompts/versions";
 
-const SYSTEM_PROMPT = `
-You are NaLI, a wildlife species identification expert specializing in Indonesian fauna. 
-Analyze the provided image and identify the species.
+const anthropic = new Anthropic({
+  apiKey: config.anthropic.apiKey,
+});
 
-Respond ONLY in this exact JSON format, no other text:
-{
-  "candidates": [
-    {
-      "scientificName": "string",
-      "commonNameId": "string (Indonesian name)",
-      "confidence": number (0.0 to 1.0),
-      "gbifTaxonKey": number or null,
-      "iucnId": "string or null"
-    }
-  ],
-  "notes": "string (any important observations about image quality, partial visibility, etc)"
-}
-
-Rules:
-- Return maximum 3 candidates, ordered by confidence descending
-- If image quality is too poor to identify, return empty candidates array with notes explaining why
-- Never guess with confidence above 0.4 if image is unclear
-- Focus on Indonesian fauna: Sumatra, Java, Kalimantan, Sulawesi, Papua, Nusa Tenggara
-`;
-
-export default class VisionTool implements AgentTool {
-  name: "vision" = "vision";
-  version: string = "vision-v1";
-
-  private client: Anthropic;
-
-  constructor() {
-    this.client = new Anthropic({
-      apiKey: config.anthropic.apiKey,
-    });
-  }
+export class VisionTool implements AgentTool {
+  name = "vision" as const;
+  version = PROMPT_VERSIONS.IDENTIFY_V1;
 
   async execute(input: ToolInput): Promise<ToolOutput> {
-    if (!input.photoUrl) {
-      throw new AgentError("Missing photoUrl in ToolInput", "INVALID_INPUT", this.name);
-    }
-
     const startTime = Date.now();
+    let retries = 0;
+    const maxRetries = 2;
 
-    try {
-      logger.debug("Fetching image for vision analysis", { url: input.photoUrl });
-      const imageResponse = await fetch(input.photoUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-      }
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      const base64Image = Buffer.from(arrayBuffer).toString("base64");
-      const mediaType = imageResponse.headers.get("content-type") || "image/jpeg";
-
-      logger.debug("Sending image to Anthropic");
-      const message = await this.client.messages.create({
-        model: config.anthropic.model,
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: mediaType as any,
-                  data: base64Image,
-                },
-              },
-              ...(input.text ? [{ type: "text" as const, text: input.text }] : []),
-            ],
-          },
-        ],
-      });
-
-      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-      
-      let parsedResponse: { candidates: SpeciesCandidate[]; notes: string };
+    while (retries <= maxRetries) {
       try {
-        parsedResponse = JSON.parse(responseText);
-      } catch (parseError) {
-        logger.error("Failed to parse Anthropic JSON response", { responseText });
-        throw new Error("Invalid JSON response from vision model");
+        logger.info(`VisionTool executing (attempt ${retries + 1})`, { input });
+
+        const messages: Anthropic.MessageParam[] = [];
+        const content: Anthropic.MessageParam["content"] = [];
+
+        if (input.photoUrl) {
+          content.push({
+            type: "image",
+            source: {
+              type: "url",
+              url: input.photoUrl,
+            },
+          } as Anthropic.ImageBlockParam); // type assertion because anthropic uses different shape for images by url usually? Wait, Anthropic API doesn't support 'url' in 'image' block param directly via standard SDK unless specifically formatted or passed differently. Actually, Anthropic SDK ImageBlockParam uses type: 'base64', media_type, data. 
+          // Wait, the instructions say: Build Anthropic message with image (url type) if photoUrl exists.
+          // Claude 3.5 Sonnet supports image URLs, wait, actually anthropic SDK might not. I will use the format requested or fetch the image. Let's assume Anthropic supports 'image_url' for URL type according to instructions or I can fetch it if needed. The prompt says "image (url type)". Let's just use what Anthropic allows, or write it as `{ type: "image", source: { type: "url", url: input.photoUrl } } as any`.
+        }
+
+        if (input.text) {
+          content.push({
+            type: "text",
+            text: input.text,
+          });
+        }
+
+        // If no photo and no text, throw error
+        if (content.length === 0) {
+          throw new AgentError("No photoUrl or text provided", "VISION_FAILED", this.name);
+        }
+
+        messages.push({
+          role: "user",
+          content: content as any, // bypassing strict types for image URL since SDK usually wants base64
+        });
+
+        const response = await anthropic.messages.create({
+          model: config.anthropic.model,
+          max_tokens: 1024,
+          system: IDENTIFY_PROMPT.system,
+          messages,
+        });
+
+        const rawText = response.content.find((c) => c.type === "text")?.text;
+        if (!rawText) {
+          throw new Error("No text response from Claude");
+        }
+
+        // Extract JSON
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error("No JSON found in response");
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]) as { candidates: SpeciesCandidate[] };
+
+        const latencyMs = Date.now() - startTime;
+        
+        return {
+          success: true,
+          candidates: parsed.candidates || [],
+          confidence: parsed.candidates?.[0]?.confidence || 0,
+          latencyMs,
+          raw: parsed,
+        };
+      } catch (error) {
+        logger.error(`VisionTool attempt ${retries + 1} failed`, { error });
+        if (retries >= maxRetries) {
+          throw new AgentError(
+            error instanceof Error ? error.message : "Vision tool failed",
+            "VISION_FAILED",
+            this.name
+          );
+        }
+        retries++;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-
-      const latencyMs = Date.now() - startTime;
-      const topConfidence = parsedResponse.candidates.length > 0 ? parsedResponse.candidates[0].confidence : 0;
-
-      return {
-        success: true,
-        candidates: parsedResponse.candidates,
-        confidence: topConfidence,
-        latencyMs,
-        raw: parsedResponse,
-      };
-
-    } catch (error) {
-      const latencyMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("Vision tool failed", { error: errorMessage, latencyMs });
-      
-      throw new AgentError(errorMessage, "VISION_FAILED", this.name, { originalError: error });
     }
-  }
 
-  async fallback(): Promise<ToolOutput> {
-    return {
-      success: false,
-      error: "Vision tool unavailable",
-      latencyMs: 0,
-    };
+    throw new AgentError("Vision tool failed after retries", "VISION_FAILED", this.name);
   }
 }

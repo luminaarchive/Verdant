@@ -1,99 +1,67 @@
-import { config } from "../../config";
-import type { AgentTool, ToolInput, ToolOutput } from "../../../types/agent";
-import { logger } from "../../logger";
-import { AgentError } from "../../errors";
+import { config } from "@/lib/config";
+import { AgentError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import type { AgentTool, ToolInput, ToolOutput } from "@/types/agent";
 
-export default class IUCNTool implements AgentTool {
-  name: "iucn" = "iucn";
-  version: string = "1.0.0";
+export class IUCNTool implements AgentTool {
+  name = "iucn" as const;
+  version = "1.0.0";
 
   async execute(input: ToolInput): Promise<ToolOutput> {
+    const startTime = Date.now();
+    logger.info("IUCNTool executing", { candidatesCount: input.candidates?.length });
+
     if (!input.candidates || input.candidates.length === 0) {
-      throw new AgentError("Missing candidates in ToolInput", "INVALID_INPUT", this.name);
+      return {
+        success: true,
+        latencyMs: Date.now() - startTime,
+        candidates: [],
+      };
     }
 
-    const topCandidate = input.candidates[0];
-    const startTime = Date.now();
-
     try {
-      const { apiKey, apiBase } = config.iucn;
-      let speciesData = null;
-
-      if (topCandidate.iucnId) {
-        logger.debug("Querying IUCN by ID", { iucnId: topCandidate.iucnId });
-        const res = await fetch(`${apiBase}/species/id/${topCandidate.iucnId}?token=${apiKey}`);
-        if (!res.ok) throw new Error(`IUCN ID API failed: ${res.statusText}`);
-        const data = await res.json();
-        if (data.result && data.result.length > 0) {
-          speciesData = data.result[0];
-        }
-      }
-
-      if (!speciesData && topCandidate.scientificName) {
-        logger.debug("Querying IUCN by Scientific Name", { scientificName: topCandidate.scientificName });
-        const res = await fetch(`${apiBase}/species/${encodeURIComponent(topCandidate.scientificName)}?token=${apiKey}`);
-        if (!res.ok) throw new Error(`IUCN Name API failed: ${res.statusText}`);
-        const data = await res.json();
-        if (data.result && data.result.length > 0) {
-          speciesData = data.result[0];
-        }
-      }
-
-      if (!speciesData) {
-        // Treat as DD (Data Deficient) or not in database, rather than error
+      const topCandidate = input.candidates[0];
+      const encodedName = encodeURIComponent(topCandidate.scientificName);
+      const url = `${config.iucn.apiBase}/species/${encodedName}?token=${config.iucn.apiKey}`;
+      
+      const res = await fetch(url);
+      
+      if (!res.ok) {
+        logger.warn(`IUCN API returned ${res.status}`);
         return {
           success: true,
           candidates: input.candidates,
-          confidence: 0,
           latencyMs: Date.now() - startTime,
-          raw: {
-            conservationStatus: "DD",
-            populationTrend: "unknown",
-            threats: [],
-          },
+          raw: { iucnFound: false, status: res.status }
         };
       }
 
-      logger.debug("Querying IUCN threats", { scientificName: speciesData.scientific_name });
-      const threatsRes = await fetch(`${apiBase}/species/threats/${encodeURIComponent(speciesData.scientific_name)}?token=${apiKey}`);
-      let threatsList: any[] = [];
-      if (threatsRes.ok) {
-        const threatsData = await threatsRes.json();
-        threatsList = threatsData.result || [];
+      const data = await res.json();
+      
+      let iucnRawData = null;
+      if (data.result && data.result.length > 0) {
+        const result = data.result[0];
+        iucnRawData = {
+          category: result.category,
+          population_trend: result.population_trend,
+        };
       }
-
-      const rawResult = {
-        conservationStatus: speciesData.category || "DD",
-        populationTrend: speciesData.population_trend || "unknown",
-        threats: threatsList.map((t: any) => t.title),
-      };
 
       return {
         success: true,
         candidates: input.candidates,
-        confidence: 1.0,
+        confidence: topCandidate.confidence,
         latencyMs: Date.now() - startTime,
-        raw: rawResult,
+        raw: iucnRawData,
       };
 
     } catch (error) {
-      const latencyMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("IUCN tool failed", { error: errorMessage, latencyMs });
-      
-      return {
-        success: false,
-        error: errorMessage,
-        latencyMs,
-      };
+      logger.error("IUCNTool failed", { error });
+      throw new AgentError(
+        error instanceof Error ? error.message : "IUCN tool failed",
+        "IUCN_FAILED",
+        this.name
+      );
     }
-  }
-
-  async fallback(): Promise<ToolOutput> {
-    return {
-      success: false,
-      error: "IUCN unavailable",
-      latencyMs: 0,
-    };
   }
 }

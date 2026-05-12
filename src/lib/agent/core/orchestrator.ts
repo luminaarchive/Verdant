@@ -1,144 +1,109 @@
-import VisionTool from "../tools/vision";
-import GBIFTool from "../tools/gbif";
-import IUCNTool from "../tools/iucn";
-import AnomalyTool from "../tools/anomaly";
-import { calculateFinalConfidence, selectTopCandidate, shouldFlagForReview } from "../scoring/confidence";
-import type { AgentResult, ToolInput, ToolOutput, ToolName, SpeciesCandidate } from "../../../types/agent";
-import { logger } from "../../logger";
-import { MODEL_NAME, PROMPT_VERSIONS } from "../prompts/versions";
+import { VisionTool } from "@/lib/agent/tools/vision";
+import { GBIFTool } from "@/lib/agent/tools/gbif";
+import { IUCNTool } from "@/lib/agent/tools/iucn";
+import { AnomalyTool } from "@/lib/agent/tools/anomaly";
+import { logger } from "@/lib/logger";
+import { AgentError, toAppError } from "@/lib/errors";
+import type { AgentResult, ToolInput, ToolName } from "@/types/agent";
+import type { Result } from "@/types/common";
+import { config } from "@/lib/config";
+import { IDENTIFY_PROMPT } from "@/lib/agent/prompts/versions";
 
-export class NaLIOrchestrator {
-  private vision: VisionTool;
-  private gbif: GBIFTool;
-  private iucn: IUCNTool;
-  private anomaly: AnomalyTool;
+// NOTE: You would normally inject Supabase client here to log to analysis_runs,
+// but for simplicity we assume there's a logging function or we leave a comment.
 
-  constructor() {
-    this.vision = new VisionTool();
-    this.gbif = new GBIFTool();
-    this.iucn = new IUCNTool();
-    this.anomaly = new AnomalyTool();
-  }
+export async function runNaLIAgent(input: ToolInput & { observationId: string }): Promise<Result<AgentResult>> {
+  const startTime = Date.now();
+  const toolsUsed: ToolName[] = [];
+  let totalLatencyMs = 0;
 
-  async analyze(observationId: string, input: ToolInput): Promise<AgentResult> {
-    const startTime = Date.now();
-    const toolsUsed: ToolName[] = [];
-    const toolOutputs: Partial<Record<ToolName, ToolOutput>> = {};
+  try {
+    logger.info("Starting NaLI Agent Orchestration", { observationId: input.observationId });
 
-    let currentCandidates: SpeciesCandidate[] = [];
+    // Step 1: VisionTool
+    const vision = new VisionTool();
+    const visionOut = await vision.execute(input);
+    toolsUsed.push(vision.name);
+    totalLatencyMs += visionOut.latencyMs;
 
-    // STEP 1: Vision
-    if (input.photoUrl) {
-      try {
-        const visionResult = await this.vision.execute(input);
-        toolOutputs.vision = visionResult;
-        toolsUsed.push("vision");
-        if (visionResult.success && visionResult.candidates) {
-          currentCandidates = visionResult.candidates;
-        }
-      } catch (error) {
-        logger.error("Vision tool failed in orchestrator", { error, observationId });
-        toolOutputs.vision = await this.vision.fallback();
-      }
-    }
+    let currentCandidates = visionOut.candidates || [];
 
-    // STEP 2: GBIF
-    let gbifCandidates: SpeciesCandidate[] = [];
+    // Step 2: GBIFTool
     if (currentCandidates.length > 0) {
-      try {
-        const gbifInput = { ...input, candidates: currentCandidates };
-        const gbifResult = await this.gbif.execute(gbifInput);
-        toolOutputs.gbif = gbifResult;
-        toolsUsed.push("gbif");
-        if (gbifResult.success && gbifResult.candidates) {
-          gbifCandidates = gbifResult.candidates;
-          const mergedTop = selectTopCandidate(currentCandidates, gbifCandidates);
-          if (mergedTop) {
-            currentCandidates = [mergedTop];
-          }
-        }
-      } catch (error) {
-        logger.error("GBIF tool failed in orchestrator", { error, observationId });
-        toolOutputs.gbif = await this.gbif.fallback();
+      const gbif = new GBIFTool();
+      const gbifOut = await gbif.execute({ ...input, candidates: currentCandidates });
+      toolsUsed.push(gbif.name);
+      totalLatencyMs += gbifOut.latencyMs;
+      if (gbifOut.candidates) {
+        currentCandidates = gbifOut.candidates;
       }
     }
 
-    // STEP 3: IUCN
-    const visionConf = toolOutputs.vision?.confidence || 0;
-    const gbifMatch = (toolOutputs.gbif?.confidence || 0) > 0;
+    let conservationStatus: string | undefined;
     
-    if (gbifMatch || visionConf > 0.5) {
-      if (currentCandidates.length > 0) {
-        try {
-          const iucnInput = { ...input, candidates: currentCandidates };
-          const iucnResult = await this.iucn.execute(iucnInput);
-          toolOutputs.iucn = iucnResult;
-          toolsUsed.push("iucn");
-        } catch (error) {
-          logger.error("IUCN tool failed in orchestrator", { error, observationId });
-          toolOutputs.iucn = await this.iucn.fallback();
-        }
+    // Step 3: IUCNTool
+    if (currentCandidates.length > 0) {
+      const iucn = new IUCNTool();
+      const iucnOut = await iucn.execute({ ...input, candidates: currentCandidates });
+      toolsUsed.push(iucn.name);
+      totalLatencyMs += iucnOut.latencyMs;
+      
+      const rawIucn = iucnOut.raw as { category?: string } | undefined;
+      if (rawIucn?.category) {
+        conservationStatus = rawIucn.category;
       }
     }
 
-    // STEP 4: Anomaly
-    const topCandidate = selectTopCandidate(currentCandidates, gbifCandidates);
     let isAnomaly = false;
-    let anomalyReason: string | undefined = undefined;
+    let anomalyReason: string | undefined;
 
-    if (topCandidate?.gbifTaxonKey && input.latitude !== undefined && input.longitude !== undefined) {
-      try {
-        const anomalyInput = { ...input, candidates: [topCandidate] };
-        const anomalyResult = await this.anomaly.execute(anomalyInput);
-        toolOutputs.anomaly = anomalyResult;
-        toolsUsed.push("anomaly");
-        
-        if (anomalyResult.success && anomalyResult.raw) {
-          const rawAnomaly = anomalyResult.raw as { isAnomaly: boolean; anomalyReason?: string };
-          isAnomaly = rawAnomaly.isAnomaly;
-          anomalyReason = rawAnomaly.anomalyReason;
-        }
-      } catch (error) {
-        logger.error("Anomaly tool failed in orchestrator", { error, observationId });
-        toolOutputs.anomaly = await this.anomaly.fallback();
+    // Step 4: AnomalyTool
+    if (currentCandidates.length > 0 && input.latitude && input.longitude) {
+      const anomaly = new AnomalyTool();
+      const anomalyOut = await anomaly.execute({ ...input, candidates: currentCandidates });
+      toolsUsed.push(anomaly.name);
+      totalLatencyMs += anomalyOut.latencyMs;
+
+      const rawAnomaly = anomalyOut.raw as { isAnomaly?: boolean, reason?: string } | undefined;
+      if (rawAnomaly) {
+        isAnomaly = rawAnomaly.isAnomaly || false;
+        anomalyReason = rawAnomaly.reason;
       }
     }
 
-    // STEP 5: Calculate final result
-    const finalConfidence = calculateFinalConfidence(toolOutputs);
-    let conservationStatus: string | undefined = undefined;
-    
-    if (toolOutputs.iucn?.success && toolOutputs.iucn.raw) {
-      const rawIucn = toolOutputs.iucn.raw as { conservationStatus?: string };
-      conservationStatus = rawIucn.conservationStatus;
-    }
+    const finalSpecies = currentCandidates.length > 0 ? currentCandidates[0] : null;
+    const finalConfidence = finalSpecies?.confidence || 0;
 
-    if (toolsUsed.length === 0 || !topCandidate) {
-      return {
-        observationId,
-        finalSpecies: null,
-        confidence: 0,
-        isAnomaly: false,
-        toolsUsed: [],
-        totalLatencyMs: Date.now() - startTime,
-        promptVersion: PROMPT_VERSIONS.vision,
-        modelName: MODEL_NAME,
-      };
-    }
-
-    return {
-      observationId,
-      finalSpecies: topCandidate,
+    const agentResult: AgentResult = {
+      observationId: input.observationId,
+      finalSpecies,
       confidence: finalConfidence,
       isAnomaly,
       anomalyReason,
       conservationStatus,
       toolsUsed,
-      totalLatencyMs: Date.now() - startTime,
-      promptVersion: PROMPT_VERSIONS.vision,
-      modelName: MODEL_NAME,
+      totalLatencyMs,
+      promptVersion: IDENTIFY_PROMPT.version,
+      modelName: config.anthropic.model,
+    };
+
+    logger.info("NaLI Agent Orchestration completed", { 
+      observationId: input.observationId,
+      finalSpecies: finalSpecies?.scientificName,
+      confidence: finalConfidence
+    });
+
+    // TODO: Log entire run to analysis_runs table in Supabase for each tool
+
+    return {
+      success: true,
+      data: agentResult,
+    };
+  } catch (error) {
+    logger.error("NaLI Agent Orchestration failed", { error, observationId: input.observationId });
+    return {
+      success: false,
+      error: toAppError(error),
     };
   }
 }
-
-export const naliOrchestrator = new NaLIOrchestrator();

@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "../supabase/server";
 import { getObservationById, createObservation } from "../supabase/queries/observations";
-import { naliOrchestrator } from "../agent/core/orchestrator";
+import { runNaLIAgent } from "../agent/core/orchestrator";
 import { shouldFlagForReview } from "../agent/scoring/confidence";
 import { uploadObservationPhoto, uploadObservationAudio } from "../storage/upload";
 import { toAppError } from "../errors";
@@ -74,7 +74,9 @@ export class ObservationService {
         longitude: input.longitude,
       };
 
-      const agentResult = await naliOrchestrator.analyze(observationId, toolInput);
+      const orchestratorRes = await runNaLIAgent({ observationId, ...toolInput });
+      if (!orchestratorRes.success) throw orchestratorRes.error;
+      const agentResult = orchestratorRes.data;
 
       const flagForReview = shouldFlagForReview(agentResult.confidence, agentResult.isAnomaly);
       const newStatus: ObservationStatus = flagForReview ? "review_needed" : "identified";

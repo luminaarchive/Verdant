@@ -1,171 +1,242 @@
-'use client'
+import Link from "next/link";
+import { Playfair_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Shield, Microscope, GraduationCap, Camera, Cpu, FileText } from "lucide-react";
 
-import Link from 'next/link'
-import { Camera, Cpu, FileText, Shield, Microscope, GraduationCap } from 'lucide-react'
+const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "700"] });
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 export default function LandingPage() {
   return (
-    <div style={{ backgroundColor: '#060f08', minHeight: '100vh', color: 'white', fontFamily: 'system-ui, sans-serif' }}>
+    <div className={`min-h-screen bg-[#0A0F0A] text-[#F0F4F0] selection:bg-[#4ADE80]/30 ${dmSans.className}`}>
       
-      {/* NAV */}
-      <nav style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1a3a1a' }}>
-        <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '2px', color: '#22c55e' }}>NaLI</span>
-        <Link href="/login" style={{ color: '#86efac', textDecoration: 'none', fontSize: '14px' }}>Sign In</Link>
-      </nav>
-
-      {/* HERO */}
-      <section style={{ 
-        minHeight: '90vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        padding: '80px 40px',
-        background: 'radial-gradient(ellipse at center, #0d2b12 0%, #060f08 70%)'
-      }}>
-        <div style={{ maxWidth: '700px' }}>
-          <div style={{ 
-            display: 'inline-block',
-            backgroundColor: '#0f2214', 
-            border: '1px solid #166534', 
-            borderRadius: '100px', 
-            padding: '6px 16px', 
-            fontSize: '12px', 
-            color: '#86efac', 
-            marginBottom: '32px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
-          }}>
-            Wildlife Field Intelligence
+      {/* NAVBAR */}
+      <nav className="fixed top-0 w-full z-50 bg-[#0A0F0A]/80 backdrop-blur-md border-b border-[#1E2E1E]">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#4ADE80]"></div>
+            <span className="text-xl font-bold tracking-widest">NaLI</span>
           </div>
           
-          <h1 style={{ fontSize: 'clamp(48px, 8vw, 96px)', fontWeight: '900', lineHeight: '1', marginBottom: '24px', letterSpacing: '-2px' }}>
-            Na<span style={{ color: '#22c55e' }}>LI</span>
+          <div className="hidden md:flex gap-8 text-sm font-medium text-[#8A9E8A]">
+            <Link href="#features" className="hover:text-[#F0F4F0] transition-colors">Features</Link>
+            <Link href="#process" className="hover:text-[#F0F4F0] transition-colors">How It Works</Link>
+            <Link href="#pricing" className="hover:text-[#F0F4F0] transition-colors">Pricing</Link>
+          </div>
+
+          <Link 
+            href="/register" 
+            className="bg-[#4ADE80] text-black font-semibold px-6 py-2 rounded-full hover:bg-[#22c55e] transition-colors text-sm"
+          >
+            Start Identifying
+          </Link>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section className="relative min-h-screen flex flex-col justify-center px-6 pt-24 pb-20 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#111A11] via-[#0A0F0A] to-[#0A0F0A] z-0"></div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col items-start mt-10">
+          <div className="inline-block border border-[#1E2E1E] bg-[#111A11] text-[#86EFAC] text-xs font-bold tracking-widest uppercase px-4 py-2 rounded-full mb-8">
+            Wildlife Field Intelligence • Indonesia
+          </div>
+          
+          <h1 className={`${playfair.className} text-5xl md:text-7xl font-bold leading-[1.1] mb-6 max-w-4xl`}>
+            Every species.<br />Every field.<br />Every second.
           </h1>
           
-          <p style={{ fontSize: '18px', color: '#9ca3af', maxWidth: '500px', lineHeight: '1.6', marginBottom: '48px' }}>
-            AI-powered species identification for rangers, researchers, and wildlife enthusiasts in Indonesia.
+          <p className="text-lg md:text-xl text-[#8A9E8A] max-w-2xl mb-12 leading-relaxed">
+            NaLI identifies wildlife from photos, sound, and description. 
+            Instant field intelligence for rangers, researchers, and students.
           </p>
           
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <Link href="/register" style={{
-              backgroundColor: '#22c55e',
-              color: '#000',
-              padding: '14px 32px',
-              borderRadius: '100px',
-              textDecoration: 'none',
-              fontWeight: '700',
-              fontSize: '15px',
-              display: 'inline-block'
-            }}>
+          <div className="flex flex-col sm:flex-row gap-4 mb-20">
+            <Link 
+              href="/register" 
+              className="bg-[#4ADE80] text-black font-bold px-8 py-4 rounded-full hover:bg-[#22c55e] transition-colors text-center"
+            >
               Start Identifying
             </Link>
-            <Link href="/login" style={{
-              backgroundColor: 'transparent',
-              color: '#86efac',
-              padding: '14px 32px',
-              borderRadius: '100px',
-              textDecoration: 'none',
-              fontWeight: '600',
-              fontSize: '15px',
-              border: '1px solid #166534',
-              display: 'inline-block'
-            }}>
-              Sign In
+            <Link 
+              href="#process" 
+              className="border border-[#1E2E1E] text-[#F0F4F0] font-bold px-8 py-4 rounded-full hover:bg-[#111A11] transition-colors text-center"
+            >
+              See How It Works
             </Link>
+          </div>
+
+          {/* DATA STRIP */}
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 w-full border-t border-[#1E2E1E] pt-12 ${jetbrains.className} text-sm`}>
+            <div>
+              <div className="text-3xl font-bold text-[#86EFAC] mb-2">72,000+</div>
+              <div className="text-[#8A9E8A] uppercase tracking-wider text-xs">Species in Database</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-[#86EFAC] mb-2">17,000</div>
+              <div className="text-[#8A9E8A] uppercase tracking-wider text-xs">Indonesian Endemic Species Tracked</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-[#86EFAC] mb-2">&lt; 30s</div>
+              <div className="text-[#8A9E8A] uppercase tracking-wider text-xs">Average Identification Time</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TRUSTED BY */}
+      <section className="border-y border-[#1E2E1E] bg-[#0A0F0A] py-10">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="text-[#8A9E8A] text-sm font-bold uppercase tracking-widest whitespace-nowrap">
+            Powered by data from
+          </div>
+          <div className={`flex flex-wrap justify-center gap-8 md:gap-16 text-[#F0F4F0]/50 font-bold text-xl tracking-wider ${playfair.className}`}>
+            <span>GBIF</span>
+            <span>IUCN Red List</span>
+            <span>KLHK</span>
+            <span>BirdNET</span>
           </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '100px 40px', backgroundColor: '#060f08' }}>
-        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <span style={{ color: '#22c55e', fontSize: '13px', letterSpacing: '3px', textTransform: 'uppercase' }}>● How It Works</span>
-          <h2 style={{ fontSize: '40px', fontWeight: '800', marginTop: '12px', color: 'white' }}>Three steps. Instant intelligence.</h2>
-        </div>
-        
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '24px', 
-          maxWidth: '1000px', 
-          margin: '0 auto' 
-        }}>
-          {[
-            { num: '01', icon: <Camera size={28} color="#22c55e" />, title: 'Capture', desc: 'Take a photo, record audio, or write a description while out in the field.' },
-            { num: '02', icon: <Cpu size={28} color="#22c55e" />, title: 'Analyze', desc: 'NaLI Agent cross-references GBIF, IUCN, and advanced AI vision models.' },
-            { num: '03', icon: <FileText size={28} color="#22c55e" />, title: 'Document', desc: 'Get an instant field log with conservation status and anomaly detection.' },
-          ].map((item) => (
-            <div key={item.num} style={{
-              backgroundColor: '#0f2214',
-              border: '1px solid #1a3a1a',
-              borderRadius: '20px',
-              padding: '32px',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ fontSize: '72px', fontWeight: '900', color: '#22c55e', opacity: 0.08, position: 'absolute', top: '-10px', right: '20px', lineHeight: 1 }}>{item.num}</div>
-              <div style={{ marginBottom: '16px' }}>{item.icon}</div>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>{item.title}</h3>
-              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6' }}>{item.desc}</p>
-            </div>
-          ))}
+      <section id="process" className="py-32 px-6 bg-[#0A0F0A]">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <span className="text-[#4ADE80] text-sm font-bold tracking-widest uppercase mb-4 block">The Process</span>
+            <h2 className={`${playfair.className} text-4xl md:text-5xl font-bold text-[#F0F4F0] max-w-2xl`}>
+              From field observation to scientific record in seconds.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { num: "01", icon: Camera, title: "Capture", desc: "Submit a photo, audio recording, or text description of your sighting." },
+              { num: "02", icon: Cpu, title: "Analyze", desc: "NaLI Agent cross-references GBIF, IUCN data, and advanced AI vision models." },
+              { num: "03", icon: FileText, title: "Document", desc: "Receive an auto-generated field log, complete with anomaly detection flags." }
+            ].map((step) => (
+              <div key={step.num} className="relative bg-[#111A11] border border-[#1E2E1E] p-10 rounded-2xl overflow-hidden group">
+                <div className={`${playfair.className} absolute -top-6 right-4 text-[120px] font-bold text-[#0A0F0A] opacity-50 select-none`}>
+                  {step.num}
+                </div>
+                <div className="relative z-10">
+                  <step.icon className="w-8 h-8 text-[#4ADE80] mb-8" />
+                  <h3 className="text-2xl font-bold mb-4">{step.title}</h3>
+                  <p className="text-[#8A9E8A] leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* BUILT FOR THE FIELD */}
-      <section style={{ padding: '100px 40px', backgroundColor: '#0a1a0c' }}>
-        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-          <h2 style={{ fontSize: '40px', fontWeight: '800', color: 'white' }}>Built For The Field</h2>
-        </div>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '32px', 
-          maxWidth: '900px', 
-          margin: '0 auto' 
-        }}>
-          {[
-            { icon: <Shield size={32} color="#22c55e" />, title: 'Rangers', desc: 'Real-time species ID and automated patrol reports on the go.' },
-            { icon: <Microscope size={32} color="#22c55e" />, title: 'Researchers', desc: 'Instant literature cross-reference and anomaly detection.' },
-            { icon: <GraduationCap size={32} color="#22c55e" />, title: 'Students', desc: 'Fieldwork assistance with scientific accuracy and personal logs.' },
-          ].map((item) => (
-            <div key={item.title} style={{ textAlign: 'center', padding: '32px 24px' }}>
-              <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>{item.icon}</div>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>{item.title}</h3>
-              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6' }}>{item.desc}</p>
+      <section id="features" className="py-32 px-6 bg-[#111A11] border-y border-[#1E2E1E]">
+        <div className="max-w-7xl mx-auto">
+          <h2 className={`${playfair.className} text-4xl md:text-5xl font-bold text-center mb-20`}>Built For The Field</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div>
+              <Shield className="w-10 h-10 text-[#4ADE80] mb-6" />
+              <h3 className="text-2xl font-bold mb-4">Rangers</h3>
+              <p className="text-[#8A9E8A] leading-relaxed">
+                Obtain real-time species identification in remote areas and generate automated patrol reports directly from your mobile device.
+              </p>
             </div>
-          ))}
+            <div>
+              <Microscope className="w-10 h-10 text-[#4ADE80] mb-6" />
+              <h3 className="text-2xl font-bold mb-4">Researchers</h3>
+              <p className="text-[#8A9E8A] leading-relaxed">
+                Instantly cross-reference sightings with established literature and automatically flag geographic distribution anomalies.
+              </p>
+            </div>
+            <div>
+              <GraduationCap className="w-10 h-10 text-[#4ADE80] mb-6" />
+              <h3 className="text-2xl font-bold mb-4">Students</h3>
+              <p className="text-[#8A9E8A] leading-relaxed">
+                Accelerate fieldwork with scientifically accurate assistance and seamlessly build a verifiable personal observation log.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* CTA STRIP */}
-      <section style={{ padding: '80px 40px', textAlign: 'center', backgroundColor: '#060f08', borderTop: '1px solid #1a3a1a' }}>
-        <h2 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>Ready to identify your first species?</h2>
-        <p style={{ color: '#6b7280', marginBottom: '40px' }}>Join rangers and researchers protecting Indonesia's wildlife.</p>
-        <Link href="/register" style={{
-          backgroundColor: '#22c55e',
-          color: '#000',
-          padding: '16px 48px',
-          borderRadius: '100px',
-          textDecoration: 'none',
-          fontWeight: '700',
-          fontSize: '16px',
-          display: 'inline-block'
-        }}>
-          Create Free Account
-        </Link>
+      {/* CONSERVATION STATUS SHOWCASE */}
+      <section className="py-32 px-6 bg-[#0A0F0A]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${playfair.className} text-4xl md:text-5xl font-bold mb-6`}>See conservation status instantly</h2>
+            <p className="text-[#8A9E8A] max-w-2xl mx-auto text-lg">
+              NaLI integrates directly with the IUCN Red List API to provide real-time conservation data for every identified species.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { status: "CR", full: "Critically Endangered", color: "bg-red-500", text: "text-red-500", border: "border-red-500/30", example: "Pongo tapanuliensis" },
+              { status: "EN", full: "Endangered", color: "bg-orange-500", text: "text-orange-500", border: "border-orange-500/30", example: "Elephas maximus sumatranus" },
+              { status: "VU", full: "Vulnerable", color: "bg-yellow-500", text: "text-yellow-500", border: "border-yellow-500/30", example: "Komodoensis" },
+              { status: "LC", full: "Least Concern", color: "bg-[#4ADE80]", text: "text-[#4ADE80]", border: "border-[#4ADE80]/30", example: "Macaca fascicularis" }
+            ].map((item) => (
+              <div key={item.status} className={`bg-[#111A11] border ${item.border} rounded-2xl p-8 flex flex-col items-center text-center`}>
+                <div className={`w-16 h-16 rounded-full ${item.color} bg-opacity-20 flex items-center justify-center mb-6`}>
+                  <span className={`${item.text} font-bold text-2xl`}>{item.status}</span>
+                </div>
+                <h3 className="font-bold mb-2 uppercase tracking-wide text-sm">{item.full}</h3>
+                <p className={`${jetbrains.className} text-[#8A9E8A] text-xs italic mt-auto pt-4`}>ex. {item.example}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA SECTION */}
+      <section className="py-32 px-6 bg-[#111A11] border-y border-[#1E2E1E] text-center">
+        <div className="max-w-3xl mx-auto">
+          <h2 className={`${playfair.className} text-4xl md:text-5xl font-bold mb-6`}>
+            Ready to protect Indonesia's wildlife?
+          </h2>
+          <p className="text-[#8A9E8A] text-xl mb-12">
+            Join rangers and researchers in the field.
+          </p>
+          <Link 
+            href="/register" 
+            className="inline-block bg-[#4ADE80] text-black font-bold px-10 py-5 rounded-full hover:bg-[#22c55e] transition-colors text-lg"
+          >
+            Create Free Account
+          </Link>
+        </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ padding: '32px 40px', borderTop: '1px solid #1a3a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#060f08' }}>
-        <span style={{ fontWeight: '800', letterSpacing: '2px', color: '#22c55e', fontSize: '14px' }}>NaLI</span>
-        <span style={{ color: '#374151', fontSize: '12px' }}>Powered by Claude AI · GBIF · IUCN Red List</span>
-        <div style={{ display: 'flex', gap: '24px' }}>
-          <Link href="/login" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '13px' }}>Sign In</Link>
-          <Link href="/register" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '13px' }}>Register</Link>
+      <footer className="bg-[#0A0F0A] py-16 px-6 border-t border-[#1E2E1E]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-start gap-12">
+          <div className="text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+              <div className="w-2 h-2 rounded-full bg-[#4ADE80]"></div>
+              <span className="text-2xl font-bold tracking-widest">NaLI</span>
+            </div>
+            <p className="text-[#8A9E8A] text-sm">
+              Built for Indonesia's conservation community
+            </p>
+            <p className="text-[#1E2E1E] text-xs mt-4">
+              &copy; {new Date().getFullYear()} NatIve / NaLI
+            </p>
+          </div>
+
+          <div className="flex gap-12 text-sm font-medium text-[#8A9E8A]">
+            <div className="flex flex-col gap-4">
+              <Link href="#features" className="hover:text-[#F0F4F0] transition-colors">Features</Link>
+              <Link href="#pricing" className="hover:text-[#F0F4F0] transition-colors">Pricing</Link>
+            </div>
+            <div className="flex flex-col gap-4">
+              <Link href="#" className="hover:text-[#F0F4F0] transition-colors">About</Link>
+              <Link href="#" className="hover:text-[#F0F4F0] transition-colors">Contact</Link>
+            </div>
+          </div>
         </div>
       </footer>
 
     </div>
-  )
+  );
 }
