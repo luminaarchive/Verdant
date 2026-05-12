@@ -1,166 +1,171 @@
-'use client';
+'use client'
 
-import Link from "next/link";
-import { Camera, Cpu, FileText, Shield, Microscope, GraduationCap } from "lucide-react";
-import { motion } from "framer-motion";
+import Link from 'next/link'
+import { Camera, Cpu, FileText, Shield, Microscope, GraduationCap } from 'lucide-react'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#060f08] text-white selection:bg-green-500/30 font-sans">
-      <div 
-        className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" 
-        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
-      ></div>
+    <div style={{ backgroundColor: '#060f08', minHeight: '100vh', color: 'white', fontFamily: 'system-ui, sans-serif' }}>
+      
+      {/* NAV */}
+      <nav style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1a3a1a' }}>
+        <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '2px', color: '#22c55e' }}>NaLI</span>
+        <Link href="/login" style={{ color: '#86efac', textDecoration: 'none', fontSize: '14px' }}>Sign In</Link>
+      </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative z-10 min-h-screen flex flex-col justify-center px-6 md:px-24 pt-20 pb-32" style={{ background: 'radial-gradient(circle at center, #0d2b12 0%, #060f08 100%)' }}>
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.4 }}
-          className="max-w-4xl"
-        >
-          <h1 className="text-6xl md:text-8xl font-bold tracking-widest mb-4">
-            NaLI
-          </h1>
-          <h2 className="text-2xl md:text-4xl font-light text-[#86efac] mb-8 tracking-wide">
+      {/* HERO */}
+      <section style={{ 
+        minHeight: '90vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center', 
+        padding: '80px 40px',
+        background: 'radial-gradient(ellipse at center, #0d2b12 0%, #060f08 70%)'
+      }}>
+        <div style={{ maxWidth: '700px' }}>
+          <div style={{ 
+            display: 'inline-block',
+            backgroundColor: '#0f2214', 
+            border: '1px solid #166534', 
+            borderRadius: '100px', 
+            padding: '6px 16px', 
+            fontSize: '12px', 
+            color: '#86efac', 
+            marginBottom: '32px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
+          }}>
             Wildlife Field Intelligence
-          </h2>
-          <p className="text-lg md:text-xl text-gray-300 max-w-lg mb-12 leading-relaxed">
+          </div>
+          
+          <h1 style={{ fontSize: 'clamp(48px, 8vw, 96px)', fontWeight: '900', lineHeight: '1', marginBottom: '24px', letterSpacing: '-2px' }}>
+            Na<span style={{ color: '#22c55e' }}>LI</span>
+          </h1>
+          
+          <p style={{ fontSize: '18px', color: '#9ca3af', maxWidth: '500px', lineHeight: '1.6', marginBottom: '48px' }}>
             AI-powered species identification for rangers, researchers, and wildlife enthusiasts in Indonesia.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link 
-              href="/register" 
-              className="bg-[#22c55e] text-black font-semibold px-8 py-3 rounded-full hover:scale-105 transition-transform flex items-center justify-center"
-            >
+          
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <Link href="/register" style={{
+              backgroundColor: '#22c55e',
+              color: '#000',
+              padding: '14px 32px',
+              borderRadius: '100px',
+              textDecoration: 'none',
+              fontWeight: '700',
+              fontSize: '15px',
+              display: 'inline-block'
+            }}>
               Start Identifying
             </Link>
-            <Link 
-              href="/login" 
-              className="border border-green-700 text-green-400 font-semibold px-8 py-3 rounded-full hover:bg-green-900/30 transition-colors flex items-center justify-center"
-            >
+            <Link href="/login" style={{
+              backgroundColor: 'transparent',
+              color: '#86efac',
+              padding: '14px 32px',
+              borderRadius: '100px',
+              textDecoration: 'none',
+              fontWeight: '600',
+              fontSize: '15px',
+              border: '1px solid #166534',
+              display: 'inline-block'
+            }}>
               Sign In
             </Link>
           </div>
-        </motion.div>
-
-        {/* Fading Divider */}
-        <div className="absolute bottom-0 left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-green-900/50 to-transparent"></div>
+        </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="relative z-10 py-32 px-6 md:px-24 max-w-7xl mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
-          className="flex items-center gap-4 mb-16 justify-center"
-        >
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <h2 className="text-3xl font-bold text-white">How It Works</h2>
-        </motion.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section style={{ padding: '100px 40px', backgroundColor: '#060f08' }}>
+        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+          <span style={{ color: '#22c55e', fontSize: '13px', letterSpacing: '3px', textTransform: 'uppercase' }}>● How It Works</span>
+          <h2 style={{ fontSize: '40px', fontWeight: '800', marginTop: '12px', color: 'white' }}>Three steps. Instant intelligence.</h2>
+        </div>
+        
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '24px', 
+          maxWidth: '1000px', 
+          margin: '0 auto' 
+        }}>
           {[
-            { num: "01", icon: Camera, title: "Capture", desc: "Take a photo, record audio, or write a description out in the field." },
-            { num: "02", icon: Cpu, title: "Analyze", desc: "Instantly cross-reference with GBIF, IUCN, and advanced AI vision models." },
-            { num: "03", icon: FileText, title: "Document", desc: "Receive an instant field log with conservation status and geographical anomaly detection." }
-          ].map((step, i) => (
-            <motion.div 
-              key={step.num}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="relative bg-[#0f2214] border border-green-900/50 rounded-2xl p-8 hover:border-green-700 transition-colors overflow-hidden group"
-            >
-              <div className="absolute -top-4 -left-2 text-6xl font-black text-green-500/10 pointer-events-none group-hover:text-green-500/20 transition-colors">
-                {step.num}
-              </div>
-              <div className="relative z-10">
-                <step.icon className="w-7 h-7 text-[#22c55e] mb-6" />
-                <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
-                <p className="text-[#9ca3af] leading-relaxed">{step.desc}</p>
-              </div>
-            </motion.div>
+            { num: '01', icon: <Camera size={28} color="#22c55e" />, title: 'Capture', desc: 'Take a photo, record audio, or write a description while out in the field.' },
+            { num: '02', icon: <Cpu size={28} color="#22c55e" />, title: 'Analyze', desc: 'NaLI Agent cross-references GBIF, IUCN, and advanced AI vision models.' },
+            { num: '03', icon: <FileText size={28} color="#22c55e" />, title: 'Document', desc: 'Get an instant field log with conservation status and anomaly detection.' },
+          ].map((item) => (
+            <div key={item.num} style={{
+              backgroundColor: '#0f2214',
+              border: '1px solid #1a3a1a',
+              borderRadius: '20px',
+              padding: '32px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '72px', fontWeight: '900', color: '#22c55e', opacity: 0.08, position: 'absolute', top: '-10px', right: '20px', lineHeight: 1 }}>{item.num}</div>
+              <div style={{ marginBottom: '16px' }}>{item.icon}</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>{item.title}</h3>
+              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6' }}>{item.desc}</p>
+            </div>
           ))}
         </div>
       </section>
 
       {/* BUILT FOR THE FIELD */}
-      <section className="relative z-10 py-32 px-6 md:px-24 bg-[#08170b]">
-        <div className="max-w-7xl mx-auto">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4 }}
-            className="text-3xl font-bold text-white mb-16 text-center"
-          >
-            Built For The Field
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4 }}
-            >
-              <Shield className="w-8 h-8 text-[#22c55e] mb-6" />
-              <h3 className="text-xl font-bold text-white mb-3">Rangers</h3>
-              <p className="text-[#9ca3af] leading-relaxed">
-                Get real-time species identification and generate automated patrol reports on the go.
-              </p>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <Microscope className="w-8 h-8 text-[#22c55e] mb-6" />
-              <h3 className="text-xl font-bold text-white mb-3">Researchers</h3>
-              <p className="text-[#9ca3af] leading-relaxed">
-                Conduct instant literature cross-referencing and detect geographic distribution anomalies.
-              </p>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <GraduationCap className="w-8 h-8 text-[#22c55e] mb-6" />
-              <h3 className="text-xl font-bold text-white mb-3">Students</h3>
-              <p className="text-[#9ca3af] leading-relaxed">
-                Assist fieldwork with scientific accuracy and build a verifiable personal observation log.
-              </p>
-            </motion.div>
-          </div>
+      <section style={{ padding: '100px 40px', backgroundColor: '#0a1a0c' }}>
+        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+          <h2 style={{ fontSize: '40px', fontWeight: '800', color: 'white' }}>Built For The Field</h2>
+        </div>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '32px', 
+          maxWidth: '900px', 
+          margin: '0 auto' 
+        }}>
+          {[
+            { icon: <Shield size={32} color="#22c55e" />, title: 'Rangers', desc: 'Real-time species ID and automated patrol reports on the go.' },
+            { icon: <Microscope size={32} color="#22c55e" />, title: 'Researchers', desc: 'Instant literature cross-reference and anomaly detection.' },
+            { icon: <GraduationCap size={32} color="#22c55e" />, title: 'Students', desc: 'Fieldwork assistance with scientific accuracy and personal logs.' },
+          ].map((item) => (
+            <div key={item.title} style={{ textAlign: 'center', padding: '32px 24px' }}>
+              <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>{item.icon}</div>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>{item.title}</h3>
+              <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6' }}>{item.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* TECH STACK STRIP */}
-      <section className="relative z-10 border-y border-green-900/30 bg-[#060f08] py-8">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-gray-500 font-medium tracking-wide">
-          Powered by <span className="text-gray-400 mx-2">Claude AI</span> &middot; <span className="text-gray-400 mx-2">GBIF</span> &middot; <span className="text-gray-400 mx-2">IUCN Red List</span>
-        </div>
+      {/* CTA STRIP */}
+      <section style={{ padding: '80px 40px', textAlign: 'center', backgroundColor: '#060f08', borderTop: '1px solid #1a3a1a' }}>
+        <h2 style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px' }}>Ready to identify your first species?</h2>
+        <p style={{ color: '#6b7280', marginBottom: '40px' }}>Join rangers and researchers protecting Indonesia's wildlife.</p>
+        <Link href="/register" style={{
+          backgroundColor: '#22c55e',
+          color: '#000',
+          padding: '16px 48px',
+          borderRadius: '100px',
+          textDecoration: 'none',
+          fontWeight: '700',
+          fontSize: '16px',
+          display: 'inline-block'
+        }}>
+          Create Free Account
+        </Link>
       </section>
 
       {/* FOOTER */}
-      <footer className="relative z-10 border-t border-green-900/30 bg-[#051408] py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm">
-          <div className="font-bold text-xl tracking-widest text-green-700 mb-6 md:mb-0">NaLI</div>
-          <div className="flex gap-8 text-gray-500">
-            <Link href="/login" className="hover:text-green-400 transition-colors">Sign In</Link>
-            <Link href="/register" className="hover:text-green-400 transition-colors">Register</Link>
-          </div>
+      <footer style={{ padding: '32px 40px', borderTop: '1px solid #1a3a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#060f08' }}>
+        <span style={{ fontWeight: '800', letterSpacing: '2px', color: '#22c55e', fontSize: '14px' }}>NaLI</span>
+        <span style={{ color: '#374151', fontSize: '12px' }}>Powered by Claude AI · GBIF · IUCN Red List</span>
+        <div style={{ display: 'flex', gap: '24px' }}>
+          <Link href="/login" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '13px' }}>Sign In</Link>
+          <Link href="/register" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '13px' }}>Register</Link>
         </div>
       </footer>
+
     </div>
-  );
+  )
 }
