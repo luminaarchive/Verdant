@@ -1,48 +1,40 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { ToastProvider } from '@/components/ui/Toast'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
-import { ThemeProvider } from '@/components/providers/ThemeProvider'
-import { LanguageProvider } from '@/components/providers/LanguageProvider'
-import { themeInitScript } from '@/config/theme'
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: 'Verdant — AI Environmental Research',
-  description: 'AI-powered environmental research platform. Ask anything academic about ecology, biodiversity, botany, mycology, geology, and oceanography.',
-  keywords: 'environmental research, ecology, biodiversity, AI research, botany, mycology, geology, oceanography',
-  authors: [{ name: 'Verdant' }],
-  openGraph: {
-    title: 'Verdant — AI Environmental Research',
-    description: 'Ask anything academic about ecology, biodiversity, and the natural world.',
-    type: 'website',
-  },
-}
+  title: "NaLI - Wildlife Field Intelligence",
+  description: "AI-powered wildlife species identification and field intelligence agent",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#22c55e" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body>
-        <ThemeProvider>
-          <LanguageProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </LanguageProvider>
-        </ThemeProvider>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a1f0e]`}
+      >
+        {children}
       </body>
     </html>
-  )
+  );
 }

@@ -1,445 +1,110 @@
-'use client'
+import Link from "next/link";
+import { Camera, Bot, FileText, Leaf, Microscope, GraduationCap } from "lucide-react";
 
-import React, { Suspense, useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { AppLayout } from '@/components/layout/AppLayout'
-import { SearchBox } from '@/components/features/research/SearchBox'
-import { ArrowRight } from 'lucide-react'
-import { TEMPLATES, TEMPLATE_CATEGORIES, type EnvironmentalTemplate, type TemplateDomain } from '@/config/templates'
-import { PRESETS } from '@/services/research/presets'
-import { getReturnVisitSummary } from '@/features/retention/signals'
-import { getWatchlists } from '@/features/retention/watchlists'
-import { getPlanetPulse, DIRECTION_COLORS } from '@/features/intelligence/pulse'
-import { getWorldNatureIndex, TREND_LABELS } from '@/features/intelligence/nature-index'
-import { getMemory } from '@/features/intelligence/memory'
-import { getDailyBrief } from '@/features/intelligence/daily-brief'
-import { getStatusInsights } from '@/features/intelligence/status'
-import { getPrestigeLevel } from '@/features/intelligence/prestige'
-import { getStreak } from '@/features/retention/streak'
-
-function TemplateCard({ t }: { t: EnvironmentalTemplate }) {
-  const safeTitle = t.title?.trim() || 'Environmental Research Template'
-  const safeSubtitle = t.subtitle?.trim() || 'Structured starting point for evidence-backed analysis.'
-  const safeIcon = t.icon?.trim() || 'science'
+export default function LandingPage() {
   return (
-    <Link
-      href={`/research?q=${encodeURIComponent(t.prompt)}&tpl=${t.id}`}
-      className="card-premium"
-      style={{ padding: '20px', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none', minHeight: '140px', justifyContent: 'space-between' }}
-    >
-      <div>
-        <span className="material-symbols-outlined" style={{ color: 'var(--green-mid)', marginBottom: '10px', fontSize: '20px', display: 'block' }}>{safeIcon}</span>
-        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13.5px', fontWeight: '600', color: 'var(--text-main)', marginBottom: '5px', lineHeight: '1.3', display: 'block' }}>{safeTitle}</span>
-        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', display: 'block' }}>{safeSubtitle}</span>
-      </div>
-      <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontFamily: "'Manrope', sans-serif", fontWeight: '600', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        Run Analysis <ArrowRight size={11} />
-      </div>
-    </Link>
-  )
-}
-
-function PresetPill({ preset, selected, onClick }: { preset: typeof PRESETS[0]; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={selected ? 'chip chip-active' : 'chip'}
-      style={{ padding: '7px 14px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-    >
-      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{preset.icon}</span>
-      {preset.label}
-    </button>
-  )
-}
-
-const DOMAIN_SIGNALS: Record<string, { icon: string; text: string; tag: string }[]> = {
-  all: [
-    { icon: 'warning', text: 'IUCN Red List updated — 3,291 species moved to higher threat categories', tag: 'Biodiversity Alert' },
-    { icon: 'thermostat', text: 'Global ocean temperatures exceeded 1.5°C above pre-industrial baseline for 12 consecutive months', tag: 'Climate Signal' },
-    { icon: 'gavel', text: 'EU Deforestation Regulation enforcement begins — supply chain compliance deadline approaching', tag: 'Regulatory' },
-    { icon: 'eco', text: 'Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss', tag: 'Ecosystem Risk' },
-  ],
-  ecology: [
-    { icon: 'eco', text: 'Amazon tipping point study: deforestation threshold revised downward to 20-25% forest loss', tag: 'Ecosystem Risk' },
-    { icon: 'forest', text: 'Global Forest Watch reports 4.1M hectares of primary forest lost in 2024', tag: 'Deforestation' },
-  ],
-  biodiversity: [
-    { icon: 'warning', text: 'IUCN Red List updated — 3,291 species moved to higher threat categories', tag: 'Species Crisis' },
-    { icon: 'pest_control', text: 'Global insect biomass declined 27% in monitored regions over past decade', tag: 'Invertebrate Alert' },
-  ],
-  botany: [
-    { icon: 'grass', text: 'Kew Gardens State of the World\'s Plants: 2 in 5 plant species now face extinction', tag: 'Flora Alert' },
-    { icon: 'park', text: 'New study identifies 7,000+ undescribed plant species awaiting formal taxonomy', tag: 'Discovery' },
-  ],
-  mycology: [
-    { icon: 'hub', text: 'Mycorrhizal network mapping reveals "mother tree" networks span up to 30 hectares', tag: 'Network Science' },
-    { icon: 'science', text: 'New fungal species discovered with potential to break down microplastics', tag: 'Mycoremediation' },
-  ],
-  geology: [
-    { icon: 'landslide', text: 'USGS updated seismic hazard maps — 43 regions reclassified to higher risk zones', tag: 'Seismic Alert' },
-    { icon: 'thermostat', text: 'Permafrost thaw accelerating: methane emissions 40% higher than 2020 projections', tag: 'Cryosphere' },
-  ],
-  oceanography: [
-    { icon: 'scuba_diving', text: 'Great Barrier Reef mass bleaching event confirmed — 5th in 8 years', tag: 'Coral Crisis' },
-    { icon: 'water_drop', text: 'Ocean acidification reaching levels unseen in 14 million years — pH 8.04 average', tag: 'Acidification' },
-  ],
-}
-
-const DOMAIN_NAMES = ['ecology', 'biodiversity', 'botany', 'mycology', 'geology', 'oceanography']
-
-function HomeContent() {
-  const searchParams = useSearchParams()
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
-  const [selectedDomain, setSelectedDomain] = useState('all')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [returnSummary, setReturnSummary] = useState<{ urgentCount: number; importantCount: number; totalSignals: number; staleReports: number; message: string } | null>(null)
-
-  useEffect(() => {
-    const cat = searchParams.get('category')
-    if (cat && DOMAIN_NAMES.includes(cat)) {
-      setSelectedDomain(cat)
-      setSelectedCategory('all')
-    } else if (!cat) {
-      setSelectedDomain('all')
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const wl = getWatchlists()
-      if (wl.length > 0) setReturnSummary(getReturnVisitSummary())
-    }
-  }, [])
-
-  const filteredTemplates = TEMPLATES
-    .filter(t => selectedDomain === 'all' || t.domain.includes(selectedDomain as TemplateDomain))
-    .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
-
-  const displayTemplates = selectedPreset
-    ? (() => {
-        const preset = PRESETS.find(p => p.id === selectedPreset)
-        if (!preset) return filteredTemplates
-        const suggested = preset.suggestedTemplates
-        const prioritized = [...filteredTemplates].sort((a, b) => {
-          const aIdx = suggested.indexOf(a.id)
-          const bIdx = suggested.indexOf(b.id)
-          if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
-          if (aIdx !== -1) return -1
-          if (bIdx !== -1) return 1
-          return 0
-        })
-        return prioritized
-      })()
-    : filteredTemplates
-
-  const domainSignals = DOMAIN_SIGNALS[selectedDomain] || DOMAIN_SIGNALS.all
-  // eslint-disable-next-line react-hooks/purity
-  const signal = domainSignals[Math.floor(Math.random() * domainSignals.length)] ?? {
-    icon: 'insights',
-    text: 'No active signal right now. Explore templates for structured analysis.',
-    tag: 'Intelligence',
-  }
-
-  // Phase 4: Daily Brief + Status
-  const daily = typeof window !== 'undefined' ? getDailyBrief() : null
-  const streak = typeof window !== 'undefined' ? getStreak() : { days: 0 }
-  const journalCount = typeof window !== 'undefined' ? (() => { try { return JSON.parse(localStorage.getItem('verdant-journal') ?? '[]').length } catch { return 0 } })() : 0
-  const watchlistCount = typeof window !== 'undefined' ? (() => { try { return JSON.parse(localStorage.getItem('verdant-watchlists') ?? '[]').length } catch { return 0 } })() : 0
-  const statusInsights = typeof window !== 'undefined' ? getStatusInsights(journalCount, streak.days, journalCount, watchlistCount) : []
-  const prestige = typeof window !== 'undefined' ? getPrestigeLevel(journalCount, streak.days) : null
-
-  return (
-    <div style={{ padding: '36px 32px 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
-      {/* Hero */}
-      <div style={{ width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '24px' }} className="slide-up">
-        <div className="section-frame" style={{ marginBottom: '16px', width: '100%', maxWidth: '320px', justifyContent: 'center' }}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: '600' }}>
-            Environmental Intelligence Platform
-          </span>
-        </div>
-        <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: '52px', fontWeight: '600', letterSpacing: '-0.8px', lineHeight: '1.08', color: '#1A2F23', marginBottom: '14px' }}>
-          verdant
-        </h2>
-        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14.5px', lineHeight: '1.75', color: 'var(--text-muted)', maxWidth: '500px' }}>
-          Decision-grade environmental research. Species risk, climate intelligence, conservation strategy — powered by executive-level AI analysis.
-        </p>
-        {prestige && prestige.id !== 'observer' && (
-          <div className="prestige-badge" style={{ marginTop: '12px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>{prestige.icon}</span>
-            {prestige.title}
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div style={{ width: '100%', maxWidth: '680px', marginBottom: '16px' }} className="slide-up stagger-1">
-        <SearchBox autoFocus />
-      </div>
-
-      {/* Guided Example Prompts (Phase 0.3) */}
-      <div style={{ width: '100%', maxWidth: '680px', marginBottom: '28px', display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }} className="slide-up stagger-1">
-        {[
-          { text: 'Coral reef collapse risk in Indonesia', mode: 'deep' },
-          { text: 'Orangutan extinction impact', mode: 'focus' },
-          { text: 'Mangrove restoration funding opportunities', mode: 'deep' },
-          { text: 'Climate adaptation strategy for coastal regions', mode: 'analytica' }
-        ].map((example, i) => (
-          <Link
-            key={i}
-            href={`/research?q=${encodeURIComponent(example.text)}&mode=${example.mode}`}
-            className="chip"
-            style={{ fontSize: '11px', padding: '4px 10px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(26,47,35,0.03)' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '12px', color: 'var(--green-mid)' }}>lightbulb</span>
-            {example.text}
-          </Link>
-        ))}
-      </div>
-
-      {/* Status Layer */}
-      {statusInsights.length > 0 && (
-        <div style={{ width: '100%', maxWidth: '760px', marginBottom: '16px' }} className="slide-up stagger-2">
-          {statusInsights.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '10px', background: 'rgba(209,250,229,0.15)', border: '1px solid rgba(46,93,62,0.08)', marginBottom: i < statusInsights.length - 1 ? '6px' : '0' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: s.color }}>{s.icon}</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-secondary)', flex: 1 }}>{s.text}</span>
-              <span className="chip" style={{ fontSize: '9.5px' }}>{s.metric}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Daily Intelligence Ritual */}
-      {daily && (
-        <div style={{ width: '100%', maxWidth: '760px', marginBottom: '16px' }} className="slide-up stagger-2">
-          <Link
-            href={`/research?q=${encodeURIComponent(daily.query)}`}
-            className="card-signal"
-            style={{ display: 'block', padding: '18px 20px', textDecoration: 'none' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <span className="badge-live" style={{ fontSize: '9px', padding: '2px 10px 2px 18px' }}>Today&apos;s Brief</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--text-faint)' }}>{daily.date}</span>
-            </div>
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: daily.color, flexShrink: 0, marginTop: '2px' }}>{daily.icon}</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontSize: '17px', color: '#1A2F23', lineHeight: '1.35', marginBottom: '6px' }}>{daily.headline}</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: '1.55' }}>{daily.detail}</p>
-                {daily.watchlistImpact && (
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--warning)', marginTop: '6px', fontWeight: '500' }}>{daily.watchlistImpact}</p>
-                )}
-              </div>
-              <ArrowRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '4px' }} />
-            </div>
-          </Link>
-        </div>
-      )}
-
-      {/* Return Visit Intelligence */}
-      {returnSummary && returnSummary.totalSignals > 0 && (
-        <div style={{ width: '100%', maxWidth: '760px', marginBottom: '14px' }} className="slide-up stagger-3">
-          <Link href="/digest" className="card-editorial" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', textDecoration: 'none' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: returnSummary.urgentCount > 0 ? '#C0392B' : 'var(--green-mid)' }}>
-              {returnSummary.urgentCount > 0 ? 'error' : 'notifications_active'}
-            </span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', flex: 1 }}>{returnSummary.message}</span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: '600', color: 'var(--green-mid)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              View Digest <ArrowRight size={11} />
-            </span>
-          </Link>
-        </div>
-      )}
-
-      {/* Intelligence Signal */}
-      <div style={{ width: '100%', maxWidth: '760px', marginBottom: '28px' }} className="slide-up stagger-3">
-        <Link
-          href={`/research?q=${encodeURIComponent(signal.text)}`}
-          className="card-signal"
-          style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', textDecoration: 'none' }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--green-mid)', flexShrink: 0 }}>{signal.icon}</span>
-          <div style={{ flex: 1 }}>
-            <span className="label-system" style={{ color: 'var(--green-mid)', display: 'block', marginBottom: '3px', fontSize: '9.5px' }}>{signal.tag}</span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{signal.text}</span>
-          </div>
-          <ArrowRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+    <div className="min-h-screen bg-[#0a1f0e] text-white flex flex-col">
+      {/* HEADER */}
+      <header className="px-6 py-6 flex justify-between items-center max-w-4xl mx-auto w-full">
+        <div className="text-2xl font-bold text-[#22c55e] tracking-tight">NaLI</div>
+        <Link href="/login" className="text-gray-300 hover:text-white font-medium">
+          Sign In
         </Link>
-      </div>
+      </header>
 
-      {/* Domain Presets */}
-      <div style={{ width: '100%', maxWidth: '760px', marginBottom: '24px' }} className="slide-up stagger-4">
-        <div className="section-frame">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>tune</span>
-            <h3 className="heading-section" style={{ margin: 0 }}>I&apos;m researching as</h3>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {PRESETS.map(p => (
-            <PresetPill key={p.id} preset={p} selected={selectedPreset === p.id} onClick={() => setSelectedPreset(selectedPreset === p.id ? null : p.id)} />
-          ))}
-        </div>
-        {selectedPreset && (
-          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.5' }}>
-            {PRESETS.find(p => p.id === selectedPreset)?.description}
-          </p>
-        )}
-      </div>
-
-      {/* Template Categories */}
-      <div style={{ width: '100%', maxWidth: '760px', marginBottom: '16px' }} className="slide-up stagger-5">
-        <div className="section-frame">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>science</span>
-            <h3 className="heading-section" style={{ margin: 0 }}>Environmental Intelligence Templates</h3>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          {TEMPLATE_CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={selectedCategory === cat.id ? 'chip chip-active' : 'chip'}
-              style={{ cursor: 'pointer' }}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Template Grid */}
-      <div style={{ width: '100%', maxWidth: '760px' }} className="slide-up stagger-5">
-        {displayTemplates.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
-            {displayTemplates.map(t => (
-              <TemplateCard key={t.id} t={t} />
-            ))}
-          </div>
-        ) : (
-          <div className="card-editorial" style={{ padding: '18px 20px' }}>
-            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-              No templates match your current filters. Reset domain/category or remove preset to view all templates.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Planet Pulse Strip */}
-      <div style={{ width: '100%', maxWidth: '760px', marginTop: '36px' }} className="slide-up stagger-6">
-        <div className="section-frame">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--green-mid)' }}>satellite_alt</span>
-            <h3 className="heading-section" style={{ margin: 0, color: 'var(--green-mid)' }}>Planet Pulse</h3>
-          </div>
-        </div>
-        <div className="data-strip">
-          {getPlanetPulse().slice(0, 6).map(p => (
-            <Link key={p.id} href={`/research?q=${encodeURIComponent(p.metric + ' ' + p.region + ' analysis')}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
-              <div className="card-data" style={{ padding: '14px 16px', minWidth: '160px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: DIRECTION_COLORS[p.direction] }}>{p.icon}</span>
-                  <span className="label-data">{p.metric}</span>
-                </div>
-                <p className="value-data" style={{ marginBottom: '4px', fontSize: '22px' }}>{p.value}<span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '2px', fontFamily: "'Inter', sans-serif" }}>{p.unit}</span></p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: DIRECTION_COLORS[p.direction], fontWeight: '600' }}>{p.change} · {p.source}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* World Nature Index */}
-      <div style={{ width: '100%', maxWidth: '760px', marginTop: '28px' }} className="slide-up stagger-7">
-        <div className="section-frame">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--text-muted)' }}>public</span>
-            <h3 className="heading-section" style={{ margin: 0 }}>Verdant Nature Index</h3>
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
-          {getWorldNatureIndex().slice(0, 4).map(idx => (
-            <Link key={idx.id} href={`/research?q=${encodeURIComponent(idx.name + ' current status')}`} style={{ textDecoration: 'none' }}>
-              <div className="card-data" style={{ padding: '18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: idx.color }}>{idx.icon}</span>
-                  <span className="label-system" style={{ color: idx.color, fontSize: '9px' }}>{TREND_LABELS[idx.trend]}</span>
-                </div>
-                <p className="value-data" style={{ marginBottom: '6px' }}>{idx.score}<span style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>/{idx.maxScore}</span></p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '4px' }}>{idx.name}</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{idx.description.slice(0, 80)}...</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Personal Intelligence Feed */}
-      {(() => {
-        const mem = typeof window !== 'undefined' ? getMemory() : null
-        if (!mem || mem.topics.length === 0) return null
-        const topTopics = [...mem.topics].sort((a, b) => b.count - a.count).slice(0, 3)
-        return (
-          <div style={{ width: '100%', maxWidth: '760px', marginTop: '28px' }} className="slide-up stagger-8">
-            <div className="section-frame">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--text-muted)' }}>psychology</span>
-                <h3 className="heading-section" style={{ margin: 0 }}>Your Research Memory</h3>
-              </div>
-            </div>
-            <div className="card" style={{ padding: '18px 22px' }}>
-              {mem.specialization && (
-                <div style={{ marginBottom: '14px' }}>
-                  <span className="badge-green" style={{ fontSize: '10px' }}>Specialization: {mem.specialization}</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                {topTopics.map(t => (
-                  <Link key={t.topic} href={`/research?q=${encodeURIComponent(t.relatedQueries[0] || t.topic)}`} style={{ textDecoration: 'none', flex: '1 1 180px' }}>
-                    <div style={{ padding: '12px', borderRadius: '10px', transition: 'background 0.15s', border: '1px solid var(--border-section)' }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    >
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: '500', color: '#1A2F23', marginBottom: '4px' }}>{t.topic}</p>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-muted)' }}>{t.count} session{t.count !== 1 ? 's' : ''} · Resume →</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* Trust Footer */}
-      <div style={{ width: '100%', maxWidth: '760px', marginTop: '40px', textAlign: 'center' }} className="slide-up stagger-8">
-        <div className="rule-line" style={{ marginBottom: '20px' }} />
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'var(--text-faint)', lineHeight: '1.7' }}>
-          Verdant is an Environmental Intelligence Authority. Every claim is source-traced. Every recommendation is evidence-backed.
-          <br />Powered by a network of 8 specialized environmental AI agents.
+      {/* HERO */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-4xl mx-auto w-full text-center">
+        <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 tracking-tight">
+          Wildlife Field <span className="text-[#22c55e]">Intelligence</span>
+        </h1>
+        <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl leading-relaxed">
+          AI-powered species identification for rangers, researchers, and wildlife enthusiasts in Indonesia.
         </p>
-        <Link href="/protocol" style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'var(--green-mid)', textDecoration: 'none', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'inline-block', marginTop: '8px' }}>
-          Read the Verdant Protocol →
-        </Link>
-      </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <Link 
+            href="/register" 
+            className="bg-[#22c55e] text-black font-bold py-4 px-8 rounded-xl text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:bg-[#1ea34d] transition-colors"
+          >
+            Start Identifying
+          </Link>
+        </div>
+
+        {/* HOW IT WORKS */}
+        <div className="mt-24 mb-16 w-full text-left">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-10 text-center">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-[#0f2e16] p-6 rounded-2xl border border-[#1a4724]">
+              <div className="bg-[#1a4724] w-12 h-12 rounded-full flex items-center justify-center mb-4 text-[#22c55e]">
+                <Camera size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">1. Capture</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Take a photo, record audio, or write a description while out in the field.
+              </p>
+            </div>
+            
+            <div className="bg-[#0f2e16] p-6 rounded-2xl border border-[#1a4724]">
+              <div className="bg-[#1a4724] w-12 h-12 rounded-full flex items-center justify-center mb-4 text-[#22c55e]">
+                <Bot size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">2. Analyze</h3>
+              <p className="text-gray-400 leading-relaxed">
+                The NaLI Agent instantly cross-references your capture with GBIF, IUCN, and advanced AI vision models.
+              </p>
+            </div>
+
+            <div className="bg-[#0f2e16] p-6 rounded-2xl border border-[#1a4724]">
+              <div className="bg-[#1a4724] w-12 h-12 rounded-full flex items-center justify-center mb-4 text-[#22c55e]">
+                <FileText size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">3. Document</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Receive an instant field log complete with conservation status and geographical anomaly detection.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* FOR WHO */}
+        <div className="w-full text-left bg-black/30 rounded-3xl p-8 md:p-12 border border-[#1a4724]">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">Built For The Field</h2>
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <Leaf className="text-[#22c55e] mr-4 shrink-0 mt-1" size={24} />
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Rangers</h3>
+                <p className="text-gray-400">Get real-time species identification and generate automated patrol reports on the go.</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <Microscope className="text-[#22c55e] mr-4 shrink-0 mt-1" size={24} />
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Researchers</h3>
+                <p className="text-gray-400">Conduct instant literature cross-referencing and detect geographic distribution anomalies.</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <GraduationCap className="text-[#22c55e] mr-4 shrink-0 mt-1" size={24} />
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Students</h3>
+                <p className="text-gray-400">Assist fieldwork with scientific accuracy and build a verifiable personal observation log.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="w-full border-t border-[#1a4724] py-8 text-center bg-[#051408]">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+          <p className="mb-4 md:mb-0">NaLI uses Claude AI, GBIF, and IUCN Red List data.</p>
+          <div className="space-x-4">
+            <Link href="/login" className="hover:text-white transition-colors">Login</Link>
+            <Link href="/register" className="hover:text-white transition-colors">Register</Link>
+          </div>
+        </div>
+      </footer>
     </div>
-  )
-}
-
-export default function VerdantHome() {
-  return (
-    <AppLayout>
-      <Suspense
-        fallback={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'var(--text-muted)' }}>Loading...</p>
-          </div>
-        }
-      >
-        <HomeContent />
-      </Suspense>
-    </AppLayout>
-  )
+  );
 }
