@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- VerdantAI Auth Signup Repair
+-- NaLIAI Auth Signup Repair
 -- Run this in Supabase SQL Editor (production first, then staging)
 -- Safe to run multiple times (idempotent)
 -- ═══════════════════════════════════════════════════════════════════

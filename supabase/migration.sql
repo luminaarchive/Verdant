@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- VerdantAI — Supabase Migration
+-- NaLIAI — Supabase Migration
 -- Run this in the Supabase SQL Editor: https://supabase.com/dashboard
 -- ═══════════════════════════════════════════════════════════════════════════
 

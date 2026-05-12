@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- VerdantAI Export Durability — Supabase Migration
+-- NaLIAI Export Durability — Supabase Migration
 -- Run this in the Supabase SQL Editor AFTER 003_durable_jobs.sql
 -- Safe to run multiple times (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS)
 -- ═══════════════════════════════════════════════════════════════════

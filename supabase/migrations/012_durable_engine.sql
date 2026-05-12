@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- VerdantAI Durable Research Engine — Schema Migration
+-- NaLIAI Durable Research Engine — Schema Migration
 -- Run in Supabase SQL Editor. Additive only, zero downtime.
 -- ═══════════════════════════════════════════════════════════════════
 

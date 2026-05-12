@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- VerdantAI Durable Job System — Supabase Migration
+-- NaLIAI Durable Job System — Supabase Migration
 -- Run this in the Supabase SQL Editor
 -- ═══════════════════════════════════════════════════════════════════
 
