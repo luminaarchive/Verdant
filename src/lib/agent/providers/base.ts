@@ -13,12 +13,14 @@ export interface BaseProvider {
   healthCheck(): Promise<ProviderHealth>;
 }
 
+export type ProviderMetrics = Record<string, string | number | boolean | null | undefined>;
+
 export interface VisionResult {
   confidence: number;
   species_scientific_name: string;
   species_common_name?: string;
   raw_output: string;
-  provider_metrics: Record<string, any>;
+  provider_metrics: ProviderMetrics;
 }
 
 export interface TaxonomyResult {
@@ -45,6 +47,44 @@ export interface TaxonomyProvider extends BaseProvider {
   crossCheckOccurrence(scientificName: string, lat: number, lng: number): Promise<TaxonomyResult>;
 }
 
+export interface AudioResult {
+  confidence: number;
+  species_scientific_name: string;
+  acoustic_environment_score: number; // 0.0 to 1.0 (wind, noise, overlapping interference)
+  raw_output: string;
+  provider_metrics: ProviderMetrics;
+}
+
+export interface AudioInferenceInput {
+  audioUrl: string;
+  lat?: number;
+  lng?: number;
+  recordedAt?: Date;
+  regionCode?: string;
+}
+
+export interface SpectrogramAnalysis {
+  call_type?: string;
+  frequency_range_hz?: {
+    min: number;
+    max: number;
+  };
+  signal_to_noise_ratio?: number;
+  overlap_interference?: number;
+  acoustic_environment_score: number;
+  raw_output: string;
+}
+
+export interface SpectrogramInput {
+  spectrogramUrl: string;
+  audioUrl?: string;
+}
+
 export interface ConservationProvider extends BaseProvider {
   getConservationStatus(scientificName: string): Promise<ConservationResult>;
+}
+
+export interface AudioProvider extends BaseProvider {
+  identifySpecies(input: AudioInferenceInput): Promise<AudioResult>;
+  analyzeSpectrogram(input: SpectrogramInput): Promise<SpectrogramAnalysis>;
 }

@@ -24,11 +24,17 @@ async function runPipelineTest() {
     ];
 
     // Modify tools to accept the fixture payload injection
-    const wrappedPipeline = testPipeline.map(tool => ({
-      ...tool,
-      execute: async (input: any) => tool.execute({ ...input, forceFailure: fixture.payload.forceFailure }),
-      fallback: tool.fallback ? async (input: any, err: any) => tool.fallback!({ ...input, forceFailure: fixture.payload.forceFailure }, err) : undefined
-    })) as any;
+    const wrappedPipeline = testPipeline.map(tool => {
+      const fallback = "fallback" in tool ? tool.fallback : undefined;
+
+      return {
+        ...tool,
+        execute: async (input: any) => tool.execute({ ...input, forceFailure: fixture.payload.forceFailure }),
+        fallback: fallback
+          ? async (input: any, err: any) => fallback({ ...input, forceFailure: fixture.payload.forceFailure }, err)
+          : undefined
+      };
+    }) as any;
 
     const orchestrator = new ObservationOrchestrator(mockObservationId, wrappedPipeline);
     
