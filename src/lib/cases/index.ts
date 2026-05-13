@@ -9,6 +9,19 @@ export type FieldCaseType =
 
 export type FieldCaseStatus = "open" | "triage" | "assigned" | "escalated" | "resolved" | "archived";
 
+export type EcologicalPatternLinkType =
+  | "repeated_anomaly"
+  | "region_level_pattern"
+  | "migration_grouping"
+  | "habitat_degradation_cluster";
+
+export interface EcologicalPatternLink {
+  id: string;
+  type: EcologicalPatternLinkType;
+  label: string;
+  reasoning_trace_id?: string;
+}
+
 export interface FieldCaseNote {
   author_id: string;
   body: string;
@@ -21,6 +34,9 @@ export interface FieldCase {
   status: FieldCaseStatus;
   priority_score: number;
   linked_observation_ids: string[];
+  linked_ecological_patterns: EcologicalPatternLink[];
+  linked_anomaly_cluster_ids: string[];
+  migration_grouping_id?: string;
   reviewer_assignment_ids: string[];
   operational_notes: FieldCaseNote[];
   created_at: string;
@@ -33,6 +49,9 @@ export interface FieldCaseCreationInput {
   priority_score: number;
   observation_id: string;
   reviewer_assignment_ids?: string[];
+  linked_ecological_patterns?: EcologicalPatternLink[];
+  linked_anomaly_cluster_ids?: string[];
+  migration_grouping_id?: string;
   note?: FieldCaseNote;
   created_at?: string;
 }
@@ -50,6 +69,9 @@ export function createFieldCase(input: FieldCaseCreationInput): FieldCase {
     status: input.priority_score >= 0.72 ? "escalated" : "triage",
     priority_score: input.priority_score,
     linked_observation_ids: [input.observation_id],
+    linked_ecological_patterns: input.linked_ecological_patterns ?? [],
+    linked_anomaly_cluster_ids: input.linked_anomaly_cluster_ids ?? [],
+    migration_grouping_id: input.migration_grouping_id,
     reviewer_assignment_ids: input.reviewer_assignment_ids ?? [],
     operational_notes: input.note ? [input.note] : [],
     created_at: timestamp,

@@ -3,10 +3,12 @@ import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, MapPin, Database, Activi
 
 export const dynamic = "force-dynamic";
 
-export default async function ObservationDetailPage({ params }: { params: { id: string } }) {
+export default async function ObservationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   // Simulated data for UI scaffolding
   const observation = {
-    id: params.id,
+    id,
     species: { scientific_name: "Pongo abelii", common_name_en: "Sumatran Orangutan", is_endemic_indonesia: true },
     latitude: 3.20,
     longitude: 98.15,

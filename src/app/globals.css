@@ -34,14 +34,14 @@
   --spacing-md: 24px;
   --spacing-gutter: 24px;
 
-  --font-headline-md: var(--font-inter);
-  --font-data-sm: var(--font-plex-mono);
-  --font-label-caps: var(--font-inter);
-  --font-display-lg-mobile: var(--font-inter);
-  --font-body-md: var(--font-inter);
-  --font-display-lg: var(--font-inter);
-  --font-body-sm: var(--font-inter);
-  --font-data-lg: var(--font-plex-mono);
+  --font-headline-md: "Avenir Next", "Segoe UI", sans-serif;
+  --font-data-sm: "IBM Plex Mono", "SFMono-Regular", "Cascadia Mono", monospace;
+  --font-label-caps: "Avenir Next", "Segoe UI", sans-serif;
+  --font-display-lg-mobile: "Avenir Next", "Segoe UI", sans-serif;
+  --font-body-md: "Avenir Next", "Segoe UI", sans-serif;
+  --font-display-lg: "Avenir Next", "Segoe UI", sans-serif;
+  --font-body-sm: "Avenir Next", "Segoe UI", sans-serif;
+  --font-data-lg: "IBM Plex Mono", "SFMono-Regular", "Cascadia Mono", monospace;
 
   --text-headline-md: 24px;
   --text-headline-md--line-height: 1.2;

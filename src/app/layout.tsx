@@ -1,20 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  style: ["normal"],
-});
 
 export const metadata: Metadata = {
   title: "NaLI - Wildlife Field Intelligence",
@@ -36,7 +21,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body
-        className={`${plexMono.variable} ${inter.variable} bg-surface text-on-surface font-body-md text-body-md antialiased overflow-x-hidden selection:bg-primary selection:text-stone-50 flex flex-col min-h-screen`}
+        className="bg-surface text-on-surface font-body-md text-body-md antialiased overflow-x-hidden selection:bg-primary selection:text-stone-50 flex flex-col min-h-screen"
       >
         {children}
       </body>
