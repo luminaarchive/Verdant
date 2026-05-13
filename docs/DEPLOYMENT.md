@@ -11,6 +11,7 @@ NaLI deploys as an ecological intelligence and conservation operations platform.
 
 ```bash
 npm run verify
+node tests/e2e/smoke-observation-flow.cjs
 ```
 
 ## Vercel Environment Variables
@@ -62,13 +63,29 @@ After applying migrations, verify:
 - RLS policies protect observation and review data.
 - Operational runtime tables preserve traceability and replay data.
 - Reasoning and signal snapshots remain separated.
+- End-to-end observation persistence updates `reasoning_snapshot`, `signal_snapshot`, and `reasoning_trace_id`.
 
 ## Storage Bucket Notes
 
 - Confirm field media buckets exist before production observation testing.
-- Confirm bucket policies allow authenticated upload paths required by field observations.
+- Confirm the private `observation_media` bucket exists.
+- Confirm bucket policies allow authenticated or service-role mediated upload paths required by field observations.
+- Confirm observation media paths follow `/{user_id}/{observation_id}/{checksum}.<ext>`.
 - Keep sensitive biodiversity media and coordinates protected by the existing security and obfuscation rules.
 - Do not expose endangered species media or precise coordinates through public bucket listing.
+
+## Production Observation Smoke Test
+
+1. Register or sign in with a test account.
+2. Open `/observe`.
+3. Create an observation with image, notes, and GPS coordinates.
+4. Confirm the UI receives an `observationId` and links to `/observation/<id>`.
+5. Confirm media exists in private Supabase storage and `observation_media`.
+6. Confirm the orchestrator persists `analysis_runs`, `observation_events`, `reasoning_snapshot`, and `signal_snapshot`.
+7. Open `/archive` and verify the observation is listed from persisted data.
+8. Open `/observation/<id>` and verify reasoning trace, review recommendation, priority explanation, provider conflicts, and linked cases.
+9. Open `/monitoring`, `/cases`, and `/alerts`; verify real records appear or empty states clearly say what data is needed.
+10. Check `/api/health` and `/system`.
 
 ## Health Check URL
 
@@ -86,6 +103,16 @@ Release-ready health should show:
 - provider status appropriate for configured keys
 
 Provider status may be `unconfigured` for optional future integrations.
+
+## System Readiness URL
+
+Authenticated operators can inspect deployment readiness at:
+
+```text
+https://<deployment-domain>/system
+```
+
+The page should show auth, Supabase, storage, observation route, orchestrator, health endpoint, provider configuration, and verification commands.
 
 ## Protected Route Check
 

@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { uploadObservationPhoto } from "@/lib/storage/upload";
+import { storageService } from "@/lib/services/storage.service";
 import { toAppError } from "@/lib/errors";
 import type { ConservationStatus, PopulationTrend } from "@/types/species";
 import type { Result } from "@/types/common";
@@ -129,17 +129,19 @@ export async function createFieldObservation(
   const createdAt = new Date();
   let photoStorageUrl: string | null = null;
   let photoChecksum: string | null = null;
+  let mediaUploaded = false;
 
   try {
     if (input.photoFile) {
-      const upload = await uploadObservationPhoto(input.userId, observationId, input.photoFile);
-      if (upload.success) {
-        const ext = input.photoFile.name.split(".").pop() || "jpg";
-        photoStorageUrl = `${input.userId}/${observationId}/photo.${ext}`;
-        photoChecksum = upload.data.checksum;
-      } else {
-        photoStorageUrl = `pending://${input.photoFile.name}`;
-      }
+      photoChecksum = await storageService.generateChecksum(input.photoFile);
+      const upload = await storageService.uploadObservationMedia(
+        input.userId,
+        observationId,
+        input.photoFile,
+        photoChecksum,
+      );
+      photoStorageUrl = upload.path;
+      mediaUploaded = true;
     }
 
     const { data: speciesRef, error: speciesError } = await supabase
@@ -174,8 +176,8 @@ export async function createFieldObservation(
       ttl_expires_at: datePlus(createdAt, 60 * 24 * 30),
     });
 
-    const reviewStatus = species.anomalyFlag || species.confidence < 0.9 ? "unreviewed" : "verified";
-    const status = species.anomalyFlag ? "review_needed" : "identified";
+    const reviewStatus = "unreviewed";
+    const status = "pending";
 
     const { error: observationError } = await supabase.from("observations").insert({
       id: observationId,
@@ -188,74 +190,54 @@ export async function createFieldObservation(
       photo_checksum: photoChecksum,
       text_description: input.textDescription || null,
       final_species_ref_id: speciesRef.id,
-      scientific_name: species.scientificName,
-      local_name: species.localName,
-      confidence_level: species.confidence,
-      conservation_status: species.conservationStatus,
-      is_anomaly: species.anomalyFlag,
-      anomaly_flag: species.anomalyFlag,
+      scientific_name: null,
+      local_name: null,
+      confidence_level: null,
+      conservation_status: null,
+      is_anomaly: false,
+      anomaly_flag: false,
+      processing_stage: "uploaded",
+      observation_status: "pending",
       status,
       review_status: reviewStatus,
       verified_by_human: false,
-      qa_flag: species.anomalyFlag,
-      sync_state: photoStorageUrl?.startsWith("pending://") ? "pending_sync" : "synced",
+      qa_flag: false,
+      sync_state: "synced",
       created_at: createdAt.toISOString(),
     });
 
     if (observationError) throw observationError;
 
-    const timelineRows = [
-      {
-        tool_used: "vision",
-        label: "Species identified",
-        latency_ms: 820,
-        created_at: datePlus(createdAt, 1),
-      },
-      {
-        tool_used: "gbif",
-        label: "GBIF cross-check complete",
-        latency_ms: 610,
-        created_at: datePlus(createdAt, 1.2),
-      },
-      {
-        tool_used: "iucn",
-        label: "IUCN analysis complete",
-        latency_ms: 540,
-        created_at: datePlus(createdAt, 1.5),
-      },
-      {
-        tool_used: "anomaly",
-        label: "Anomaly detection complete",
-        latency_ms: 430,
-        created_at: datePlus(createdAt, 1.8),
-      },
-    ];
+    if (mediaUploaded && photoStorageUrl && photoChecksum) {
+      await storageService.registerMediaRecord(observationId, "photo", photoStorageUrl, photoChecksum);
+    }
 
-    await supabase.from("analysis_runs").insert(
-      timelineRows.map((row) => ({
+    await supabase.from("observation_events").insert([
+      {
         observation_id: observationId,
-        model_name: "NaLI field intelligence pipeline",
-        prompt_version: "foundation-v1",
-        tool_used: row.tool_used,
-        candidate_species: [
-          {
-            scientificName: species.scientificName,
-            commonNameId: species.localName,
-            confidence: species.confidence,
-            gbifTaxonKey: species.gbifTaxonKey,
-            iucnId: species.iucnId,
-          },
-        ],
-        score_per_tool: { confidence: species.confidence },
-        latency_ms: row.latency_ms,
-        raw_output: {
-          label: row.label,
-          anomalyReason: species.anomalyReason,
-          conservationStatus: species.conservationStatus,
+        event_type: "OBSERVATION_CREATED",
+        severity: "info",
+        payload: {
+          has_media: Boolean(input.photoFile),
+          has_text: Boolean(input.textDescription?.trim()),
+          accuracy_meters: input.accuracyMeters,
         },
-        created_at: row.created_at,
-      })),
-    );
+      },
+      ...(mediaUploaded
+        ? [
+            {
+              observation_id: observationId,
+              event_type: "MEDIA_UPLOADED",
+              severity: "info",
+              payload: {
+                media_type: "photo",
+                storage_path: photoStorageUrl,
+                checksum: photoChecksum,
+              },
+            },
+          ]
+        : []),
+    ]);
 
     return { success: true, data: { observationId } };
   } catch (error) {

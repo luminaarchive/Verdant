@@ -3,6 +3,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getObservationsByUser } from "@/lib/supabase/queries/observations";
 import { createFieldObservation } from "@/lib/usecases/createFieldObservation";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+import { ObservationOrchestrator } from "@/lib/agent/core/orchestrator";
+import { MockVisionTool } from "@/lib/agent/tools/vision.mock";
+import { MockGBIFTool } from "@/lib/agent/tools/gbif.mock";
+import { MockIUCNTool } from "@/lib/agent/tools/iucn.mock";
+import { MockAnomalyTool } from "@/lib/agent/tools/anomaly.mock";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -78,7 +84,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error.message }, { status: 500 });
     }
 
-    return NextResponse.json(result.data, { headers: rateLimitHeaders(rateLimit), status: 201 });
+    const pipeline = [
+      new MockVisionTool(),
+      new MockGBIFTool(),
+      new MockIUCNTool(),
+      new MockAnomalyTool(),
+    ];
+    const orchestrator = new ObservationOrchestrator(result.data.observationId, pipeline, supabase);
+
+    orchestrator.executeWorkflow().catch((error) => {
+      logger.error("Observation orchestration failed after field record creation", {
+        observation_id: result.data.observationId,
+        error,
+      });
+    });
+
+    return NextResponse.json(
+      {
+        ...result.data,
+        analysis: {
+          status: "queued",
+          mode: "background",
+        },
+      },
+      { headers: rateLimitHeaders(rateLimit), status: 201 },
+    );
   } catch {
     return NextResponse.json({ error: "Invalid observation payload" }, { status: 400 });
   }

@@ -193,12 +193,13 @@ export class ObservationOrchestrator {
       : operationalReasoning.review.routine_archive_safe
         ? 'identified'
         : 'review_needed';
+    const legacyStatus = finalStatus === 'error' ? 'review_needed' : observationStatus;
 
     // Update observation
     await this.db.from('observations').update({
       processing_stage: finalStatus === 'error' ? 'failed' : 'completed',
       observation_status: observationStatus,
-      status: observationStatus,
+      status: legacyStatus,
       review_status: operationalReasoning.review.automatic_review_required ? 'unreviewed' : 'unreviewed',
       qa_flag: operationalReasoning.review.automatic_review_required,
       confidence_level: operationalReasoning.reasoning.ecological_confidence,
@@ -206,6 +207,8 @@ export class ObservationOrchestrator {
       reasoning_trace_id: this.reasoningTraceId,
       reasoning_snapshot: operationalReasoning.reasoningSnapshot,
       signal_snapshot: operationalReasoning.signalSnapshot,
+      scientific_name: operationalReasoning.scientificName === "Unknown species" ? null : operationalReasoning.scientificName,
+      conservation_status: operationalReasoning.iucnStatus,
       conservation_priority_score: operationalReasoning.reasoning.conservation_priority.priority_score,
       conservation_priority_category: operationalReasoning.reasoning.conservation_priority.category,
     }).eq('id', this.observationId);
@@ -216,6 +219,12 @@ export class ObservationOrchestrator {
       review_recommendation: operationalReasoning.review,
       provider_conflicts: operationalReasoning.conflicts,
     });
+    await this.emitEvent('REASONING_SYNTHESIZED', 'info', {
+      ecological_confidence: operationalReasoning.reasoning.ecological_confidence,
+      conservation_priority: operationalReasoning.reasoning.conservation_priority,
+      review_recommendation: operationalReasoning.review.recommendation,
+      provider_conflict_count: operationalReasoning.conflicts.length,
+    });
 
     if (operationalReasoning.caseEscalation.case_required) {
       await this.persistFieldCases(operationalReasoning.caseEscalation.cases);
@@ -225,10 +234,15 @@ export class ObservationOrchestrator {
       });
     }
 
+    await this.emitEvent(
+      finalStatus === 'error' ? 'OBSERVATION_FAILED' : 'OBSERVATION_COMPLETED',
+      finalStatus === 'error' ? 'error' : 'info',
+      { finalStatus },
+    );
     await this.emitEvent('ORCHESTRATION_COMPLETED', finalStatus === 'error' ? 'error' : 'info', { finalStatus });
 
     if (this.trace) {
-      metricsEngine.endTrace(this.trace, finalStatus as 'completed' | 'failed' | 'degraded');
+      metricsEngine.endTrace(this.trace, finalStatus === 'error' ? 'failed' : finalStatus === 'warning' ? 'degraded' : 'completed');
     }
     orchestrationTiming.end({ final_status: finalStatus, total_latency_ms: totalLatency });
   }
@@ -340,6 +354,8 @@ export class ObservationOrchestrator {
 
     return {
       modalitySignals,
+      scientificName,
+      iucnStatus,
       reasoning,
       conflicts,
       review,

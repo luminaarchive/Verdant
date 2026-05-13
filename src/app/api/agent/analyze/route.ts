@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "observationId is required" }, { status: 400 });
     }
 
-    logger.info("Agent analyze workflow triggered", { observationId, userId: session.user.id });
+    logger.info("Observation analysis workflow triggered", { observationId, userId: session.user.id });
 
     // In the new async architecture, we return immediately and run in background
     const pipeline = [
@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { success: true, message: "Orchestration triggered" },
+      { success: true, message: "Observation analysis queued", analysis: { status: "queued", mode: "background" } },
       { headers: rateLimitHeaders(rateLimit), status: 202 },
     );
   } catch (error) {
-    logger.error("Agent analyze route error", { error });
+    logger.error("Observation analysis route error", { error });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

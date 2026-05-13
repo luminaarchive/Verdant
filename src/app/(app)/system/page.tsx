@@ -4,6 +4,7 @@ import { getEnvStatus } from "@/lib/config/env";
 const knownWarnings = [
   "Optional provider keys can remain unavailable until live provider integrations are enabled.",
   "Health checks report degraded when Supabase tables or storage are unreachable from the runtime.",
+  "Observation analysis runs in background mode after field record creation; use /api/agent/analyze as a manual fallback if local background execution is interrupted.",
 ];
 
 export const dynamic = "force-dynamic";
@@ -42,8 +43,26 @@ export default function SystemReadinessPage() {
       icon: WifiOff,
     },
     {
+      label: "Observation create route",
+      detail: "POST /api/observations accepts media, field notes, GPS metadata, and returns an observation_id before background analysis begins.",
+      status: "ok",
+      icon: RadioTower,
+    },
+    {
+      label: "Orchestrator available",
+      detail: "Observation creation queues the provider pipeline and persists reasoning snapshots, signal snapshots, events, and field case decisions.",
+      status: "ok",
+      icon: ShieldCheck,
+    },
+    {
+      label: "Health endpoint available",
+      detail: "GET /api/health reports app, database, storage, provider, timestamp, and version status for deployment smoke checks.",
+      status: "ok",
+      icon: Database,
+    },
+    {
       label: "Last build/runtime status",
-      detail: "Production build and TypeScript verification should be checked before release.",
+      detail: "Run npm run lint, npm run typecheck, npm run build, npm run verify, and node tests/e2e/smoke-observation-flow.cjs before release.",
       status: "ok",
       icon: ShieldCheck,
     },

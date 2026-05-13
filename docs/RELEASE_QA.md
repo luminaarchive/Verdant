@@ -29,12 +29,14 @@ npm run test:reasoning
 npm run test:longitudinal
 npm run test:golden
 npm run verify
+node tests/e2e/smoke-observation-flow.cjs
 ```
 
 Expected notes:
 
 - `npm run lint` may report existing image optimization warnings, but it should exit successfully.
 - `npm run verify` runs build, typecheck, operational reasoning tests, longitudinal tests, and golden-set regression.
+- `node tests/e2e/smoke-observation-flow.cjs` validates the local product loop with mock persistence and skips live Supabase writes when required environment variables are missing.
 
 ## Supabase Migration Checklist
 
@@ -65,6 +67,8 @@ After migration:
 - Confirm RLS policies are enabled on protected tables.
 - Confirm service-role-only internal tables are not accessible through anon client paths.
 - Confirm observation storage buckets and policies match field media upload requirements.
+- Confirm `019_ecological_reasoning_operational_runtime.sql` has added `reasoning_snapshot`, `signal_snapshot`, and `reasoning_trace_id`.
+- Confirm `020_longitudinal_ecological_intelligence.sql` has created ecological memory, patterns, alerts, confidence evolution, and replay tables.
 
 ## Vercel Deployment Checklist
 
@@ -111,11 +115,26 @@ Authenticated sessions should load the field workspace without exposing unrelate
 
 1. Sign in with a test user.
 2. Open `/observe`.
-3. Submit a field observation with at least one input: photo, field notes, or other supported media.
-4. Confirm latitude and longitude validation.
-5. Confirm the observation appears in `/archive`.
-6. Open the observation detail page.
-7. Confirm reasoning trace, signal snapshot, review recommendation, and priority explanation render as structured audit sections.
+3. Submit a field observation with an image, field notes, and GPS coordinates.
+4. Confirm the API returns `observationId` and does not show success if persistence fails.
+5. Confirm storage writes the media under `/{user_id}/{observation_id}/{checksum}.<ext>`.
+6. Confirm `observation_media` contains a record for the uploaded media.
+7. Wait for background analysis or trigger `/api/agent/analyze` manually with the observation ID if local background execution is interrupted.
+8. Confirm observation events include `OBSERVATION_CREATED`, `MEDIA_UPLOADED`, `ORCHESTRATION_STARTED`, `REASONING_SYNTHESIZED`, and `OBSERVATION_COMPLETED` or `OBSERVATION_FAILED`.
+9. Confirm `/archive` shows the persisted observation.
+10. Open `/observation/<id>` and confirm reasoning trace, signal snapshot, review recommendation, priority explanation, provider runs, linked cases, and events render as structured audit sections.
+
+## E2E Observation Manual Checklist
+
+1. Register or sign in with a test account.
+2. Create a field observation from `/observe`.
+3. Upload an image that passes MIME and file-size validation.
+4. Wait for analysis to complete or use the manual analysis route for local fallback.
+5. Open `/archive` and verify the record is real persisted data.
+6. Open `/observation/<id>` and inspect reasoning and signal snapshots.
+7. Open `/monitoring`, `/cases`, and `/alerts`; confirm they show real data or honest empty states.
+8. Check `/api/health`.
+9. Check `/system` for E2E readiness checks.
 
 ## Monitoring, Cases, And Alerts Smoke Test
 
@@ -130,3 +149,4 @@ Authenticated sessions should load the field workspace without exposing unrelate
 - The development rate limiter is in-memory and should be replaced with Redis or Upstash for multi-instance production enforcement.
 - Health checks can report degraded if Supabase tables, storage policies, or service role access are not configured.
 - Some existing views still use plain image elements and may produce non-blocking lint warnings.
+- Local background execution may complete after the HTTP response; use the persisted event trail to verify analysis completion.

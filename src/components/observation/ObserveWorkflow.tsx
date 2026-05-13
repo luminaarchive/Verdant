@@ -194,6 +194,7 @@ export default function ObserveWorkflow() {
 
   useEffect(() => {
     if (pipelineState !== "running") return;
+    if (!persistedObservationId) return;
 
     if (activeStep >= pipelineSteps.length - 1) {
       const completeTimer = window.setTimeout(() => {
@@ -208,7 +209,7 @@ export default function ObserveWorkflow() {
     }, 850);
 
     return () => window.clearTimeout(timer);
-  }, [activeStep, description, pipelineState]);
+  }, [activeStep, description, persistedObservationId, pipelineState]);
 
   const canAnalyze = Boolean(photoFile || description.trim()) && gpsState !== "locating";
   const observationId = useMemo(() => {
@@ -268,6 +269,8 @@ export default function ObserveWorkflow() {
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to persist observation");
       setOfflineQueued(true);
+      setPipelineState("idle");
+      setActiveStep(0);
     }
   };
 
