@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src tests next.config.mjs eslint.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:reasoning": "node --test tests/reasoning/operational-runtime.test.cjs",
+    "test:longitudinal": "node --test tests/longitudinal/longitudinal-intelligence.test.cjs",
+    "test:golden": "node tests/golden-set/run-pipeline.cjs",
+    "verify": "npm run build && npm run typecheck && npm run test:reasoning && npm run test:longitudinal && npm run test:golden"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
