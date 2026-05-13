@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Camera } from "lucide-react";
+import { Home, Camera, Activity } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -28,6 +28,16 @@ export default function BottomNav() {
         >
           <Camera size={24} />
           <span className="text-xs mt-1 font-medium">Observe</span>
+        </Link>
+
+        <Link
+          href="/monitoring"
+          className={`flex h-full w-full flex-col items-center justify-center ${
+            pathname === "/monitoring" ? "text-forest-900" : "text-forest-500 hover:text-forest-800"
+          }`}
+        >
+          <Activity size={24} />
+          <span className="text-xs mt-1 font-medium">Monitor</span>
         </Link>
       </div>
     </nav>
