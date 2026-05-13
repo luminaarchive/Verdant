@@ -1,30 +1,51 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Eye, EyeOff, ChevronDown, Loader2 } from "lucide-react";
-import * as Select from "@radix-ui/react-select";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Loader2, Microscope, ShieldCheck, Trees } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
+import type { UserRole } from "@/types/common";
+
+const roles: Array<{
+  value: UserRole;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "ranger",
+    title: "Ranger",
+    description: "Patrol logging, rapid species identification, and protected GPS capture.",
+  },
+  {
+    value: "researcher",
+    title: "Researcher",
+    description: "Structured ecological records for surveys, review, and evidence export.",
+  },
+  {
+    value: "student",
+    title: "Biology Student",
+    description: "Field learning with scientific names, status context, and observation notes.",
+  },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student");
+  const [role, setRole] = useState<UserRole>("student");
   const [institution, setInstitution] = useState("");
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -36,204 +57,181 @@ export default function RegisterPage() {
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signupError) {
+      setError(signupError.message);
       setLoading(false);
-    } else {
-      router.push("/dashboard");
+      return;
     }
+
+    if (data.user) {
+      await supabase.from("users").upsert({
+        id: data.user.id,
+        email,
+        full_name: fullName,
+        role,
+        institution: institution || null,
+      });
+    }
+
+    router.replace("/archive");
+    router.refresh();
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#060f08', color: 'white', fontFamily: 'system-ui, sans-serif' }}>
-      
-      {/* LEFT PANEL - Hidden on mobile, 60% on desktop */}
-      <div className="hidden lg:flex" style={{ 
-        width: '60%', 
-        flexDirection: 'column', 
-        justifyContent: 'space-between', 
-        padding: '60px', 
-        background: 'radial-gradient(circle at top left, #0d2b12 0%, #060f08 100%)',
-        position: 'relative'
-      }}>
-        <div style={{ zIndex: 10 }}>
-          <Link href="/" style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '2px', color: '#22c55e', textDecoration: 'none' }}>NaLI</Link>
-        </div>
-
-        <div style={{ zIndex: 10, maxWidth: '600px' }}>
-          <h1 style={{ fontSize: '48px', fontFamily: 'serif', fontStyle: 'italic', fontWeight: '500', marginBottom: '32px', lineHeight: '1.2' }}>
-            "Every observation matters."
-          </h1>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <span style={{ padding: '8px 16px', borderRadius: '100px', border: '1px solid #1a3a1a', backgroundColor: 'rgba(15, 34, 20, 0.5)', fontSize: '14px', color: '#86efac' }}>2,000+ species documented</span>
-            <span style={{ padding: '8px 16px', borderRadius: '100px', border: '1px solid #1a3a1a', backgroundColor: 'rgba(15, 34, 20, 0.5)', fontSize: '14px', color: '#86efac' }}>Active in 5 provinces</span>
-            <span style={{ padding: '8px 16px', borderRadius: '100px', border: '1px solid #1a3a1a', backgroundColor: 'rgba(15, 34, 20, 0.5)', fontSize: '14px', color: '#86efac' }}>Trusted by researchers</span>
-          </div>
-        </div>
-
-        <div style={{ zIndex: 10, fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-          NaLI Wildlife Field Intelligence
-        </div>
-      </div>
-
-      {/* RIGHT PANEL - Form */}
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        padding: '40px 32px',
-        backgroundColor: '#060f08'
-      }}>
-        <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-          
-          <div className="lg:hidden" style={{ marginBottom: '40px' }}>
-            <Link href="/" style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '2px', color: '#22c55e', textDecoration: 'none' }}>NaLI</Link>
-          </div>
-
-          <h2 style={{ fontSize: '32px', fontWeight: '600', marginBottom: '8px', color: 'white' }}>Create your field account</h2>
-          <p style={{ color: '#9ca3af', marginBottom: '40px', fontSize: '14px', lineHeight: '1.6' }}>
-            Join rangers and researchers protecting Indonesia's wildlife
-          </p>
-
-          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#86efac', opacity: 0.8 }}>Full Name</label>
-              <input 
-                type="text" 
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                placeholder="John Doe"
-                style={{ 
-                  width: '100%', backgroundColor: '#0f2214', border: '1px solid #1a3a1a', 
-                  color: 'white', borderRadius: '12px', padding: '12px 16px', outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-                required
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#86efac', opacity: 0.8 }}>Email</label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="john@example.com"
-                style={{ 
-                  width: '100%', backgroundColor: '#0f2214', border: '1px solid #1a3a1a', 
-                  color: 'white', borderRadius: '12px', padding: '12px 16px', outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-                required
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#86efac', opacity: 0.8 }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  style={{ 
-                    width: '100%', backgroundColor: '#0f2214', border: '1px solid #1a3a1a', 
-                    color: 'white', borderRadius: '12px', padding: '12px 16px', outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                  required
+    <main className="min-h-screen bg-surface-container-lowest text-on-surface font-body-md flex items-center justify-center p-6 antialiased">
+      <div className="w-full max-w-xl">
+        <div className="mb-10 text-center flex flex-col items-center">
+          <Link href="/" className="mb-6 flex items-center gap-3">
+             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center relative bg-surface-dim">
+                <img
+                  alt="NaLI Logo"
+                  className="w-full h-full object-cover scale-[1.3] mix-blend-screen"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSOEp6mfy7WR2FL9G5ZEWOGNB1qgpcF7_lSfK1UFAXIsC89pyWLK-P-Igko8EX6wv4xkuaDTQGTbNDUGHvw5Z5tpggzho_grJ-fAbPbNwYS2eQ3Nmj_tV8-WVK1XGHJbzqlCeN263l77sEEaN95Df46WWogNh0c7UPHqc-YgRHVpsB_ebhVqu9KhDGqieE0trr1Q96WxCoX5_2q_aOBz8JKJLK52BtBQJ9RK9c7XlKhHXMd46vxVmeaDnSDBT1FmDGVIALg4AJ4RY"
                 />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#166534', cursor: 'pointer' }}
+             </div>
+          </Link>
+          <div className="font-data-sm text-data-sm text-primary mb-3 uppercase tracking-widest">
+            Institutional Onboarding
+          </div>
+          <h1 className="font-display-lg text-display-lg-mobile text-primary mb-2 font-bold">
+            Create Field Account
+          </h1>
+          <p className="text-body-md font-body-md text-on-surface-variant max-w-sm mx-auto">
+            Choose your operational role to access structured conservation workflows.
+          </p>
+        </div>
+
+        <div className="bg-surface-container border border-outline-variant rounded-xl p-8 shadow-2xl">
+          <form className="space-y-6" onSubmit={handleRegister}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Full Name">
+                <input
+                  autoComplete="name"
+                  className="w-full bg-surface-dim border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/40 font-body-md transition-colors"
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="Siti Rahma"
+                  required
+                  type="text"
+                  value={fullName}
+                />
+              </Field>
+              <Field label="Institution (Optional)">
+                <input
+                  className="w-full bg-surface-dim border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/40 font-body-md transition-colors"
+                  onChange={(event) => setInstitution(event.target.value)}
+                  placeholder="NGO, University, Park"
+                  type="text"
+                  value={institution}
+                />
+              </Field>
+            </div>
+
+            <Field label="Institutional Email">
+              <input
+                autoComplete="email"
+                className="w-full bg-surface-dim border border-outline-variant/50 rounded-lg px-4 py-3 focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/40 font-body-md transition-colors"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="name@institution.id"
+                required
+                type="email"
+                value={email}
+              />
+            </Field>
+
+            <Field label="Secure Passphrase">
+              <div className="relative">
+                <input
+                  autoComplete="new-password"
+                  className="w-full bg-surface-dim border border-outline-variant/50 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:border-primary text-on-surface placeholder:text-on-surface-variant/40 font-body-md transition-colors"
+                  minLength={6}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Minimum 6 characters"
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  onClick={() => setShowPassword((value) => !value)}
+                  type="button"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+              </div>
+            </Field>
+
+            <div>
+              <span className="mb-3 block font-label-caps text-[11px] uppercase tracking-wider text-on-surface-variant">Field Role</span>
+              <div className="grid gap-3">
+                {roles.map((item) => (
+                  <button
+                    className={`rounded-lg border p-4 text-left transition-all ${
+                      role === item.value
+                        ? "border-primary bg-surface-variant/40"
+                        : "border-outline-variant/30 bg-surface-dim hover:border-outline-variant"
+                    }`}
+                    key={item.value}
+                    onClick={() => setRole(item.value)}
+                    type="button"
+                  >
+                    <div className="flex items-start gap-4">
+                      <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+                        role === item.value ? "bg-primary text-surface" : "bg-surface-variant text-on-surface-variant"
+                      }`}>
+                        {item.value === "ranger" ? (
+                          <Trees className="h-5 w-5" />
+                        ) : item.value === "researcher" ? (
+                          <Microscope className="h-5 w-5" />
+                        ) : (
+                          <ShieldCheck className="h-5 w-5" />
+                        )}
+                      </span>
+                      <div>
+                        <span className="block font-body-md font-semibold text-on-surface mb-1">{item.title}</span>
+                        <span className="block text-sm font-body-md text-on-surface-variant">
+                          {item.description}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#86efac', opacity: 0.8 }}>Role</label>
-              <Select.Root value={role} onValueChange={setRole}>
-                <Select.Trigger style={{ 
-                  width: '100%', backgroundColor: '#0f2214', border: '1px solid #1a3a1a', 
-                  color: 'white', borderRadius: '12px', padding: '12px 16px', outline: 'none',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  boxSizing: 'border-box'
-                }}>
-                  <Select.Value placeholder="Select a role" />
-                  <Select.Icon>
-                    <ChevronDown size={18} color="#166534" />
-                  </Select.Icon>
-                </Select.Trigger>
+            {error ? (
+              <div className="rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error font-body-md">
+                {error}
+              </div>
+            ) : null}
 
-                <Select.Portal>
-                  <Select.Content style={{ backgroundColor: '#0f2214', border: '1px solid #1a3a1a', borderRadius: '12px', overflow: 'hidden', zIndex: 50, marginTop: '8px', color: 'white' }}>
-                    <Select.Viewport style={{ padding: '4px' }}>
-                      <Select.Item value="ranger" style={{ padding: '12px 32px', fontSize: '14px', cursor: 'pointer', outline: 'none' }}>
-                        <Select.ItemText>Ranger 🌿</Select.ItemText>
-                      </Select.Item>
-                      <Select.Item value="researcher" style={{ padding: '12px 32px', fontSize: '14px', cursor: 'pointer', outline: 'none' }}>
-                        <Select.ItemText>Researcher 🔬</Select.ItemText>
-                      </Select.Item>
-                      <Select.Item value="student" style={{ padding: '12px 32px', fontSize: '14px', cursor: 'pointer', outline: 'none' }}>
-                        <Select.ItemText>Student 🎓</Select.ItemText>
-                      </Select.Item>
-                    </Select.Viewport>
-                  </Select.Content>
-                </Select.Portal>
-              </Select.Root>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#86efac', opacity: 0.8 }}>Institution <span style={{ color: '#166534' }}>(Optional)</span></label>
-              <input 
-                type="text" 
-                value={institution}
-                onChange={e => setInstitution(e.target.value)}
-                placeholder="University or Park Name"
-                style={{ 
-                  width: '100%', backgroundColor: '#0f2214', border: '1px solid #1a3a1a', 
-                  color: 'white', borderRadius: '12px', padding: '12px 16px', outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            {error && (
-              <p style={{ color: '#f87171', fontSize: '14px', margin: 0 }}>{error}</p>
-            )}
-
-            <button 
-              type="submit" 
+            <button
+              className="w-full bg-primary text-surface-container-lowest font-label-caps text-label-caps px-6 py-4 rounded-lg hover:bg-surface-container-low hover:text-primary hover:border hover:border-primary transition-all flex items-center justify-center gap-3 tracking-widest mt-6"
               disabled={loading}
-              style={{ 
-                width: '100%', backgroundColor: '#22c55e', color: 'black', fontWeight: '700', 
-                borderRadius: '12px', padding: '14px', marginTop: '16px', border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center'
-              }}
+              type="submit"
             >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} />
-                  Creating account...
-                </>
-              ) : (
-                "Create Account"
-              )}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              INITIALIZE ACCOUNT
             </button>
           </form>
 
-          <div style={{ marginTop: '32px', textAlign: 'center', fontSize: '14px', color: '#9ca3af' }}>
-            Already have an account?{' '}
-            <Link href="/login" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: '500' }}>
-              Sign in
+          <p className="mt-8 text-center text-sm font-body-md text-on-surface-variant">
+            Already registered?{" "}
+            <Link className="font-semibold text-primary underline-offset-4 hover:underline" href="/login">
+              Sign In
             </Link>
-          </div>
+          </p>
         </div>
       </div>
-    </div>
+    </main>
+  );
+}
+
+function Field({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block font-label-caps text-[11px] uppercase tracking-wider text-on-surface-variant">{label}</span>
+      {children}
+    </label>
   );
 }

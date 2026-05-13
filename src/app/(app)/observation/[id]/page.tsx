@@ -1,250 +1,196 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, MapPin, Database, Activity, RotateCcw } from "lucide-react";
 
-interface ObservationDetail {
-  id: string;
-  status: string;
-  timestamp: string;
-  latitude: number;
-  longitude: number;
-  text_description: string | null;
-  confidence_level: number | null;
-  is_anomaly: boolean;
-  review_status: string;
-  // Note: in a real implementation we would join with species_reference to get these, 
-  // or fetch them from a dedicated API endpoint that formats the view model.
-  // For the sake of the exercise, we will mock the joined fields if they exist in DB.
-}
+export const dynamic = "force-dynamic";
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  EX: { label: "Extinct", color: "bg-black text-white" },
-  EW: { label: "Extinct in the Wild", color: "bg-purple-900 text-white" },
-  CR: { label: "Critically Endangered", color: "bg-red-600 text-white" },
-  EN: { label: "Endangered", color: "bg-orange-500 text-white" },
-  VU: { label: "Vulnerable", color: "bg-yellow-500 text-black" },
-  NT: { label: "Near Threatened", color: "bg-yellow-200 text-black" },
-  LC: { label: "Least Concern", color: "bg-green-500 text-white" },
-  DD: { label: "Data Deficient", color: "bg-gray-500 text-white" },
-  NE: { label: "Not Evaluated", color: "bg-gray-400 text-white" },
-};
-
-export default function ObservationDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id as string;
-  
-  const [observation, setObservation] = useState<ObservationDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Mocks for joined data that we'd normally get from a robust GET endpoint
-  const [speciesData, setSpeciesData] = useState<any>({
-    scientificName: "Loading...",
-    commonName: "...",
-    conservationStatus: "DD",
-    populationTrend: "unknown",
-  });
-  
-  const [analysisRun, setAnalysisRun] = useState<any>(null);
-
-  const fetchObservation = async () => {
-    try {
-      const { data: obs, error } = await supabase
-        .from("observations")
-        .select("*")
-        .eq("id", id)
-        .single();
-        
-      if (error) throw error;
-      setObservation(obs);
-
-      if (obs.final_species_ref_id) {
-        const { data: ref } = await supabase
-          .from("species_reference")
-          .select("*")
-          .eq("id", obs.final_species_ref_id)
-          .single();
-          
-        if (ref) {
-          // Also try to get cache for status/trend
-          const { data: cache } = await supabase
-            .from("species_cache")
-            .select("*")
-            .eq("species_ref_id", ref.id)
-            .single();
-
-          setSpeciesData({
-            scientificName: ref.scientific_name,
-            commonName: ref.common_name_id || ref.common_name_en,
-            conservationStatus: cache?.conservation_status || "DD",
-            populationTrend: cache?.population_trend || "unknown",
-          });
-        }
+export default async function ObservationDetailPage({ params }: { params: { id: string } }) {
+  // Simulated data for UI scaffolding
+  const observation = {
+    id: params.id,
+    species: { scientific_name: "Pongo abelii", common_name_en: "Sumatran Orangutan", is_endemic_indonesia: true },
+    latitude: 3.20,
+    longitude: 98.15,
+    processing_stage: "completed",
+    review_status: "unreviewed",
+    is_anomaly: true,
+    created_at: "2026-05-13T09:30:00Z",
+    confidence_level: 0.89,
+    media: [
+      { type: "photo", url: "https://images.unsplash.com/photo-1540304603378-0c034375b4f4?auto=format&fit=crop&q=80&w=800" }
+    ],
+    runs: [
+      {
+        tool_name: "Vision Engine",
+        status: "completed",
+        latency_ms: 2100,
+        score_breakdown: { confidence: 0.87 },
+        tool_version: "v4.1",
+        retry_count: 0,
+        fallback_used: false,
+        raw_output: "Detected morphological markers consistent with Pongo abelii."
+      },
+      {
+        tool_name: "GBIF Cross-check",
+        status: "completed",
+        latency_ms: 850,
+        score_breakdown: { match: 0.92 },
+        tool_version: "gbif-api-v1",
+        retry_count: 1,
+        fallback_used: true,
+        raw_output: "Occurrence match found in Northern Sumatra region. Adjusted confidence."
+      },
+      {
+        tool_name: "IUCN Analysis",
+        status: "completed",
+        latency_ms: 400,
+        score_breakdown: {},
+        tool_version: "iucn-redlist-2026",
+        retry_count: 0,
+        fallback_used: false,
+        raw_output: "Status: Critically Endangered (CR)."
+      },
+      {
+        tool_name: "Anomaly Detection",
+        status: "warning",
+        latency_ms: 1200,
+        score_breakdown: { anomaly_score: 0.85 },
+        tool_version: "anomaly-model-v2",
+        retry_count: 0,
+        fallback_used: false,
+        raw_output: "Warning: Species occurrence outside expected density zone for this season."
       }
-
-      const { data: run } = await supabase
-        .from("analysis_runs")
-        .select("*")
-        .eq("observation_id", id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-        
-      if (run) setAnalysisRun(run);
-
-    } catch (error) {
-      console.error("Error fetching observation:", error);
-    } finally {
-      setLoading(false);
-    }
+    ]
   };
 
-  useEffect(() => {
-    fetchObservation();
-
-    // Auto-refresh if pending
-    let interval: NodeJS.Timeout;
-    if (observation?.status === "pending") {
-      interval = setInterval(() => {
-        fetchObservation();
-      }, 5000);
-    }
-
-    return () => clearInterval(interval);
-  }, [id, observation?.status]);
-
-  if (loading) {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-[#22c55e] mb-4" size={40} />
-        <p className="text-gray-400">Loading observation data...</p>
-      </div>
-    );
-  }
-
-  if (!observation) {
-    return (
-      <div className="p-6">
-        <p className="text-red-400">Observation not found.</p>
-        <button onClick={() => router.push("/dashboard")} className="mt-4 text-[#22c55e]">Return to Dashboard</button>
-      </div>
-    );
-  }
-
-  if (observation.status === "pending") {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-[#22c55e] mb-6" size={48} />
-        <h2 className="text-2xl font-bold text-white mb-2">Analysis in progress...</h2>
-        <p className="text-gray-400 text-center">NaLI is identifying the species and checking conservation databases.</p>
-        <Link href="/dashboard" className="mt-8 text-gray-500 hover:text-white">Go back to dashboard</Link>
-      </div>
-    );
-  }
-
-  const conf = observation.confidence_level || 0;
-  const statusInfo = statusConfig[speciesData.conservationStatus] || statusConfig["DD"];
-
   return (
-    <div className="p-4 pt-6 pb-24 max-w-lg mx-auto">
-      <Link href="/dashboard" className="flex items-center text-gray-400 hover:text-white mb-6">
-        <ArrowLeft size={20} className="mr-2" /> Back to Dashboard
-      </Link>
+    <div className="min-h-screen bg-surface-container-lowest text-on-surface font-body-md flex flex-col">
+      <header className="bg-surface-dim border-b border-outline-variant h-16 flex items-center px-6 sticky top-0 z-50">
+        <Link href="/archive" className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="font-label-caps text-[11px] uppercase tracking-widest">Back to Archive</span>
+        </Link>
+      </header>
 
-      {/* HEADER */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold italic text-white leading-tight">
-          {speciesData.scientificName}
-        </h1>
-        {speciesData.commonName && (
-          <p className="text-lg text-gray-300 mt-1">{speciesData.commonName}</p>
-        )}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div className="mt-6">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-gray-400">AI Confidence Score</span>
-            <span className="text-white font-bold">{Math.round(conf * 100)}%</span>
+        {/* Left Column: Media & Primary Info */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="aspect-video w-full rounded-xl overflow-hidden bg-surface-dim border border-outline-variant relative">
+            <img 
+              src={observation.media[0].url} 
+              alt="Observation Media" 
+              className="w-full h-full object-cover"
+            />
+            {observation.is_anomaly && (
+              <div className="absolute top-4 left-4 bg-error text-surface-container-lowest font-label-caps text-[10px] px-3 py-1 rounded-sm tracking-wider flex items-center gap-1.5 shadow-lg">
+                <AlertTriangle className="w-3 h-3" />
+                ANOMALY DETECTED
+              </div>
+            )}
           </div>
-          <div className="w-full bg-black rounded-full h-3">
-            <div 
-              className={`h-3 rounded-full ${conf < 0.6 ? 'bg-red-500' : conf < 0.8 ? 'bg-yellow-500' : 'bg-[#22c55e]'}`} 
-              style={{ width: `${Math.round(conf * 100)}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
 
-      {/* CONSERVATION STATUS CARD */}
-      <div className={`rounded-xl p-5 mb-4 border border-gray-800 ${statusInfo.color}`}>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm font-semibold opacity-90">Conservation Status</span>
-          <span className="text-2xl font-black">{speciesData.conservationStatus}</span>
-        </div>
-        <h3 className="text-xl font-bold mb-4">{statusInfo.label}</h3>
-        
-        <div className="flex items-center text-sm font-medium bg-black/20 rounded-lg p-2 inline-flex">
-          <span className="mr-2 opacity-90">Population Trend:</span>
-          {speciesData.populationTrend === "decreasing" && <span className="flex items-center"><TrendingDown size={16} className="mr-1"/> Decreasing</span>}
-          {speciesData.populationTrend === "increasing" && <span className="flex items-center"><TrendingUp size={16} className="mr-1"/> Increasing</span>}
-          {speciesData.populationTrend === "stable" && <span className="flex items-center"><Minus size={16} className="mr-1"/> Stable</span>}
-          {speciesData.populationTrend === "unknown" && <span>Unknown</span>}
-        </div>
-      </div>
-
-      {/* ANOMALY ALERT */}
-      {observation.is_anomaly && (
-        <div className="bg-yellow-900/40 border border-yellow-600 rounded-xl p-5 mb-4">
-          <div className="flex items-start space-x-3">
-            <AlertTriangle size={24} className="text-yellow-500 shrink-0" />
-            <div>
-              <h3 className="text-yellow-500 font-bold text-lg mb-1">Anomalous Observation</h3>
-              <p className="text-yellow-100/80 text-sm leading-relaxed">
-                {analysisRun?.raw_output?.anomalyReason || "This species has not been previously recorded in this location. Please ensure the identification is correct."}
-              </p>
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-display-lg text-primary">{observation.species.scientific_name}</h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <span className="text-on-surface-variant">{observation.species.common_name_en}</span>
+              <span className="text-outline-variant">•</span>
+              <span className="flex items-center gap-1 text-on-surface-variant">
+                <MapPin className="w-4 h-4" />
+                {observation.latitude.toFixed(4)}, {observation.longitude.toFixed(4)}
+              </span>
+              <span className="text-outline-variant">•</span>
+              <span className="flex items-center gap-1 text-on-surface-variant">
+                <Clock className="w-4 h-4" />
+                {new Date(observation.created_at).toLocaleString()}
+              </span>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* REVIEW STATUS */}
-      {observation.review_status === "review_needed" && (
-        <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 mb-6 flex items-center text-red-400">
-          <AlertTriangle size={18} className="mr-2" />
-          <span className="text-sm font-semibold">Needs Review - Low confidence result</span>
+          {/* Conservation Info */}
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
+             <h3 className="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-widest mb-4">Ecological Context</h3>
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <div className="text-on-surface-variant text-sm mb-1">Status</div>
+                  <div className="font-data-sm text-error">Critically Endangered</div>
+               </div>
+               <div>
+                  <div className="text-on-surface-variant text-sm mb-1">Endemicity</div>
+                  <div className="font-data-sm text-primary">{observation.species.is_endemic_indonesia ? "Endemic to Indonesia" : "Non-Endemic"}</div>
+               </div>
+               <div>
+                  <div className="text-on-surface-variant text-sm mb-1">Confidence Score</div>
+                  <div className="font-data-sm text-primary">{(observation.confidence_level * 100).toFixed(1)}%</div>
+               </div>
+             </div>
+          </div>
         </div>
-      )}
-      
-      {observation.review_status === "verified" && (
-        <div className="bg-[#22c55e]/10 border border-[#22c55e]/30 rounded-xl p-4 mb-6 flex items-center text-[#22c55e]">
-          <span className="text-sm font-semibold">✓ Verified by Expert</span>
-        </div>
-      )}
 
-      {/* OBSERVATION DETAILS */}
-      <div className="bg-[#0f2e16] rounded-xl p-5 border border-[#1a4724]">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Field Data</h3>
-        
-        <div className="space-y-4 text-sm">
-          <div className="flex justify-between border-b border-[#1a4724] pb-3">
-            <span className="text-gray-400">Date & Time</span>
-            <span className="text-white text-right">{new Date(observation.timestamp).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between border-b border-[#1a4724] pb-3">
-            <span className="text-gray-400">Location</span>
-            <span className="text-white text-right">{observation.latitude.toFixed(6)}, {observation.longitude.toFixed(6)}</span>
-          </div>
-          {observation.text_description && (
-            <div className="pt-2">
-              <span className="text-gray-400 block mb-2">Field Notes</span>
-              <p className="text-white bg-black/30 p-3 rounded-lg leading-relaxed">{observation.text_description}</p>
+        {/* Right Column: AGENT EXECUTION PANEL */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-surface-dim border border-outline-variant rounded-xl p-6 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-label-caps text-xs text-primary uppercase tracking-widest flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Agent Execution Panel
+              </h2>
+              <div className="px-2 py-1 bg-surface-variant/30 border border-outline-variant rounded text-[10px] font-data-sm text-on-surface-variant uppercase">
+                {observation.processing_stage}
+              </div>
             </div>
-          )}
+
+            <div className="flex-1 space-y-4 relative before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-outline-variant/30">
+              {observation.runs.map((run, idx) => (
+                <div key={idx} className="relative pl-8">
+                  {/* Timeline Dot */}
+                  <div className={`absolute left-0 top-1 w-6 h-6 rounded-full border-2 bg-surface-dim flex items-center justify-center
+                    ${run.status === 'completed' ? 'border-primary' : run.status === 'warning' ? 'border-error' : 'border-outline-variant'}`}>
+                    {run.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-primary" />}
+                    {run.status === 'warning' && <AlertTriangle className="w-3 h-3 text-error" />}
+                  </div>
+
+                  <div className="bg-surface-container border border-outline-variant rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-data-sm text-sm text-primary">{run.tool_name}</div>
+                      <div className="text-[10px] font-data-sm text-on-surface-variant">{run.latency_ms}ms</div>
+                    </div>
+                    
+                    <div className="text-sm font-body-md text-on-surface-variant leading-relaxed mb-3">
+                      {run.raw_output}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 border-t border-outline-variant/20 pt-3">
+                      <span className="text-[10px] font-label-caps bg-surface-variant/30 px-1.5 py-0.5 rounded text-on-surface-variant border border-outline-variant/30">
+                        {run.tool_version}
+                      </span>
+                      {Object.entries(run.score_breakdown).map(([key, val]) => (
+                        <span key={key} className="text-[10px] font-data-sm bg-primary/10 px-1.5 py-0.5 rounded text-primary border border-primary/20">
+                          {key}: {val}
+                        </span>
+                      ))}
+                      {run.retry_count > 0 && (
+                        <span className="text-[10px] font-label-caps flex items-center gap-1 bg-surface-variant/30 px-1.5 py-0.5 rounded text-on-surface-variant border border-outline-variant/30">
+                          <RotateCcw className="w-3 h-3" />
+                          Retry: {run.retry_count}
+                        </span>
+                      )}
+                      {run.fallback_used && (
+                        <span className="text-[10px] font-label-caps text-error bg-error/10 px-1.5 py-0.5 rounded border border-error/20">
+                          Fallback Used
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+          </div>
         </div>
-      </div>
+
+      </main>
     </div>
   );
 }

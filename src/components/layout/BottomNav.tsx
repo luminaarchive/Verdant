@@ -8,11 +8,13 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 w-full bg-[#051408] border-t border-gray-800 z-50">
+    <nav className="fixed bottom-0 z-50 w-full border-t border-stone-200 bg-stone-50/95 backdrop-blur">
       <div className="flex justify-around items-center h-16">
         <Link 
           href="/dashboard" 
-          className={`flex flex-col items-center justify-center w-full h-full ${pathname === "/dashboard" ? "text-[#22c55e]" : "text-gray-400 hover:text-gray-300"}`}
+          className={`flex h-full w-full flex-col items-center justify-center ${
+            pathname === "/dashboard" ? "text-forest-900" : "text-forest-500 hover:text-forest-800"
+          }`}
         >
           <Home size={24} />
           <span className="text-xs mt-1 font-medium">Dashboard</span>
@@ -20,7 +22,9 @@ export default function BottomNav() {
         
         <Link 
           href="/observe" 
-          className={`flex flex-col items-center justify-center w-full h-full ${pathname === "/observe" ? "text-[#22c55e]" : "text-gray-400 hover:text-gray-300"}`}
+          className={`flex h-full w-full flex-col items-center justify-center ${
+            pathname === "/observe" ? "text-forest-900" : "text-forest-500 hover:text-forest-800"
+          }`}
         >
           <Camera size={24} />
           <span className="text-xs mt-1 font-medium">Observe</span>

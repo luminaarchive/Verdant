@@ -15,7 +15,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a1f0e] text-white flex flex-col">
+    <div className="min-h-screen bg-stone-50 text-forest-950 flex flex-col">
       <main className="flex-1 overflow-y-auto pb-20">
         {children}
       </main>

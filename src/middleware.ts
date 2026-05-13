@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtectedPath = request.nextUrl.pathname.startsWith("/dashboard") || 
+  const isProtectedPath = request.nextUrl.pathname.startsWith("/archive") || 
                           request.nextUrl.pathname.startsWith("/observe") || 
                           request.nextUrl.pathname.startsWith("/observation");
 
@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPath && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/archive", request.url));
   }
 
   return supabaseResponse;

@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, IBM_Plex_Mono, Inter } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-});
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
@@ -24,8 +17,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "NaLI - Nature Life Intelligence",
-  description: "Instrument-grade precision for wildlife identification and conservation tracking.",
+  title: "NaLI - Wildlife Field Intelligence",
+  description:
+    "A field intelligence platform for wildlife identification, ecological observation, conservation analysis, and structured field logging.",
 };
 
 export default function RootLayout({
@@ -34,16 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#22c55e" />
+        <meta name="theme-color" content="#1e3525" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body
-        className={`${cormorant.variable} ${plexMono.variable} ${inter.variable} bg-surface text-on-surface font-body-md text-body-md antialiased texture-noise overflow-x-hidden selection:bg-primary selection:text-surface flex flex-col min-h-screen`}
+        className={`${plexMono.variable} ${inter.variable} bg-surface text-on-surface font-body-md text-body-md antialiased overflow-x-hidden selection:bg-primary selection:text-stone-50 flex flex-col min-h-screen`}
       >
         {children}
       </body>
