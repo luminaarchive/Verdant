@@ -619,7 +619,7 @@ function PipelineCard({ activeStep, state }: { activeStep: number; state: Pipeli
     <section className="rounded-sm border border-stone-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-forest-950">Agent pipeline</h2>
+          <h2 className="text-lg font-semibold text-forest-950">Analysis pipeline</h2>
           <p className="text-sm text-forest-700">Sequential operational analysis states</p>
         </div>
         <span className="rounded-sm bg-stone-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-forest-700">

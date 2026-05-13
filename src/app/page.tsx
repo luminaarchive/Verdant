@@ -44,7 +44,7 @@ const audience = [
 
 const workflow = [
   { label: "Photo / Audio / Text", icon: Camera },
-  { label: "AI Species Identification", icon: SearchCheck },
+  { label: "Species Identification", icon: SearchCheck },
   { label: "GBIF Distribution Cross-check", icon: Database },
   { label: "IUCN Conservation Analysis", icon: ShieldCheck },
   { label: "Anomaly Detection", icon: AlertTriangle },
@@ -196,10 +196,10 @@ export default function LandingPage() {
               <h1 className="text-4xl font-semibold leading-[1.05] tracking-[0] text-forest-950 sm:text-5xl lg:text-6xl">
                 Identify Species. Log Observations. Detect Ecological Anomalies.
               </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-forest-800 sm:text-lg">
-                NaLI helps rangers, researchers, and conservation teams identify wildlife
-                species from photos, audio, and text observations while automatically
-                generating structured scientific field logs.
+              <p className="mt-5 max-w-3xl text-base leading-7 text-forest-800 sm:text-lg sm:leading-8 lg:max-w-[42rem]">
+                NaLI helps rangers, researchers, and conservation teams identify wildlife species
+                from photos, audio, and field notes while generating structured ecological records
+                and autonomous operational workflows.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
