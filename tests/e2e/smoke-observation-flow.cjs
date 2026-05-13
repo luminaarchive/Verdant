@@ -9,6 +9,8 @@ const { MockGBIFTool } = require("../../src/lib/agent/tools/gbif.mock");
 const { MockIUCNTool } = require("../../src/lib/agent/tools/iucn.mock");
 const { MockAnomalyTool } = require("../../src/lib/agent/tools/anomaly.mock");
 const { storageService } = require("../../src/lib/services/storage.service");
+const { createClient } = require("@supabase/supabase-js");
+const { SUPABASE_ENV, loadLocalEnv, missingEnv } = require("../../scripts/validation-utils.cjs");
 
 function createMockDb() {
   const state = {
@@ -67,6 +69,7 @@ function createMockFile() {
 }
 
 async function runSmoke() {
+  loadLocalEnv();
   const file = createMockFile();
   const payload = {
     userId: "00000000-0000-4000-8000-000000000001",
@@ -117,14 +120,90 @@ async function runSmoke() {
   });
 
   if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
+    missingEnv(SUPABASE_ENV).length > 0
   ) {
     console.log("skipped live persistence: missing env");
+  } else if (!process.env.NALI_LIVE_TEST_USER_ID) {
+    console.log("skipped live persistence: missing NALI_LIVE_TEST_USER_ID");
+  } else {
+    await runLivePersistenceSmoke(process.env.NALI_LIVE_TEST_USER_ID);
   }
 
   console.log("smoke observation flow passed");
+}
+
+async function runLivePersistenceSmoke(userId) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+  const observationId = crypto.randomUUID();
+
+  const { error: insertError } = await supabase.from("observations").insert({
+    id: observationId,
+    user_id: userId,
+    timestamp: new Date().toISOString(),
+    latitude: -6.9175,
+    longitude: 107.6191,
+    text_description: "NaLI live E2E validation observation",
+    observation_status: "pending",
+    status: "pending",
+    review_status: "unreviewed",
+    processing_stage: "uploaded",
+    sync_state: "synced",
+    created_at: new Date().toISOString(),
+  });
+  if (insertError) {
+    throw new Error(`live observation insert failed: ${insertError.message}`);
+  }
+
+  try {
+    await supabase.from("observation_events").insert({
+      observation_id: observationId,
+      event_type: "OBSERVATION_CREATED",
+      severity: "info",
+      payload: { source: "smoke-observation-flow" },
+    });
+
+    const orchestrator = new ObservationOrchestrator(
+      observationId,
+      [new MockVisionTool(), new MockGBIFTool(), new MockIUCNTool(), new MockAnomalyTool()],
+      supabase,
+    );
+    await orchestrator.executeWorkflow();
+
+    const { data: observation, error: observationError } = await supabase
+      .from("observations")
+      .select("id, reasoning_snapshot, signal_snapshot, reasoning_trace_id, confidence_level")
+      .eq("id", observationId)
+      .single();
+    if (observationError) throw new Error(`live observation select failed: ${observationError.message}`);
+    assert.equal(observation.id, observationId);
+    assert.ok(observation.reasoning_snapshot);
+    assert.ok(observation.signal_snapshot);
+    assert.match(observation.reasoning_trace_id, /^[0-9a-f-]{36}$/);
+    assert.equal(typeof observation.confidence_level, "number");
+
+    const { data: events, error: eventsError } = await supabase
+      .from("observation_events")
+      .select("event_type")
+      .eq("observation_id", observationId);
+    if (eventsError) throw new Error(`live event select failed: ${eventsError.message}`);
+
+    const eventTypes = events.map((event) => event.event_type);
+    ["OBSERVATION_CREATED", "ORCHESTRATION_STARTED", "REASONING_SYNTHESIZED", "OBSERVATION_COMPLETED"].forEach(
+      (eventType) => {
+        assert.ok(eventTypes.includes(eventType), `expected live event ${eventType}`);
+      },
+    );
+    console.log("live persistence smoke passed");
+  } finally {
+    const { error: cleanupError } = await supabase.from("observations").delete().eq("id", observationId);
+    if (cleanupError) {
+      console.warn(`WARN     live persistence cleanup failed: ${cleanupError.message}`);
+    } else {
+      console.log("live persistence cleanup complete");
+    }
+  }
 }
 
 runSmoke().catch((error) => {

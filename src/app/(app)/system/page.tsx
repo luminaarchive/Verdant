@@ -37,6 +37,24 @@ export default function SystemReadinessPage() {
       icon: HardDrive,
     },
     {
+      label: "Storage bucket validation",
+      detail: "Run npm run validate:storage to verify the private observation_media bucket, signed URLs, path convention, and cleanup behavior.",
+      status: envStatus.required.SUPABASE_SERVICE_ROLE_KEY.availability === "configured" ? "ok" : "degraded",
+      icon: HardDrive,
+    },
+    {
+      label: "RLS validation",
+      detail: "Run npm run validate:rls to check anon access, user-scoped observation data, media access, analysis traces, and public species reference behavior.",
+      status: envStatus.ready ? "ok" : "degraded",
+      icon: ShieldCheck,
+    },
+    {
+      label: "Live persistence readiness",
+      detail: "Run npm run validate:supabase and node tests/e2e/smoke-observation-flow.cjs with production-like env vars before release.",
+      status: envStatus.ready ? "ok" : "degraded",
+      icon: Database,
+    },
+    {
       label: "Offline queue available",
       detail: "Client-side field capture can continue using local queue infrastructure.",
       status: "ok",
@@ -102,6 +120,26 @@ export default function SystemReadinessPage() {
                 <ProviderRow label="GBIF occurrence data" status="configured" />
                 {providerEntries.map(([key, status]) => (
                   <ProviderRow key={key} label={key.replace("_API_KEY", "").toLowerCase()} status={status.availability} />
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-md border border-stone-200 bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-forest-700" />
+                <h2 className="text-lg font-headline-md">Production validation commands</h2>
+              </div>
+              <div className="space-y-2">
+                {[
+                  "npm run validate:vercel-env",
+                  "npm run validate:supabase",
+                  "npm run validate:storage",
+                  "npm run validate:rls",
+                  "npm run validate:production",
+                ].map((command) => (
+                  <p key={command} className="rounded-sm bg-stone-100 px-3 py-2 font-data-sm text-xs text-forest-800">
+                    {command}
+                  </p>
                 ))}
               </div>
             </section>

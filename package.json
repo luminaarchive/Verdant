@@ -16,7 +16,12 @@
     "test:reasoning": "node --test tests/reasoning/operational-runtime.test.cjs",
     "test:longitudinal": "node --test tests/longitudinal/longitudinal-intelligence.test.cjs",
     "test:golden": "node tests/golden-set/run-pipeline.cjs",
-    "verify": "npm run build && npm run typecheck && npm run test:reasoning && npm run test:longitudinal && npm run test:golden"
+    "verify": "npm run build && npm run typecheck && npm run test:reasoning && npm run test:longitudinal && npm run test:golden",
+    "validate:supabase": "node scripts/validate-supabase-live.cjs",
+    "validate:rls": "node scripts/validate-rls.cjs",
+    "validate:storage": "node scripts/validate-storage.cjs",
+    "validate:vercel-env": "node scripts/print-vercel-env-checklist.cjs",
+    "validate:production": "npm run validate:vercel-env && npm run validate:supabase && npm run validate:storage && npm run validate:rls"
   },
   "lint-staged": {
     "*.{js,cjs,mjs,ts,tsx}": [

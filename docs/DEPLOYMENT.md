@@ -16,20 +16,36 @@ node tests/e2e/smoke-observation-flow.cjs
 
 ## Vercel Environment Variables
 
-Required:
+Required browser-safe public variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
 
-Optional provider keys:
+Required server-only secret variables:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Optional server-only provider and observability variables:
 
 - `IUCN_API_KEY`
 - `BIRDNET_API_KEY`
 - `ANTHROPIC_API_KEY`
+- `SENTRY_DSN`
+
+Optional public variables if intentionally used by client code:
+
+- `VERCEL_ANALYTICS_ID`
 
 Optional keys can remain unset until their provider integrations are enabled. NaLI should report those providers as unavailable or unconfigured instead of failing the UI.
+
+Never prefix `SUPABASE_SERVICE_ROLE_KEY` with `NEXT_PUBLIC_`, and never expose it to browser code.
+
+Use the checklist script before configuring or reviewing Vercel:
+
+```bash
+npm run validate:vercel-env
+```
 
 ## Supabase Migration Order
 
@@ -65,6 +81,14 @@ After applying migrations, verify:
 - Reasoning and signal snapshots remain separated.
 - End-to-end observation persistence updates `reasoning_snapshot`, `signal_snapshot`, and `reasoning_trace_id`.
 
+Run the live Supabase validation script with production-like environment variables:
+
+```bash
+npm run validate:supabase
+```
+
+If local secrets are unavailable, the script prints skipped checks and exits without claiming live readiness.
+
 ## Storage Bucket Notes
 
 - Confirm field media buckets exist before production observation testing.
@@ -73,6 +97,24 @@ After applying migrations, verify:
 - Confirm observation media paths follow `/{user_id}/{observation_id}/{checksum}.<ext>`.
 - Keep sensitive biodiversity media and coordinates protected by the existing security and obfuscation rules.
 - Do not expose endangered species media or precise coordinates through public bucket listing.
+
+Validate storage readiness with:
+
+```bash
+npm run validate:storage
+```
+
+The script checks bucket existence, private access, signed URL generation, path convention, tiny upload, and cleanup.
+
+## RLS Validation
+
+Validate private data exposure with:
+
+```bash
+npm run validate:rls
+```
+
+This checks anonymous access to observations, observation media, analysis traces, and public species references. Full cross-user isolation requires two real authenticated test users; do not weaken RLS policies to make validation pass.
 
 ## Production Observation Smoke Test
 
@@ -86,6 +128,14 @@ After applying migrations, verify:
 8. Open `/observation/<id>` and verify reasoning trace, review recommendation, priority explanation, provider conflicts, and linked cases.
 9. Open `/monitoring`, `/cases`, and `/alerts`; verify real records appear or empty states clearly say what data is needed.
 10. Check `/api/health` and `/system`.
+
+For a Node-side live persistence smoke, set a disposable authenticated test user ID and run:
+
+```bash
+NALI_LIVE_TEST_USER_ID=<auth-user-uuid> node tests/e2e/smoke-observation-flow.cjs
+```
+
+Without `NALI_LIVE_TEST_USER_ID`, the smoke test keeps the local mock validation and skips live persistence.
 
 ## Health Check URL
 
@@ -134,5 +184,6 @@ If a production deployment fails:
 
 1. Promote the previous healthy Vercel deployment.
 2. Confirm `/api/health` on the restored deployment.
-3. Avoid rolling back Supabase migrations unless a migration-specific rollback has been reviewed.
-4. If database rollback is required, preserve observation, reasoning, event, and audit records before changing schema state.
+3. Run `npm run validate:production` against the restored environment if credentials are available.
+4. Avoid rolling back Supabase migrations unless a migration-specific rollback has been reviewed.
+5. If database rollback is required, preserve observation, reasoning, event, and audit records before changing schema state.
