@@ -4,170 +4,117 @@ export default function LandingPage() {
   const logoUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuCSOEp6mfy7WR2FL9G5ZEWOGNB1qgpcF7_lSfK1UFAXIsC89pyWLK-P-Igko8EX6wv4xkuaDTQGTbNDUGHvw5Z5tpggzho_grJ-fAbPbNwYS2eQ3Nmj_tV8-WVK1XGHJbzqlCeN263l77sEEaN95Df46WWogNh0c7UPHqc-YgRHVpsB_ebhVqu9KhDGqieE0trr1Q96WxCoX5_2q_aOBz8JKJLK52BtBQJ9RK9c7XlKhHXMd46vxVmeaDnSDBT1FmDGVIALg4AJ4RY";
 
   return (
-    <>
-      {/* Sidebar Navigation */}
-      <aside className="w-64 flex-shrink-0 bg-surface-container-low border-r border-outline-variant/20 flex flex-col h-full z-40 hidden lg:flex">
-        <div className="p-8 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
-            {/* Added scale-[1.2] to crop out the white edges from the logo */}
-            <img
-              alt="NaLI Logo"
-              className="w-full h-full object-cover scale-[1.2] mix-blend-lighten"
-              src={logoUrl}
-            />
-          </div>
-          <Link className="font-headline-lg text-2xl tracking-tighter text-primary" href="#">
-            NaLI
-          </Link>
-        </div>
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <Link className="flex items-center gap-3 px-4 py-3 bg-primary text-surface font-body-md rounded-lg" href="#">
-            <span className="material-symbols-outlined text-[20px]">search</span>
-            New Query
-          </Link>
-          <Link className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 hover:text-primary rounded-lg transition-colors font-body-md" href="#">
-            <span className="material-symbols-outlined text-[20px]">explore</span>
-            Discover
-          </Link>
-          <Link className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 hover:text-primary rounded-lg transition-colors font-body-md" href="#">
-            <span className="material-symbols-outlined text-[20px]">library_books</span>
-            Library
-          </Link>
-          <div className="pt-8 pb-2 px-4">
-            <span className="font-label-caps text-[10px] text-on-surface-variant/50 uppercase tracking-[0.2em]">
-              Recent Observations
-            </span>
-          </div>
-          <div className="space-y-1">
-            <Link className="flex items-center gap-3 px-4 py-2 text-on-surface-variant/80 hover:bg-surface-variant/30 hover:text-primary rounded-lg transition-colors font-body-md text-sm truncate" href="#">
-              <span className="material-symbols-outlined text-[16px] opacity-40">history</span>
-              Mycelial network communication patterns
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-2 text-on-surface-variant/80 hover:bg-surface-variant/30 hover:text-primary rounded-lg transition-colors font-body-md text-sm truncate" href="#">
-              <span className="material-symbols-outlined text-[16px] opacity-40">history</span>
-              Connections between moonlight and tides
-            </Link>
-            <Link className="flex items-center gap-3 px-4 py-2 text-on-surface-variant/80 hover:bg-surface-variant/30 hover:text-primary rounded-lg transition-colors font-body-md text-sm truncate" href="#">
-              <span className="material-symbols-outlined text-[16px] opacity-40">history</span>
-              Why do forests feel alive after rain?
-            </Link>
-          </div>
-        </nav>
-        <div className="p-4 border-t border-outline-variant/10 mt-auto">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 hover:text-primary rounded-lg transition-colors font-body-md">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-            Settings
-          </button>
-        </div>
-      </aside>
-      
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-y-auto relative bg-surface">
-        {/* TopNavBar (Mobile) */}
-        <nav className="sticky top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-surface-dim border-b border-outline-variant/10 lg:hidden">
+    <div className="bg-surface-container-lowest text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-surface-variant selection:text-primary">
+      {/* TopNavBar */}
+      <header className="bg-surface-dim dark:bg-surface-dim docked full-width top-0 border-b border-outline-variant dark:border-outline-variant flat no shadows sticky z-50">
+        <div className="flex justify-between items-center w-full px-margin h-16 max-w-full">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center">
+            {/* Logo container with scale and mix-blend-screen to remove white edges */}
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center relative bg-surface-dim">
               <img
                 alt="NaLI Logo"
-                className="w-full h-full object-cover scale-[1.2] mix-blend-lighten"
+                className="w-full h-full object-cover scale-[1.3] mix-blend-screen"
                 src={logoUrl}
               />
             </div>
-            <Link className="font-headline-lg text-headline-lg-mobile tracking-tighter text-primary" href="#">
-              NaLI
-            </Link>
+            <div className="font-headline-md text-headline-md tracking-tighter text-on-surface dark:text-on-surface font-bold">NaLI</div>
           </div>
-          <button className="text-primary">
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-        </nav>
-        
-        <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12 md:py-24 relative">
-          {/* Search / Query Interface */}
-          <section className="w-full mb-16">
-            <h1 className="font-display-xl text-5xl md:text-6xl text-on-surface text-center mb-10 leading-tight">
-              Consult the earth's quiet intelligence.
+          <nav className="hidden md:flex gap-md">
+            <Link className="text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors duration-75 px-3 py-2 rounded-DEFAULT active:bg-primary active:text-on-primary" href="#">Intelligence</Link>
+            <Link className="text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors duration-75 px-3 py-2 rounded-DEFAULT active:bg-primary active:text-on-primary" href="#">Methodology</Link>
+            <Link className="text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors duration-75 px-3 py-2 rounded-DEFAULT active:bg-primary active:text-on-primary" href="#">Conservation</Link>
+          </nav>
+          <div className="flex items-center gap-md">
+            <Link className="text-on-surface-variant font-label-caps text-label-caps hover:text-primary transition-colors" href="#">Sign In</Link>
+            <button className="font-label-caps text-label-caps border border-outline-variant px-sm py-xs text-primary hover:bg-surface-container-high transition-colors flex items-center gap-xs">
+              LOG_EXECUTION
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col">
+        {/* Hero Section */}
+        <section className="w-full px-margin py-xl flex flex-col items-start justify-center min-h-[716px] border-b border-outline-variant">
+          <div className="max-w-4xl">
+            <div className="font-data-sm text-data-sm text-on-surface mb-md uppercase tracking-widest flex items-center gap-sm">
+              <span className="w-2 h-2 bg-primary rounded-none inline-block"></span>
+              WILDLIFE FIELD INTELLIGENCE · INDONESIA
+            </div>
+            <h1 className="font-display-lg text-display-lg md:text-[72px] md:leading-[1.1] text-primary mb-md font-bold">
+              Every species.<br/>Every field.<br/>Every second.
             </h1>
-            <div className="relative w-full max-w-3xl mx-auto">
-              <div className="relative flex flex-col bg-surface-container border border-outline-variant/30 rounded-2xl p-4 shadow-xl transition-all duration-500 focus-within:border-outline/50">
-                <div className="flex items-center mb-3">
-                  <span className="material-symbols-outlined text-primary/70 ml-2 mr-3">psychology</span>
-                  <input
-                    className="w-full bg-transparent border-none focus:ring-0 text-body-lg font-body-lg text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none"
-                    placeholder="Ask about cycles, connections, or patterns..."
-                    type="text"
-                  />
-                </div>
-                <div className="flex items-center justify-between border-t border-outline-variant/10 pt-3 mt-1">
-                  <div className="flex gap-2">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface-variant/30 hover:bg-surface-variant/60 text-on-surface-variant text-sm transition-colors font-body-md">
-                      <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                      Focus
-                    </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface-variant/30 hover:bg-surface-variant/60 text-on-surface-variant text-sm transition-colors font-body-md">
-                      <span className="material-symbols-outlined text-[18px]">travel_explore</span>
-                      Nature Archive
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <div className="relative">
-                        <input className="sr-only" type="checkbox" defaultChecked />
-                        <div className="block bg-surface-variant w-8 h-5 rounded-full border border-outline-variant/20"></div>
-                        <div className="dot absolute left-1 top-1 bg-primary w-3 h-3 rounded-full transition transform translate-x-full"></div>
-                      </div>
-                      <span className="text-[10px] font-label-caps text-on-surface-variant uppercase tracking-wider">
-                        Pro Search
-                      </span>
-                    </label>
-                    <button className="p-2 bg-primary text-surface rounded-full hover:brightness-110 transition-all flex items-center justify-center">
-                      <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>arrow_forward</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Suggested Prompts */}
-            <div className="flex flex-wrap justify-center gap-3 mt-8 opacity-90">
-              <button className="px-4 py-1.5 bg-surface-container border border-outline-variant/20 rounded-full font-label-caps text-[11px] text-on-surface-variant hover:text-primary hover:border-primary/30 transition-colors flex items-center gap-2">
-                <span className="material-symbols-outlined text-[14px]">water_drop</span> Why do forests feel alive after rain?
+            <p className="font-body-md text-body-md text-on-surface-variant mb-lg max-w-2xl">
+              Instrument-grade precision for wildlife identification and conservation tracking. 
+              Deployed in over 40 national parks across the Indonesian archipelago.
+            </p>
+            <div className="flex gap-sm">
+              <button className="bg-primary text-surface-container-lowest px-lg py-sm font-label-caps text-label-caps border border-primary hover:bg-surface-container-low hover:text-primary transition-colors">
+                INITIALIZE SCAN
               </button>
-              <button className="px-4 py-1.5 bg-surface-container border border-outline-variant/20 rounded-full font-label-caps text-[11px] text-on-surface-variant hover:text-primary hover:border-primary/30 transition-colors flex items-center gap-2">
-                <span className="material-symbols-outlined text-[14px]">nightlight</span> Connections between moonlight and tides
-              </button>
-              <button className="px-4 py-1.5 bg-surface-container border border-outline-variant/20 rounded-full font-label-caps text-[11px] text-on-surface-variant hover:text-primary hover:border-primary/30 transition-colors hidden md:flex items-center gap-2">
-                <span className="material-symbols-outlined text-[14px]">hub</span> Mycelial network communication patterns
+              <button className="bg-transparent text-primary px-lg py-sm font-label-caps text-label-caps border border-outline-variant hover:bg-surface-container-high transition-colors">
+                VIEW PROTOCOLS
               </button>
             </div>
-          </section>
-          
-          {/* Discovery Threads / Answer Layout */}
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 opacity-40">
-            <div className="lg:col-span-8 space-y-8">
-              <div className="h-6 w-1/3 bg-surface-variant/40 rounded animate-pulse"></div>
-              <div className="space-y-4">
-                <div className="h-4 w-full bg-surface-variant/20 rounded animate-pulse"></div>
-                <div className="h-4 w-5/6 bg-surface-variant/20 rounded animate-pulse"></div>
-                <div className="h-4 w-4/6 bg-surface-variant/20 rounded animate-pulse"></div>
-              </div>
-            </div>
-            <div className="lg:col-span-4 space-y-6">
-              <div className="h-32 w-full bg-surface-variant/20 rounded-lg animate-pulse"></div>
-              <div className="h-32 w-full bg-surface-variant/20 rounded-lg animate-pulse"></div>
-            </div>
-          </section>
-        </main>
-        
-        {/* Footer inside main scroll area */}
-        <footer className="w-full px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-outline-variant/10 text-sm mt-auto bg-surface-dim">
-          <p className="font-body-md text-on-surface-variant/50">© 2024 NaLI Intelligence.</p>
-          <div className="flex gap-6 flex-wrap justify-center">
-            <Link className="text-on-surface-variant/50 hover:text-primary transition-colors" href="#">Privacy</Link>
-            <Link className="text-on-surface-variant/50 hover:text-primary transition-colors" href="#">Terms</Link>
           </div>
-        </footer>
-      </div>
-    </>
+        </section>
+
+        {/* Stats Bar */}
+        <section className="grid grid-cols-1 md:grid-cols-3 w-full border-b border-outline-variant">
+          <div className="p-margin border-b md:border-b-0 md:border-r border-outline-variant flex flex-col justify-center">
+            <div className="font-data-lg text-data-lg text-primary mb-xs">72,000+</div>
+            <div className="font-label-caps text-label-caps text-on-surface-variant">SPECIES IN DATABASE</div>
+          </div>
+          <div className="p-margin border-b md:border-b-0 md:border-r border-outline-variant flex flex-col justify-center">
+            <div className="font-data-lg text-data-lg text-primary mb-xs">17,000</div>
+            <div className="font-label-caps text-label-caps text-on-surface-variant">ENDEMIC SPECIES</div>
+          </div>
+          <div className="p-margin flex flex-col justify-center">
+            <div className="font-data-lg text-data-lg text-primary mb-xs">&lt; 30s</div>
+            <div className="font-label-caps text-label-caps text-on-surface-variant">AVERAGE ID TIME</div>
+          </div>
+        </section>
+
+        {/* Data Sources */}
+        <section className="py-sm px-margin border-b border-outline-variant bg-surface-container-low flex justify-center items-center overflow-x-auto">
+          <div className="font-data-sm text-data-sm text-on-surface-variant whitespace-nowrap flex gap-md items-center">
+            <span className="text-on-surface-variant/50">DATA SOURCES:</span>
+            <span>GBIF</span>
+            <span className="text-outline-variant">•</span>
+            <span>IUCN RED LIST</span>
+            <span className="text-outline-variant">•</span>
+            <span>KLHK</span>
+            <span className="text-outline-variant">•</span>
+            <span>BIRDNET</span>
+            <span className="text-outline-variant">•</span>
+            <span>ARXIV</span>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-surface-container-lowest dark:bg-surface-container-lowest w-full px-margin py-lg grid grid-cols-1 md:grid-cols-4 gap-gutter border-t border-outline-variant dark:border-outline-variant flat no shadows mt-auto">
+        <div className="col-span-1 md:col-span-2">
+          <div className="font-label-caps text-label-caps font-bold text-on-surface mb-sm">
+            NaLI
+          </div>
+          <p className="font-data-sm text-data-sm text-on-surface-variant dark:text-on-surface-variant max-w-sm mb-lg">
+            NATURE LIFE INTELLIGENCE
+          </p>
+          <div className="font-data-sm text-data-sm text-on-surface-variant dark:text-on-surface-variant">
+            © 2026 PRECISION FIELD INTELLIGENCE. INSTRUMENT GRADE PRECISION.
+          </div>
+        </div>
+        <div className="col-span-1 md:col-span-2 flex flex-wrap gap-md justify-start md:justify-end">
+          <Link className="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors opacity-100 hover:opacity-80 transition-opacity" href="#">Internal Protocols</Link>
+          <Link className="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors opacity-100 hover:opacity-80 transition-opacity" href="#">Security Matrix</Link>
+          <Link className="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors opacity-100 hover:opacity-80 transition-opacity" href="#">Contact Terminal</Link>
+          <Link className="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors opacity-100 hover:opacity-80 transition-opacity" href="#">Archive</Link>
+          <Link className="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors opacity-100 hover:opacity-80 transition-opacity" href="#">Hardware Status</Link>
+        </div>
+      </footer>
+    </div>
   );
 }
