@@ -1,109 +1,159 @@
-import { VisionTool } from "@/lib/agent/tools/vision";
-import { GBIFTool } from "@/lib/agent/tools/gbif";
-import { IUCNTool } from "@/lib/agent/tools/iucn";
-import { AnomalyTool } from "@/lib/agent/tools/anomaly";
-import { logger } from "@/lib/logger";
-import { AgentError, toAppError } from "@/lib/errors";
-import type { AgentResult, ToolInput, ToolName } from "@/types/agent";
-import type { Result } from "@/types/common";
-import { config } from "@/lib/config";
-import { IDENTIFY_PROMPT } from "@/lib/agent/prompts/versions";
+// NaLI: Workflow Runtime Orchestrator
+import { AgentTool, ToolOutput, EventSeverity } from "./types";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-// NOTE: You would normally inject Supabase client here to log to analysis_runs,
-// but for simplicity we assume there's a logging function or we leave a comment.
+export class ObservationOrchestrator {
+  private pipeline: AgentTool[];
+  private observationId: string;
+  private orchestratorRunId: string | null = null;
+  private db: any;
+  private confidenceCalibration: any = {};
 
-export async function runNaLIAgent(input: ToolInput & { observationId: string }): Promise<Result<AgentResult>> {
-  const startTime = Date.now();
-  const toolsUsed: ToolName[] = [];
-  let totalLatencyMs = 0;
+  constructor(observationId: string, pipeline: AgentTool[]) {
+    this.observationId = observationId;
+    this.pipeline = pipeline;
+  }
 
-  try {
-    logger.info("Starting NaLI Agent Orchestration", { observationId: input.observationId });
-
-    // Step 1: VisionTool
-    const vision = new VisionTool();
-    const visionOut = await vision.execute(input);
-    toolsUsed.push(vision.name);
-    totalLatencyMs += visionOut.latencyMs;
-
-    let currentCandidates = visionOut.candidates || [];
-
-    // Step 2: GBIFTool
-    if (currentCandidates.length > 0) {
-      const gbif = new GBIFTool();
-      const gbifOut = await gbif.execute({ ...input, candidates: currentCandidates });
-      toolsUsed.push(gbif.name);
-      totalLatencyMs += gbifOut.latencyMs;
-      if (gbifOut.candidates) {
-        currentCandidates = gbifOut.candidates;
-      }
-    }
-
-    let conservationStatus: string | undefined;
+  /**
+   * Initializes the DB client and starts the run.
+   */
+  async start() {
+    this.db = await createServerSupabaseClient();
     
-    // Step 3: IUCNTool
-    if (currentCandidates.length > 0) {
-      const iucn = new IUCNTool();
-      const iucnOut = await iucn.execute({ ...input, candidates: currentCandidates });
-      toolsUsed.push(iucn.name);
-      totalLatencyMs += iucnOut.latencyMs;
-      
-      const rawIucn = iucnOut.raw as { category?: string } | undefined;
-      if (rawIucn?.category) {
-        conservationStatus = rawIucn.category;
+    // 1. Create orchestrator_run
+    const { data, error } = await this.db.from('orchestrator_runs').insert({
+      observation_id: this.observationId,
+      status: 'running',
+    }).select('id').single();
+
+    if (error) {
+      console.error("Failed to init orchestrator_run", error);
+      return;
+    }
+    this.orchestratorRunId = data.id;
+
+    await this.emitEvent('ORCHESTRATION_STARTED', 'info', { pipeline_length: this.pipeline.length });
+  }
+
+  /**
+   * Executes the pipeline asynchronously.
+   */
+  async executeWorkflow() {
+    if (!this.orchestratorRunId) await this.start();
+    
+    let totalLatency = 0;
+    let finalStatus = 'completed';
+    let failedTool = null;
+    let finalConfidence = 0;
+
+    for (let i = 0; i < this.pipeline.length; i++) {
+      const tool = this.pipeline[i];
+      const startTime = Date.now();
+      let retryCount = 0;
+      let fallbackUsed = false;
+      let output: ToolOutput;
+
+      await this.emitEvent(`${tool.name.toUpperCase()}_STARTED`, 'info', { version: tool.version });
+      await this.updateProcessingStage(this.mapToolToStage(tool.name));
+
+      try {
+        output = await tool.execute({ observationId: this.observationId });
+        
+        // Track confidence and calibration
+        if (output.score_breakdown && output.score_breakdown.confidence) {
+          finalConfidence = output.score_breakdown.confidence;
+          this.confidenceCalibration[tool.name] = output.score_breakdown;
+        }
+
+      } catch (err) {
+        if (tool.fallback) {
+          fallbackUsed = true;
+          await this.emitEvent(`FALLBACK_TRIGGERED`, 'warning', { tool: tool.name });
+          output = await tool.fallback({ observationId: this.observationId }, err);
+        } else {
+          output = {
+            status: 'error',
+            latency_ms: Date.now() - startTime,
+            score_breakdown: {},
+            raw_output: err instanceof Error ? err.message : 'Unknown tool error',
+            error: 'Tool execution failed completely without fallback.'
+          };
+        }
+      }
+
+      totalLatency += output.latency_ms;
+
+      // Persist analysis_run
+      await this.db.from('analysis_runs').insert({
+        observation_id: this.observationId,
+        tool_name: tool.name,
+        tool_version: tool.version,
+        status: output.status,
+        latency_ms: output.latency_ms,
+        score_breakdown: output.score_breakdown,
+        raw_output: output.raw_output,
+        error: output.error,
+        retry_count: retryCount,
+        fallback_used: fallbackUsed,
+        execution_order: i + 1,
+        completed_at: new Date().toISOString()
+      });
+
+      if (output.status === 'error') {
+        failedTool = tool.name;
+        finalStatus = 'error';
+        await this.emitEvent(`${tool.name.toUpperCase()}_FAILED`, 'error', { error: output.error });
+        break; 
+      } else if (output.status === 'warning') {
+        finalStatus = 'warning';
+        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED_WITH_WARNINGS`, 'warning', output.score_breakdown);
+      } else {
+        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED`, 'info', output.score_breakdown);
       }
     }
 
-    let isAnomaly = false;
-    let anomalyReason: string | undefined;
+    // Wrap up Orchestrator Run
+    await this.db.from('orchestrator_runs').update({
+      status: finalStatus,
+      completed_at: new Date().toISOString(),
+      total_latency_ms: totalLatency,
+      total_tools_executed: this.pipeline.length,
+      final_confidence: finalConfidence,
+      final_result_status: failedTool ? `Failed at ${failedTool}` : 'Success'
+    }).eq('id', this.orchestratorRunId);
 
-    // Step 4: AnomalyTool
-    if (currentCandidates.length > 0 && input.latitude && input.longitude) {
-      const anomaly = new AnomalyTool();
-      const anomalyOut = await anomaly.execute({ ...input, candidates: currentCandidates });
-      toolsUsed.push(anomaly.name);
-      totalLatencyMs += anomalyOut.latencyMs;
+    // Update observation
+    await this.db.from('observations').update({
+      processing_stage: finalStatus === 'error' ? 'failed' : 'completed',
+      observation_status: finalStatus === 'error' ? 'failed' : 'identified',
+      confidence_calibration: this.confidenceCalibration
+    }).eq('id', this.observationId);
 
-      const rawAnomaly = anomalyOut.raw as { isAnomaly?: boolean, reason?: string } | undefined;
-      if (rawAnomaly) {
-        isAnomaly = rawAnomaly.isAnomaly || false;
-        anomalyReason = rawAnomaly.reason;
-      }
-    }
+    await this.emitEvent('ORCHESTRATION_COMPLETED', finalStatus === 'error' ? 'error' : 'info', { finalStatus });
+  }
 
-    const finalSpecies = currentCandidates.length > 0 ? currentCandidates[0] : null;
-    const finalConfidence = finalSpecies?.confidence || 0;
-
-    const agentResult: AgentResult = {
-      observationId: input.observationId,
-      finalSpecies,
-      confidence: finalConfidence,
-      isAnomaly,
-      anomalyReason,
-      conservationStatus,
-      toolsUsed,
-      totalLatencyMs,
-      promptVersion: IDENTIFY_PROMPT.version,
-      modelName: config.anthropic.model,
-    };
-
-    logger.info("NaLI Agent Orchestration completed", { 
-      observationId: input.observationId,
-      finalSpecies: finalSpecies?.scientificName,
-      confidence: finalConfidence
+  private async emitEvent(type: string, severity: EventSeverity, payload: any) {
+    if (!this.db) return;
+    await this.db.from('observation_events').insert({
+      observation_id: this.observationId,
+      event_type: type,
+      severity,
+      payload
     });
+  }
 
-    // TODO: Log entire run to analysis_runs table in Supabase for each tool
+  private async updateProcessingStage(stage: string) {
+    if (!this.db) return;
+    await this.db.from('observations').update({ processing_stage: stage }).eq('id', this.observationId);
+  }
 
-    return {
-      success: true,
-      data: agentResult,
+  private mapToolToStage(toolName: string): string {
+    const map: Record<string, string> = {
+      'Vision Engine': 'identifying',
+      'GBIF Cross-check': 'gbif_analysis',
+      'IUCN Analysis': 'iucn_analysis',
+      'Anomaly Detection': 'anomaly_check'
     };
-  } catch (error) {
-    logger.error("NaLI Agent Orchestration failed", { error, observationId: input.observationId });
-    return {
-      success: false,
-      error: toAppError(error),
-    };
+    return map[toolName] || 'processing';
   }
 }

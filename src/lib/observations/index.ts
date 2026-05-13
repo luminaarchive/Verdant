@@ -16,7 +16,8 @@ export class ObservationService {
         data,
         timestamp: Date.now(),
         retryCount: 0,
-        status: 'pending'
+        status: 'pending',
+        syncPriority: 'normal'
       });
       return;
     }

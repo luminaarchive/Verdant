@@ -1,60 +1,71 @@
-export type ErrorCode = 
-  | "AGENT_FAILED" 
-  | "VISION_FAILED" 
-  | "AUDIO_FAILED" 
-  | "GBIF_FAILED" 
-  | "IUCN_FAILED" 
-  | "ANOMALY_FAILED" 
-  | "SPECIES_NOT_FOUND" 
-  | "LOW_CONFIDENCE" 
-  | "INVALID_INPUT" 
-  | "UPLOAD_FAILED" 
-  | "SYNC_FAILED" 
-  | "UNAUTHORIZED" 
-  | "NOT_FOUND" 
-  | "RATE_LIMITED" 
-  | "UNKNOWN";
+// NaLI: Structured Error Architecture
 
-export class AppError extends Error {
-  code: ErrorCode;
-  context?: Record<string, unknown>;
+export class NaLIError extends Error {
+  public statusCode: number;
+  public severity: 'info' | 'warning' | 'error' | 'critical';
 
-  constructor(message: string, code: ErrorCode = "UNKNOWN", context?: Record<string, unknown>) {
+  constructor(message: string, statusCode = 500, severity: 'info' | 'warning' | 'error' | 'critical' = 'error') {
     super(message);
-    this.name = "AppError";
-    this.code = code;
-    this.context = context;
+    this.name = this.constructor.name;
+    this.statusCode = statusCode;
+    this.severity = severity;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export class AgentError extends AppError {
-  toolName?: string;
+export class VisionFailedError extends NaLIError {
+  constructor(message = "Vision engine failed to identify morphological features") {
+    super(message, 422, 'error');
+  }
+}
 
-  constructor(message: string, code: ErrorCode, toolName?: string, context?: Record<string, unknown>) {
-    super(message, code, context);
-    this.name = "AgentError";
+export class GBIFFailedError extends NaLIError {
+  constructor(message = "GBIF cross-reference service unavailable or timed out") {
+    super(message, 502, 'warning'); // Might not be critical if fallback exists
+  }
+}
+
+export class IUCNFailedError extends NaLIError {
+  constructor(message = "IUCN Red List analysis failed") {
+    super(message, 502, 'warning');
+  }
+}
+
+export class OfflineSyncError extends NaLIError {
+  constructor(message = "Failed to sync offline queue to remote") {
+    super(message, 503, 'warning');
+  }
+}
+
+export class SpeciesNotFoundError extends NaLIError {
+  constructor(message = "Species could not be confidently identified in reference catalog") {
+    super(message, 404, 'info'); // Handled gracefully via 'review_needed'
+  }
+}
+
+export function toAppError(error: unknown): AppError {
+  if (error instanceof NaLIError) {
+    return { message: error.message, code: error.name, details: { severity: error.severity, statusCode: error.statusCode } };
+  }
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+  return { message: String(error) };
+}
+
+// Backward compatibility for legacy tools
+export class AgentError extends NaLIError {
+  public code: string;
+  public toolName: string;
+  constructor(message: string, code: string = 'AGENT_ERROR', toolName: string = 'unknown') {
+    super(message, 500, 'error');
+    this.code = code;
     this.toolName = toolName;
   }
 }
 
-export function toAppError(err: unknown): AppError {
-  if (err instanceof AppError) {
-    return err;
-  }
-  
-  if (err instanceof Error) {
-    return new AppError(err.message, "UNKNOWN", { originalName: err.name });
-  }
-
-  return new AppError("An unknown error occurred", "UNKNOWN", { rawError: String(err) });
-}
-
-export function isRetryable(err: AppError): boolean {
-  const retryableCodes: ErrorCode[] = [
-    "GBIF_FAILED",
-    "IUCN_FAILED",
-    "AUDIO_FAILED",
-    "VISION_FAILED",
-  ];
-  return retryableCodes.includes(err.code);
+export interface AppError {
+  message: string;
+  code?: string;
+  details?: any;
 }

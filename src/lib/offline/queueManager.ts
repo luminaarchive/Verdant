@@ -9,6 +9,7 @@ export interface OfflinePayload {
   timestamp: number;
   retryCount: number;
   status: 'pending' | 'syncing' | 'failed';
+  syncPriority: 'critical' | 'high' | 'normal'; // Added for Phase E
 }
 
 const DB_NAME = 'NaLI_OfflineDB';

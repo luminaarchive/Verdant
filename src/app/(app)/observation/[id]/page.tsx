@@ -126,6 +126,22 @@ export default async function ObservationDetailPage({ params }: { params: { id: 
                </div>
              </div>
           </div>
+
+          {/* Scientific Confidence Notes */}
+          <div className="bg-surface-dim border border-outline-variant rounded-xl p-6">
+             <h3 className="font-label-caps text-[11px] text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+               <AlertTriangle className="w-4 h-4 text-warning" />
+               Scientific Confidence Notes
+             </h3>
+             <div className="text-sm font-body-md text-on-surface-variant leading-relaxed space-y-2">
+               <p>Confidence reduced due to:</p>
+               <ul className="list-disc pl-5 space-y-1">
+                 <li>Low image sharpness affecting morphological extraction</li>
+                 <li>Limited regional occurrence data in local cache</li>
+                 <li>Partial body visibility (tail obscured)</li>
+               </ul>
+             </div>
+          </div>
         </div>
 
         {/* Right Column: AGENT EXECUTION PANEL */}

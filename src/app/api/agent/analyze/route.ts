@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runNaLIAgent } from "@/lib/agent/core/orchestrator";
+import { ObservationOrchestrator } from "@/lib/agent/core/orchestrator";
+import { MockVisionTool } from "@/lib/agent/tools/vision.mock";
+import { MockGBIFTool } from "@/lib/agent/tools/gbif.mock";
+import { MockIUCNTool } from "@/lib/agent/tools/iucn.mock";
+import { MockAnomalyTool } from "@/lib/agent/tools/anomaly.mock";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 
@@ -13,37 +17,30 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { observationId, photoUrl, audioUrl, text, latitude, longitude, accuracyMeters } = body;
+    const { observationId } = body;
 
     if (!observationId) {
       return NextResponse.json({ error: "observationId is required" }, { status: 400 });
     }
 
-    if (!photoUrl && !audioUrl && !text) {
-      return NextResponse.json({ error: "At least one input (photoUrl, audioUrl, text) is required" }, { status: 400 });
-    }
+    logger.info("Agent analyze workflow triggered", { observationId, userId: session.user.id });
 
-    logger.info("Agent analyze request started", { observationId, userId: session.user.id });
+    // In the new async architecture, we return immediately and run in background
+    const pipeline = [
+      new MockVisionTool(),
+      new MockGBIFTool(),
+      new MockIUCNTool(),
+      new MockAnomalyTool()
+    ];
 
-    const result = await runNaLIAgent({
-      observationId,
-      photoUrl,
-      audioUrl,
-      text,
-      latitude,
-      longitude,
+    const orchestrator = new ObservationOrchestrator(observationId, pipeline);
+    
+    // Non-blocking async execution
+    orchestrator.executeWorkflow().catch(err => {
+      logger.error("Async Orchestrator failed", { error: err, observationId });
     });
 
-    if (result.success) {
-      logger.info("Agent analyze request finished successfully", { observationId });
-      return NextResponse.json(result.data, { status: 200 });
-    } else {
-      logger.error("Agent analyze request failed", { observationId, error: result.error });
-      return NextResponse.json(
-        { error: result.error.message, code: result.error.code }, 
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ success: true, message: "Orchestration triggered" }, { status: 202 });
   } catch (error) {
     logger.error("Agent analyze route error", { error });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

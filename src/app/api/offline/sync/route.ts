@@ -31,19 +31,18 @@ export async function POST(req: NextRequest) {
 
       // Sync currently only supports textual data re-submission via this endpoint
       // as multipart forms are needed for files, but we can pass text logic through
-      const result = await observationService.createAndAnalyze(session.user.id, {
-        latitude: parsed.data.latitude,
-        longitude: parsed.data.longitude,
-        accuracyMeters: parsed.data.accuracyMeters,
-        textDescription: parsed.data.textDescription,
-      });
+      try {
+        const observationId = await observationService.submitObservation(session.user.id, {
+          latitude: parsed.data.latitude,
+          longitude: parsed.data.longitude,
+          textDescription: parsed.data.textDescription,
+        });
 
-      if (result.success) {
         synced++;
-        results.push({ localTempId: parsed.data.localTempId, observationId: result.data.observationId });
-      } else {
+        results.push({ localTempId: parsed.data.localTempId, observationId });
+      } catch (err: any) {
         failed++;
-        results.push({ localTempId: parsed.data.localTempId, error: result.error.message });
+        results.push({ localTempId: parsed.data.localTempId, error: err.message || "Failed to submit" });
       }
     }
 

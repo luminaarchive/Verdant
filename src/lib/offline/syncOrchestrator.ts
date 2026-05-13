@@ -17,14 +17,18 @@ export class SyncOrchestrator {
     try {
       const pendingItems = await queueManager.getPending();
       
+      // Sort by priority: critical -> high -> normal
+      const priorityMap = { critical: 3, high: 2, normal: 1 };
+      pendingItems.sort((a, b) => priorityMap[b.syncPriority || 'normal'] - priorityMap[a.syncPriority || 'normal']);
+
       for (const item of pendingItems) {
         try {
           await retryHandler.execute(async () => {
             // Simulated sync operation
-            console.log(`Syncing item ${item.id} of type ${item.type}`);
+            console.log(`Syncing item ${item.id} of type ${item.type} with priority ${item.syncPriority || 'normal'}`);
             // In real app:
             // if (item.type === 'OBSERVATION_CREATE') await supabase.from('observations').insert(item.data)
-            // if (item.type === 'MEDIA_UPLOAD') await supabase.storage.from('media').upload(...)
+            // if (item.type === 'MEDIA_UPLOAD') await storageService.uploadObservationMedia(...)
             
             // On success, trigger server-side agent processing (analysis_runs)
             await queueManager.remove(item.id);
