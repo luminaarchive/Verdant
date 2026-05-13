@@ -18,6 +18,23 @@ export const dynamic = "force-dynamic";
 export default async function ObservationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  if (!id || id === "missing" || id === "invalid") {
+    return (
+      <div className="min-h-screen bg-stone-50 px-4 py-10 text-forest-950">
+        <section className="mx-auto max-w-xl rounded-md border border-stone-200 bg-white p-6">
+          <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">Observation audit</p>
+          <h1 className="mt-2 text-2xl font-headline-md">Observation record unavailable</h1>
+          <p className="mt-3 text-sm leading-6 text-forest-700">
+            NaLI needs a valid observation identifier before it can load reasoning snapshots, signal evidence, and linked field cases.
+          </p>
+          <Link className="mt-5 inline-flex rounded-sm bg-forest-900 px-4 py-2 text-sm font-semibold text-white" href="/archive">
+            Return to Archive
+          </Link>
+        </section>
+      </div>
+    );
+  }
+
   const observation = {
     id,
     species: { scientific_name: "Pongo abelii", common_name_en: "Sumatran Orangutan", is_endemic_indonesia: true },

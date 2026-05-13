@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getObservationsByUser } from "@/lib/supabase/queries/observations";
 import { createFieldObservation } from "@/lib/usecases/createFieldObservation";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 export async function GET(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -33,6 +34,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
+    const rateLimit = checkRateLimit(`observation:create:${session.user.id}:${ip}`, {
+      limit: 30,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many observation submissions. Please wait before sending more field records." },
+        { headers: rateLimitHeaders(rateLimit), status: 429 },
+      );
+    }
+
     const formData = await req.formData();
     const photo = formData.get("photoFile");
     const textDescription = formData.get("textDescription");
@@ -64,7 +78,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error.message }, { status: 500 });
     }
 
-    return NextResponse.json(result.data, { status: 201 });
+    return NextResponse.json(result.data, { headers: rateLimitHeaders(rateLimit), status: 201 });
   } catch {
     return NextResponse.json({ error: "Invalid observation payload" }, { status: 400 });
   }

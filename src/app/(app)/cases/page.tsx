@@ -28,6 +28,8 @@ const cases = [
 ];
 
 export default function FieldCasesPage() {
+  const hasCases = cases.length > 0;
+
   return (
     <div className="min-h-screen bg-stone-50 px-4 py-6 text-forest-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -41,7 +43,14 @@ export default function FieldCasesPage() {
           </p>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        {!hasCases && (
+          <EmptyState
+            title="No field cases are open"
+            detail="Cases are created when observations meet escalation rules such as endangered overlap, repeated anomaly clusters, or habitat pressure."
+          />
+        )}
+
+        {hasCases && <div className="grid gap-4 lg:grid-cols-2">
           {cases.map((fieldCase) => (
             <article key={fieldCase.id} className="rounded-md border border-stone-200 bg-white p-5">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -71,9 +80,19 @@ export default function FieldCasesPage() {
               </div>
             </article>
           ))}
-        </div>
+        </div>}
       </div>
     </div>
+  );
+}
+
+function EmptyState({ detail, title }: { detail: string; title: string }) {
+  return (
+    <section className="rounded-md border border-stone-200 bg-white p-6">
+      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">No escalation records</p>
+      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+    </section>
   );
 }
 

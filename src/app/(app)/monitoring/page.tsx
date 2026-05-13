@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
   MapPinned,
   Route,
   ShieldAlert,
+  type LucideIcon,
 } from "lucide-react";
 import { generateEcologicalAlerts } from "@/lib/alerts";
 import { buildRegionalBaseline } from "@/lib/agent/reasoning/ecological-baselines";
@@ -127,6 +129,8 @@ function SignalBar({ label, value }: { label: string; value: number }) {
 }
 
 export default function MonitoringPage() {
+  const hasMonitoringData = regions.length > 0 || patterns.length > 0 || alerts.length > 0;
+
   return (
     <div className="min-h-screen bg-stone-50 text-forest-950">
       <section className="border-b border-stone-200 bg-stone-100">
@@ -154,7 +158,18 @@ export default function MonitoringPage() {
       </section>
 
       <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
-        <section className="rounded-md border border-stone-200 bg-white p-4 sm:p-5">
+        {!hasMonitoringData && (
+          <div className="lg:col-span-2">
+            <EmptyState
+              title="No regional monitoring signals yet"
+              detail="Submit field observations with location, timestamp, and reasoning output to build regional baselines and anomaly clusters."
+            />
+          </div>
+        )}
+
+        {hasMonitoringData && (
+          <>
+            <section className="rounded-md border border-stone-200 bg-white p-4 sm:p-5">
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">
@@ -189,9 +204,9 @@ export default function MonitoringPage() {
               </article>
             ))}
           </div>
-        </section>
+            </section>
 
-        <section className="space-y-5">
+            <section className="space-y-5">
           <Panel icon={Activity} title="Anomaly clusters">
             <div className="space-y-3">
               {patterns.slice(0, 4).map((pattern) => (
@@ -243,9 +258,21 @@ export default function MonitoringPage() {
               ))}
             </div>
           </div>
-        </section>
+            </section>
+          </>
+        )}
       </main>
     </div>
+  );
+}
+
+function EmptyState({ detail, title }: { detail: string; title: string }) {
+  return (
+    <section className="rounded-md border border-stone-200 bg-white p-6">
+      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">Waiting for field data</p>
+      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+    </section>
   );
 }
 
@@ -254,8 +281,8 @@ function Panel({
   icon: Icon,
   title,
 }: {
-  children: React.ReactNode;
-  icon: typeof Activity;
+  children: ReactNode;
+  icon: LucideIcon;
   title: string;
 }) {
   return (
@@ -274,7 +301,7 @@ function Metric({
   label,
   value,
 }: {
-  icon: typeof Activity;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {

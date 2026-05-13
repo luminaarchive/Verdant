@@ -6,6 +6,7 @@ import { MockIUCNTool } from "@/lib/agent/tools/iucn.mock";
 import { MockAnomalyTool } from "@/lib/agent/tools/anomaly.mock";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,11 +17,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Phase 8: Simple IP/User based rate limiting stub
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimitKey = `rl_${session.user.id}_${ip}`;
-    // In real implementation: await redis.incr(rateLimitKey); if > limit throw 429
-    // logger.info("Rate limit checked", { key: rateLimitKey });
+    const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
+    const rateLimit = checkRateLimit(`analyze:${session.user.id}:${ip}`, {
+      limit: 20,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many analysis requests. Please wait before submitting another observation." },
+        { headers: rateLimitHeaders(rateLimit), status: 429 },
+      );
+    }
 
     const body = await req.json();
     const { observationId } = body;
@@ -46,7 +54,10 @@ export async function POST(req: NextRequest) {
       logger.error("Async Orchestrator failed", { error: err, observationId });
     });
 
-    return NextResponse.json({ success: true, message: "Orchestration triggered" }, { status: 202 });
+    return NextResponse.json(
+      { success: true, message: "Orchestration triggered" },
+      { headers: rateLimitHeaders(rateLimit), status: 202 },
+    );
   } catch (error) {
     logger.error("Agent analyze route error", { error });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

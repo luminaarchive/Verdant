@@ -1,0 +1,88 @@
+type EnvRequirement = "required" | "optional";
+type EnvAvailability = "configured" | "missing" | "unavailable";
+
+export type EnvKeyStatus = {
+  availability: EnvAvailability;
+  requirement: EnvRequirement;
+};
+
+const requiredKeys = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_APP_URL",
+] as const;
+
+const optionalProviderKeys = ["IUCN_API_KEY", "BIRDNET_API_KEY", "ANTHROPIC_API_KEY"] as const;
+
+type RequiredEnvKey = (typeof requiredKeys)[number];
+type OptionalProviderKey = (typeof optionalProviderKeys)[number];
+
+function hasValue(value: string | undefined) {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function statusFor(key: RequiredEnvKey | OptionalProviderKey, requirement: EnvRequirement): EnvKeyStatus {
+  const configured = hasValue(process.env[key]);
+
+  if (configured) {
+    return { availability: "configured", requirement };
+  }
+
+  return {
+    availability: requirement === "required" ? "missing" : "unavailable",
+    requirement,
+  };
+}
+
+export function getEnvStatus() {
+  const required = Object.fromEntries(requiredKeys.map((key) => [key, statusFor(key, "required")])) as Record<
+    RequiredEnvKey,
+    EnvKeyStatus
+  >;
+
+  const providers = Object.fromEntries(optionalProviderKeys.map((key) => [key, statusFor(key, "optional")])) as Record<
+    OptionalProviderKey,
+    EnvKeyStatus
+  >;
+
+  const missingRequired = requiredKeys.filter((key) => required[key].availability === "missing");
+
+  return {
+    required,
+    providers,
+    ready: missingRequired.length === 0,
+    missingRequired,
+  };
+}
+
+export const env = {
+  app: {
+    url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    version: process.env.NEXT_PUBLIC_APP_VERSION ?? process.env.npm_package_version ?? "0.1.0",
+    isDev: process.env.NODE_ENV === "development",
+    isProd: process.env.NODE_ENV === "production",
+  },
+  supabase: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  },
+  providers: {
+    iucn: {
+      apiKey: process.env.IUCN_API_KEY ?? "",
+      apiBase: process.env.IUCN_API_BASE ?? "https://apiv3.iucnredlist.org/api/v3",
+    },
+    birdnet: {
+      apiBase: process.env.BIRDNET_API_BASE ?? "",
+      apiKey: process.env.BIRDNET_API_KEY ?? "",
+    },
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY ?? "",
+      model: "claude-sonnet-4-20250514",
+    },
+    gbif: {
+      apiBase: process.env.GBIF_API_BASE ?? "https://api.gbif.org/v1",
+    },
+  },
+};

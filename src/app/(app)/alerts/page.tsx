@@ -48,6 +48,8 @@ const alerts = [
 ];
 
 export default function EcologicalAlertsPage() {
+  const hasAlerts = alerts.length > 0;
+
   return (
     <div className="min-h-screen bg-stone-50 px-4 py-6 text-forest-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -61,7 +63,14 @@ export default function EcologicalAlertsPage() {
           </p>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        {!hasAlerts && (
+          <EmptyState
+            title="No ecological alerts are active"
+            detail="Alerts appear when longitudinal reasoning detects repeated endangered observations, escalating anomaly clusters, habitat conflict, or migration disruption."
+          />
+        )}
+
+        {hasAlerts && <div className="grid gap-4 lg:grid-cols-2">
           {alerts.map((alert) => (
             <article key={alert.id} className="rounded-md border border-stone-200 bg-white p-5">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -104,9 +113,19 @@ export default function EcologicalAlertsPage() {
               </div>
             </article>
           ))}
-        </div>
+        </div>}
       </div>
     </div>
+  );
+}
+
+function EmptyState({ detail, title }: { detail: string; title: string }) {
+  return (
+    <section className="rounded-md border border-stone-200 bg-white p-6">
+      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">No active alert evidence</p>
+      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+    </section>
   );
 }
 

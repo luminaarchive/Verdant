@@ -33,6 +33,7 @@ export default async function ArchivePage() {
       created_at: "2026-05-13T09:30:00Z"
     }
   ];
+  const hasObservations = simulatedObservations.length > 0;
 
   return (
     <div className="min-h-screen bg-surface-container-lowest text-on-surface font-body-md flex flex-col">
@@ -92,7 +93,19 @@ export default async function ArchivePage() {
         </div>
 
         {/* Log List */}
-        <div className="space-y-4">
+        {!hasObservations && (
+          <section className="rounded-md border border-outline-variant bg-surface-container p-6">
+            <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">
+              No observation records
+            </p>
+            <h2 className="mt-2 text-xl font-headline-md text-primary">Your field archive is empty</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-on-surface-variant">
+              Start a field observation with photo, audio, notes, and location data to create the first ecological record.
+            </p>
+          </section>
+        )}
+
+        {hasObservations && <div className="space-y-4">
           {simulatedObservations.map((obs) => (
             <Link href={`/observation/${obs.id}`} key={obs.id} className="block group">
               <div className="bg-surface-container border border-outline-variant rounded-xl p-4 md:p-6 hover:border-primary transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -132,7 +145,7 @@ export default async function ArchivePage() {
               </div>
             </Link>
           ))}
-        </div>
+        </div>}
       </main>
     </div>
   );
