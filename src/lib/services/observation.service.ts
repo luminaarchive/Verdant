@@ -16,9 +16,20 @@ export class ObservationService {
     await supabase.from('observations').update({ processing_stage: stage }).eq('id', observationId);
   }
 
-  async updateReviewStatus(observationId: string, status: 'unreviewed' | 'verified' | 'rejected') {
+  async updateReviewStatus(
+    observationId: string, 
+    status: 'unreviewed' | 'verified' | 'rejected' | 'needs_additional_evidence',
+    reviewerId?: string,
+    notes?: string,
+    confidenceDelta?: number
+  ) {
     const supabase = await createServerSupabaseClient();
-    await supabase.from('observations').update({ review_status: status }).eq('id', observationId);
+    await supabase.from('observations').update({ 
+      review_status: status,
+      reviewer_id: reviewerId,
+      review_notes: notes,
+      review_confidence_delta: confidenceDelta
+    }).eq('id', observationId);
   }
 
   /**

@@ -16,6 +16,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Phase 8: Simple IP/User based rate limiting stub
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitKey = `rl_${session.user.id}_${ip}`;
+    // In real implementation: await redis.incr(rateLimitKey); if > limit throw 429
+    // logger.info("Rate limit checked", { key: rateLimitKey });
+
     const body = await req.json();
     const { observationId } = body;
 

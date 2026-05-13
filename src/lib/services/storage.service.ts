@@ -4,24 +4,44 @@ import { supabase } from "@/lib/supabase/client";
 export class StorageService {
   private BUCKET_NAME = 'observation_media';
 
+  private MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+
   /**
    * Mime type validation hook (Stub)
-   * Real implementation would read magic bytes
    */
   async validateMimeType(file: File): Promise<boolean> {
     const allowedTypes = ['image/jpeg', 'image/png', 'audio/wav', 'audio/mp4'];
     if (!allowedTypes.includes(file.type)) {
       throw new Error(`Invalid MIME type: ${file.type}. Strict validation failed.`);
     }
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds 10MB limit.`);
+    }
     return true;
   }
 
   /**
+   * Phase 8: Signed Upload Intent Flow
+   * Prevents arbitrary direct uploads by requiring a backend-signed URL first.
+   */
+  async createUploadIntent(userId: string, observationId: string, filename: string, mimeType: string) {
+    // In real implementation, this runs securely on the backend (e.g. Next.js API route)
+    // using the service_role key to generate a limited-time signed upload URL.
+    const ext = filename.split('.').pop() || 'bin';
+    const filePath = `${userId}/${observationId}/${crypto.randomUUID()}.${ext}`;
+    
+    // Simulate intent generation
+    return {
+      signedUrl: `https://simulated-upload-intent.nali.app/${filePath}`,
+      path: filePath,
+      expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutes
+    };
+  }
+
+  /**
    * Virus scan hook (Stub)
-   * Real implementation would send to ClamAV or similar via Edge Function
    */
   async scanForViruses(file: File): Promise<boolean> {
-    // console.log(`Scanning ${file.name} for viruses...`);
     return true;
   }
 

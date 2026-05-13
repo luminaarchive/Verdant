@@ -2,12 +2,15 @@
 import { AgentTool, ToolOutput, EventSeverity } from "./types";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+import { metricsEngine, OrchestrationTrace } from "@/lib/metrics";
+
 export class ObservationOrchestrator {
   private pipeline: AgentTool[];
   private observationId: string;
   private orchestratorRunId: string | null = null;
   private db: any;
   private confidenceCalibration: any = {};
+  private trace: OrchestrationTrace | null = null;
 
   constructor(observationId: string, pipeline: AgentTool[]) {
     this.observationId = observationId;
@@ -19,6 +22,7 @@ export class ObservationOrchestrator {
    */
   async start() {
     this.db = await createServerSupabaseClient();
+    this.trace = metricsEngine.startTrace(this.observationId);
     
     // 1. Create orchestrator_run
     const { data, error } = await this.db.from('orchestrator_runs').insert({
@@ -32,7 +36,7 @@ export class ObservationOrchestrator {
     }
     this.orchestratorRunId = data.id;
 
-    await this.emitEvent('ORCHESTRATION_STARTED', 'info', { pipeline_length: this.pipeline.length });
+    await this.emitEvent('ORCHESTRATION_STARTED', 'info', { pipeline_length: this.pipeline.length, trace_id: this.trace.trace_id });
   }
 
   /**
@@ -99,6 +103,10 @@ export class ObservationOrchestrator {
         completed_at: new Date().toISOString()
       });
 
+      if (this.trace) {
+        metricsEngine.logToolExecution(this.trace, tool.name, output.latency_ms, output.status !== 'error', retryCount);
+      }
+
       if (output.status === 'error') {
         failedTool = tool.name;
         finalStatus = 'error';
@@ -122,14 +130,59 @@ export class ObservationOrchestrator {
       final_result_status: failedTool ? `Failed at ${failedTool}` : 'Success'
     }).eq('id', this.orchestratorRunId);
 
+    // Synthesize Confidence (Phase 10)
+    const synthesizedCalibration = this.synthesizeConfidence(finalConfidence);
+
     // Update observation
     await this.db.from('observations').update({
       processing_stage: finalStatus === 'error' ? 'failed' : 'completed',
       observation_status: finalStatus === 'error' ? 'failed' : 'identified',
-      confidence_calibration: this.confidenceCalibration
+      confidence_calibration: synthesizedCalibration
     }).eq('id', this.observationId);
 
     await this.emitEvent('ORCHESTRATION_COMPLETED', finalStatus === 'error' ? 'error' : 'info', { finalStatus });
+
+    if (this.trace) {
+      metricsEngine.endTrace(this.trace, finalStatus as 'completed' | 'failed' | 'degraded');
+    }
+  }
+
+  /**
+   * Phase 10: Confidence & Uncertainty Engine
+   * Synthesizes provider outputs to explicitly explain certainty and uncertainty.
+   */
+  private synthesizeConfidence(baseConfidence: number) {
+    const contributors: { type: 'positive' | 'negative', reason: string }[] = [];
+    let adjustedConfidence = baseConfidence;
+
+    // Evaluate GBIF (Density)
+    const gbifScore = this.confidenceCalibration['GBIF Cross-check']?.occurrence_density_score;
+    if (gbifScore !== undefined) {
+      if (gbifScore > 0.8) {
+        contributors.push({ type: 'positive', reason: "Strong regional occurrence match in GBIF" });
+        adjustedConfidence += 0.05;
+      } else if (gbifScore < 0.2) {
+        contributors.push({ type: 'negative', reason: "Limited regional occurrence records, potential anomaly" });
+        adjustedConfidence -= 0.15;
+      }
+    }
+
+    // Evaluate Vision (Quality - if integrated in future, for now stubbed)
+    const visionConfidence = this.confidenceCalibration['Vision Engine']?.confidence;
+    if (visionConfidence !== undefined) {
+      if (visionConfidence > 0.9) {
+        contributors.push({ type: 'positive', reason: "Clear species morphology detected by Vision model" });
+      } else if (visionConfidence < 0.6) {
+        contributors.push({ type: 'negative', reason: "Ambiguous morphological features detected" });
+      }
+    }
+
+    return {
+      base_confidence: baseConfidence,
+      adjusted_confidence: Math.min(Math.max(adjustedConfidence, 0), 1),
+      contributors,
+      raw_tool_scores: this.confidenceCalibration
+    };
   }
 
   private async emitEvent(type: string, severity: EventSeverity, payload: any) {
