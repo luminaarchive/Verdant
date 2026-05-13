@@ -7,11 +7,25 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint src tests next.config.mjs eslint.config.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "precommit:check": "lint-staged --no-stash",
+    "bench": "node tests/performance/reasoning-baseline.cjs",
     "typecheck": "tsc --noEmit",
     "test:reasoning": "node --test tests/reasoning/operational-runtime.test.cjs",
     "test:longitudinal": "node --test tests/longitudinal/longitudinal-intelligence.test.cjs",
     "test:golden": "node tests/golden-set/run-pipeline.cjs",
     "verify": "npm run build && npm run typecheck && npm run test:reasoning && npm run test:longitudinal && npm run test:golden"
+  },
+  "lint-staged": {
+    "*.{js,cjs,mjs,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,sql,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
@@ -48,7 +62,11 @@
     "autoprefixer": "^10.0.1",
     "eslint": "^9",
     "eslint-config-next": "^16.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "postcss": "^8",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

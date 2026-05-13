@@ -17,6 +17,8 @@ import {
   ProviderOutputRecord,
 } from "@/lib/agent/reasoning/operational-runtime";
 import type { FusionSignal } from "@/lib/agent/reasoning/multi-modal-fusion";
+import { traceOrchestrationTiming, traceProviderTiming, traceReasoningTiming } from "@/lib/debug";
+import { logger } from "@/lib/logger";
 
 export class ObservationOrchestrator {
   private pipeline: AgentTool[];
@@ -49,7 +51,11 @@ export class ObservationOrchestrator {
     }).select('id').single();
 
     if (error) {
-      console.error("Failed to init orchestrator_run", error);
+      logger.error("Failed to initialize orchestrator run", {
+        observation_id: this.observationId,
+        reasoning_trace_id: this.reasoningTraceId,
+        error,
+      });
       return;
     }
     this.orchestratorRunId = data.id;
@@ -65,6 +71,10 @@ export class ObservationOrchestrator {
    */
   async executeWorkflow() {
     if (!this.orchestratorRunId) await this.start();
+    const orchestrationTiming = traceOrchestrationTiming(this.orchestratorRunId ?? "pending", {
+      observation_id: this.observationId,
+      reasoning_trace_id: this.reasoningTraceId,
+    });
     
     let totalLatency = 0;
     let finalStatus = 'completed';
@@ -77,6 +87,10 @@ export class ObservationOrchestrator {
       let retryCount = 0;
       let fallbackUsed = false;
       let output: ToolOutput;
+      const providerTiming = traceProviderTiming(tool.name, {
+        observation_id: this.observationId,
+        reasoning_trace_id: this.reasoningTraceId,
+      });
 
       await this.emitEvent(`${tool.name.toUpperCase()}_STARTED`, 'info', { version: tool.version });
       await this.updateProcessingStage(this.mapToolToStage(tool.name));
@@ -105,6 +119,7 @@ export class ObservationOrchestrator {
           };
         }
       }
+      providerTiming.end({ status: output.status, latency_ms: output.latency_ms });
 
       totalLatency += output.latency_ms;
 
@@ -152,7 +167,12 @@ export class ObservationOrchestrator {
       }
     }
 
+    const reasoningTiming = traceReasoningTiming(this.reasoningTraceId, { observation_id: this.observationId });
     const operationalReasoning = this.synthesizeOperationalReasoning();
+    reasoningTiming.end({
+      ecological_confidence: operationalReasoning.reasoning.ecological_confidence,
+      conflict_count: operationalReasoning.conflicts.length,
+    });
 
     // Wrap up Orchestrator Run
     await this.db.from('orchestrator_runs').update({
@@ -210,6 +230,7 @@ export class ObservationOrchestrator {
     if (this.trace) {
       metricsEngine.endTrace(this.trace, finalStatus as 'completed' | 'failed' | 'degraded');
     }
+    orchestrationTiming.end({ final_status: finalStatus, total_latency_ms: totalLatency });
   }
 
   private synthesizeOperationalReasoning() {
