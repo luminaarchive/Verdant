@@ -90,10 +90,10 @@ export default function RegisterPage() {
             <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-300">
               Conservation field records
             </p>
-            <h1 className="mt-3 max-w-md text-3xl font-display-lg leading-tight sm:text-4xl">
+            <h1 className="mt-3 w-full max-w-[28rem] text-3xl font-display-lg leading-tight sm:text-4xl">
               Create Account
             </h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-stone-200">
+            <p className="mt-4 w-full max-w-[28rem] text-sm leading-6 text-stone-200">
               Set up a private workspace for field observations, ecological reasoning, and conservation monitoring.
             </p>
           </div>
