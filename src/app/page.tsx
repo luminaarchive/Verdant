@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
   Camera,
   ChevronRight,
   ClipboardCheck,
@@ -21,123 +19,46 @@ import {
   WifiOff,
 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { LiveObservationResults } from "@/components/landing/LiveObservationResults";
+import { LiveObservationReview } from "@/components/landing/LiveObservationReview";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const MotionSection = motion.section;
 
 const audience = [
-  {
-    title: "Rangers",
-    description: "Rapid species checks, GPS capture, and patrol-ready anomaly notes.",
-  },
-  {
-    title: "Researchers",
-    description: "Structured observations aligned with scientific review workflows.",
-  },
-  {
-    title: "Conservation NGOs",
-    description: "Secure field records for habitat monitoring and intervention planning.",
-  },
-  {
-    title: "Biology Students",
-    description: "Guided identification practice with scientific names and status context.",
-  },
+  { key: "rangers" },
+  { key: "researchers" },
+  { key: "ngos" },
+  { key: "students" },
 ];
 
 const workflow = [
-  { label: "Photo / Audio / Text", icon: Camera },
-  { label: "Species Identification", icon: SearchCheck },
-  { label: "GBIF Distribution Cross-check", icon: Database },
-  { label: "IUCN Conservation Analysis", icon: ShieldCheck },
-  { label: "Anomaly Detection", icon: AlertTriangle },
-  { label: "Structured Field Log Saved", icon: ClipboardCheck },
-];
-
-const observations = [
-  {
-    image: "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=900&q=80",
-    scientific: "Pongo pygmaeus",
-    local: "Orangutan Kalimantan",
-    confidence: "94.2%",
-    status: "CR",
-    trend: "Decreasing",
-    anomaly: "Outside last confirmed corridor",
-    region: "Kutai, East Kalimantan",
-    time: "13 May 2026, 07:42 WITA",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1598755257130-c2aaca1f061c?auto=format&fit=crop&w=900&q=80",
-    scientific: "Varanus komodoensis",
-    local: "Komodo",
-    confidence: "91.7%",
-    status: "EN",
-    trend: "Stable in monitored zones",
-    anomaly: "None detected",
-    region: "Manggarai Barat, NTT",
-    time: "12 May 2026, 16:18 WITA",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1551969014-7d2c4cddf0b6?auto=format&fit=crop&w=900&q=80",
-    scientific: "Panthera tigris sumatrae",
-    local: "Harimau Sumatera",
-    confidence: "88.9%",
-    status: "CR",
-    trend: "Decreasing",
-    anomaly: "Human settlement proximity",
-    region: "Kerinci Seblat, Jambi",
-    time: "10 May 2026, 22:05 WIB",
-  },
+  { key: "media", icon: Camera },
+  { key: "species", icon: SearchCheck },
+  { key: "gbif", icon: Database },
+  { key: "iucn", icon: ShieldCheck },
+  { key: "anomaly", icon: ShieldCheck },
+  { key: "saved", icon: ClipboardCheck },
 ];
 
 const fieldFeatures = [
-  { title: "Offline lite mode", icon: WifiOff },
-  { title: "Auto sync", icon: RefreshCcw },
-  { title: "Low connectivity workflow", icon: SignalLow },
-  { title: "Android PWA", icon: Smartphone },
-  { title: "GPS logging", icon: Crosshair },
-  { title: "Fast field identification", icon: SearchCheck },
+  { key: "offline", icon: WifiOff },
+  { key: "sync", icon: RefreshCcw },
+  { key: "lowConnectivity", icon: SignalLow },
+  { key: "pwa", icon: Smartphone },
+  { key: "gps", icon: Crosshair },
+  { key: "fastId", icon: SearchCheck },
 ];
 
 const conservationStatuses = [
-  {
-    code: "CR",
-    label: "Critically Endangered",
-    tone: "bg-rare-red text-white",
-    description: "Extremely high risk of extinction in the wild. Location access must be protected.",
-  },
-  {
-    code: "EN",
-    label: "Endangered",
-    tone: "bg-conservation-orange text-forest-950",
-    description: "Very high extinction risk. Records should support intervention and habitat decisions.",
-  },
-  {
-    code: "VU",
-    label: "Vulnerable",
-    tone: "bg-warning-amber text-forest-950",
-    description: "High risk without continued monitoring, pressure assessment, and habitat protection.",
-  },
-  {
-    code: "NT",
-    label: "Near Threatened",
-    tone: "bg-data-cyan text-forest-950",
-    description: "Close to threatened thresholds. Trend changes deserve early attention.",
-  },
-  {
-    code: "LC",
-    label: "Least Concern",
-    tone: "bg-olive-600 text-white",
-    description: "Lower extinction risk, still valuable for distribution and seasonal behavior records.",
-  },
+  { code: "CR", key: "cr", tone: "bg-rare-red text-white" },
+  { code: "EN", key: "en", tone: "bg-conservation-orange text-forest-950" },
+  { code: "VU", key: "vu", tone: "bg-warning-amber text-forest-950" },
+  { code: "NT", key: "nt", tone: "bg-data-cyan text-forest-950" },
+  { code: "LC", key: "lc", tone: "bg-olive-600 text-white" },
 ];
 
-const privacy = [
-  "Private field observations by default",
-  "No public social feed",
-  "GPS protection for endangered species",
-  "Signed URL access for media evidence",
-  "Secure scientific data handling",
-];
+const privacy = ["private", "noFeed", "gps", "signedUrl", "secure"];
 
 function fadeUp(delay = 0) {
   return {
@@ -221,75 +142,7 @@ export default function LandingPage() {
             </motion.div>
 
             <motion.div {...fadeUp(0.08)} className="w-full">
-              <div className="overflow-hidden rounded-sm border border-stone-300 bg-stone-100 shadow-[0_22px_60px_rgba(31,45,32,0.14)]">
-                <div className="flex items-center justify-between border-b border-stone-300 bg-stone-200 px-4 py-3">
-                  <div>
-                    <p className="text-forest-700 text-xs font-semibold tracking-[0.08em] uppercase">
-                      {t("landing.observationReview")}
-                    </p>
-                    <p className="text-forest-950 text-sm font-semibold">OBS-IDN-KTI-0526-1842</p>
-                  </div>
-                  <span className="bg-warning-amber text-forest-950 rounded-sm px-2.5 py-1 text-xs font-bold">
-                    {t("landing.anomaly")}
-                  </span>
-                </div>
-                <div className="grid gap-0 md:grid-cols-[0.92fr_1.08fr]">
-                  <div className="relative min-h-72 border-b border-stone-300 md:border-r md:border-b-0">
-                    <Image
-                      alt="Orangutan observation in a forest canopy"
-                      className="object-cover"
-                      fill
-                      priority
-                      sizes="(min-width: 768px) 38vw, 100vw"
-                      src="https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=1000&q=80"
-                    />
-                    <div className="bg-forest-950/80 absolute top-3 left-3 rounded-sm px-3 py-2 text-xs font-medium text-stone-50">
-                      Uploaded photo
-                    </div>
-                  </div>
-                  <div className="p-4 sm:p-5">
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-forest-600 text-xs font-semibold tracking-[0.08em] uppercase">
-                          Probable species
-                        </p>
-                        <h2 className="text-forest-950 mt-1 text-2xl font-semibold italic">Pongo pygmaeus</h2>
-                        <p className="text-forest-700 text-sm">Orangutan Kalimantan</p>
-                      </div>
-                      <div className="border-forest-200 rounded-sm border bg-stone-50 px-3 py-2 text-right">
-                        <p className="text-forest-600 text-xs">Confidence</p>
-                        <p className="text-forest-950 text-xl font-semibold">94.2%</p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 text-sm sm:grid-cols-2">
-                      <Fact label="IUCN status" value="CR - Critically Endangered" strong />
-                      <Fact label="GPS snippet" value="0.53 N, 117.48 E" />
-                      <Fact label="Timestamp" value="13 May 2026, 07:42 WITA" />
-                      <Fact label="Evidence type" value="Photo + ranger note" />
-                    </div>
-
-                    <div className="border-conservation-orange/45 bg-conservation-orange/10 mt-4 rounded-sm border p-3">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="text-conservation-orange mt-0.5 h-4 w-4" />
-                        <div>
-                          <p className="text-forest-950 text-sm font-semibold">Distribution anomaly flagged</p>
-                          <p className="text-forest-800 mt-1 text-sm leading-6">
-                            Observation is outside the latest confirmed GBIF corridor and should be reviewed before
-                            export.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-forest-700 mt-4 grid grid-cols-3 gap-2 text-xs">
-                      <span className="rounded-sm bg-stone-50 px-2 py-2">Media signed URL</span>
-                      <span className="rounded-sm bg-stone-50 px-2 py-2">GPS protected</span>
-                      <span className="rounded-sm bg-stone-50 px-2 py-2">Sync pending</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <LiveObservationReview />
             </motion.div>
           </div>
         </section>
@@ -297,16 +150,18 @@ export default function LandingPage() {
         <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-stone-50 py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              kicker="Built for"
-              title="Field teams who need usable evidence, not spectacle."
-              description="NaLI is shaped for repeat observation work across patrols, surveys, research trips, and classroom field practice."
+              kicker={t("landing.audience.kicker")}
+              title={t("landing.audience.title")}
+              description={t("landing.audience.description")}
             />
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {audience.map((item) => (
-                <article className="rounded-sm border border-stone-200 bg-white p-5" key={item.title}>
+                <article className="rounded-sm border border-stone-200 bg-white p-5" key={item.key}>
                   <Users className="mb-4 h-5 w-5 text-olive-700" aria-hidden="true" />
-                  <h3 className="text-forest-950 text-lg font-semibold">{item.title}</h3>
-                  <p className="text-forest-700 mt-2 text-sm leading-6">{item.description}</p>
+                  <h3 className="text-lg font-semibold text-forest-950">{t(`landing.audience.cards.${item.key}.title`)}</h3>
+                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                    {t(`landing.audience.cards.${item.key}.description`)}
+                  </p>
                 </article>
               ))}
             </div>
@@ -321,17 +176,19 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
               dark
-              kicker="How NaLI works"
-              title="A traceable observation pipeline from field evidence to saved log."
-              description="Every step is visible enough for review, correction, and scientific handoff."
+              kicker={t("landing.workflow.kicker")}
+              title={t("landing.workflow.title")}
+              description={t("landing.workflow.description")}
             />
             <div className="mt-9 grid gap-3 lg:grid-cols-6">
               {workflow.map((step, index) => {
                 const Icon = step.icon;
                 return (
-                  <div className="relative rounded-sm border border-stone-50/15 bg-stone-50/6 p-4" key={step.label}>
+                  <div className="relative rounded-sm border border-stone-50/15 bg-stone-50/6 p-4" key={step.key}>
                     <Icon className="text-data-cyan h-5 w-5" aria-hidden="true" />
-                    <p className="mt-4 min-h-12 text-sm leading-6 font-semibold">{step.label}</p>
+                    <p className="mt-4 min-h-12 text-sm leading-6 font-semibold">
+                      {t(`landing.workflow.steps.${step.key}`)}
+                    </p>
                     {index < workflow.length - 1 ? (
                       <ChevronRight className="absolute top-1/2 -right-3 hidden h-5 w-5 -translate-y-1/2 text-stone-400 lg:block" />
                     ) : null}
@@ -340,15 +197,9 @@ export default function LandingPage() {
               })}
             </div>
             <div className="mt-5 grid gap-3 text-sm text-stone-300 sm:grid-cols-3">
-              <p className="rounded-sm border border-stone-50/10 p-4">
-                Inputs stay attached to their observation record for later verification.
-              </p>
-              <p className="rounded-sm border border-stone-50/10 p-4">
-                GBIF and IUCN checks create context, not hidden final authority.
-              </p>
-              <p className="rounded-sm border border-stone-50/10 p-4">
-                Anomaly flags remain reviewable before reports are exported.
-              </p>
+              <p className="rounded-sm border border-stone-50/10 p-4">{t("landing.workflow.notes.inputs")}</p>
+              <p className="rounded-sm border border-stone-50/10 p-4">{t("landing.workflow.notes.context")}</p>
+              <p className="rounded-sm border border-stone-50/10 p-4">{t("landing.workflow.notes.review")}</p>
             </div>
           </div>
         </MotionSection>
@@ -356,49 +207,12 @@ export default function LandingPage() {
         <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-stone-100 py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              kicker="Observation results"
-              title="Result cards designed for review in the field."
-              description="Readable names, status, confidence, place, time, and warning state are visible without digging through menus."
+              kicker={t("landing.results.kicker")}
+              title={t("landing.results.title")}
+              description={t("landing.results.description")}
             />
-            <div className="mt-8 grid gap-4 lg:grid-cols-3">
-              {observations.map((item) => (
-                <article className="overflow-hidden rounded-sm border border-stone-300 bg-white" key={item.scientific}>
-                  <div className="relative h-48 w-full">
-                    <Image
-                      alt={`${item.local} field observation`}
-                      className="object-cover"
-                      fill
-                      sizes="(min-width: 1024px) 33vw, 100vw"
-                      src={item.image}
-                    />
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-forest-950 text-xl font-semibold italic">{item.scientific}</h3>
-                        <p className="text-forest-700 text-sm">{item.local}</p>
-                      </div>
-                      <span
-                        className={`rounded-sm px-2.5 py-1 text-xs font-bold ${
-                          item.status === "CR" ? "bg-rare-red text-white" : "bg-conservation-orange text-forest-950"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
-                    <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                      <Fact label="Confidence" value={item.confidence} />
-                      <Fact label="Trend" value={item.trend} />
-                      <Fact label="GPS region" value={item.region} />
-                      <Fact label="Timestamp" value={item.time} />
-                    </div>
-                    <div className="text-forest-800 mt-4 rounded-sm border border-stone-200 bg-stone-50 p-3 text-sm">
-                      <span className="text-forest-950 font-semibold">Anomaly flag: </span>
-                      {item.anomaly}
-                    </div>
-                  </div>
-                </article>
-              ))}
+            <div className="mt-8">
+              <LiveObservationResults />
             </div>
           </div>
         </MotionSection>
@@ -406,9 +220,9 @@ export default function LandingPage() {
         <MotionSection {...fadeUp()} id="field" className="border-b border-stone-200 bg-stone-50 py-16">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
             <SectionHeading
-              kicker="Built for the field"
-              title="Designed for Android devices, interrupted signal, and real patrol pacing."
-              description="The interface keeps the essential capture and review path usable when teams are moving, tired, wet, or offline."
+              kicker={t("landing.field.kicker")}
+              title={t("landing.field.title")}
+              description={t("landing.field.description")}
             />
             <div className="grid gap-3 sm:grid-cols-2">
               {fieldFeatures.map((feature) => {
@@ -416,12 +230,12 @@ export default function LandingPage() {
                 return (
                   <div
                     className="flex items-center gap-3 rounded-sm border border-stone-200 bg-white p-4"
-                    key={feature.title}
+                    key={feature.key}
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-olive-100 text-olive-800">
                       <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
-                    <p className="text-forest-950 font-semibold">{feature.title}</p>
+                    <p className="font-semibold text-forest-950">{t(`landing.field.features.${feature.key}`)}</p>
                   </div>
                 );
               })}
@@ -432,9 +246,9 @@ export default function LandingPage() {
         <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-white py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              kicker="Conservation status"
-              title="IUCN categories are shown as ecological context, not decoration."
-              description="NaLI surfaces conservation risk clearly so teams can prioritize verification, privacy, and response."
+              kicker={t("landing.conservation.kicker")}
+              title={t("landing.conservation.title")}
+              description={t("landing.conservation.description")}
             />
             <div className="mt-8 grid gap-3 lg:grid-cols-5">
               {conservationStatuses.map((status) => (
@@ -444,8 +258,12 @@ export default function LandingPage() {
                   >
                     {status.code}
                   </span>
-                  <h3 className="text-forest-950 mt-4 text-base font-semibold">{status.label}</h3>
-                  <p className="text-forest-700 mt-2 text-sm leading-6">{status.description}</p>
+                  <h3 className="mt-4 text-base font-semibold text-forest-950">
+                    {t(`landing.conservation.statuses.${status.key}.label`)}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                    {t(`landing.conservation.statuses.${status.key}.description`)}
+                  </p>
                 </article>
               ))}
             </div>
@@ -460,9 +278,9 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
             <SectionHeading
               dark
-              kicker="Privacy and security"
-              title="Sensitive ecological records are treated as protected field data."
-              description="NaLI avoids public feed mechanics and keeps high-risk coordinates under controlled access."
+              kicker={t("landing.privacy.kicker")}
+              title={t("landing.privacy.title")}
+              description={t("landing.privacy.description")}
             />
             <div className="grid gap-3">
               {privacy.map((item, index) => (
@@ -475,7 +293,7 @@ export default function LandingPage() {
                   ) : (
                     <ShieldCheck className="text-data-cyan h-5 w-5" aria-hidden="true" />
                   )}
-                  <p className="font-semibold">{item}</p>
+                  <p className="font-semibold">{t(`landing.privacy.items.${item}`)}</p>
                 </div>
               ))}
             </div>
@@ -486,27 +304,26 @@ export default function LandingPage() {
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
             <motion.div {...fadeUp()}>
               <p className="text-forest-700 text-xs font-semibold tracking-[0.08em] uppercase">
-                NaLI field intelligence
+                {t("landing.finalCta.kicker")}
               </p>
               <h2 className="text-forest-950 mt-3 text-3xl font-semibold tracking-[0] sm:text-5xl">
-                Built for Real Field Observation.
+                {t("landing.finalCta.title")}
               </h2>
               <p className="text-forest-800 mx-auto mt-4 max-w-2xl text-base leading-7">
-                Start with identification, keep the evidence structured, and give conservation teams records they can
-                trust when conditions are imperfect.
+                {t("landing.finalCta.description")}
               </p>
               <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   className="bg-forest-900 hover:bg-forest-800 inline-flex min-h-12 items-center justify-center rounded-sm px-5 text-sm font-semibold text-stone-50 transition"
                   href="/login"
                 >
-                  Start Identifying
+                  {t("common.startIdentifying")}
                 </Link>
                 <Link
                   className="border-forest-300 text-forest-900 inline-flex min-h-12 items-center justify-center rounded-sm border bg-stone-50 px-5 text-sm font-semibold transition hover:bg-stone-50"
                   href="#workflow"
                 >
-                  View Field Workflow
+                  {t("common.viewFieldWorkflow")}
                 </Link>
               </div>
             </motion.div>
@@ -521,13 +338,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link className="hover:text-white" href="#workflow">
-              Workflow
+              {t("nav.workflow")}
             </Link>
             <Link className="hover:text-white" href="#field">
-              Field Use
+              {t("nav.fieldUse")}
             </Link>
             <Link className="hover:text-white" href="#security">
-              Security
+              {t("nav.security")}
             </Link>
           </div>
         </div>
@@ -560,15 +377,6 @@ function SectionHeading({
         {title}
       </h2>
       <p className={`mt-4 text-base leading-7 ${dark ? "text-stone-300" : "text-forest-700"}`}>{description}</p>
-    </div>
-  );
-}
-
-function Fact({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="rounded-sm border border-stone-200 bg-stone-50 p-3">
-      <p className="text-forest-600 text-xs font-semibold tracking-[0.08em] uppercase">{label}</p>
-      <p className={`text-forest-950 mt-1 leading-5 ${strong ? "font-semibold" : ""}`}>{value}</p>
     </div>
   );
 }

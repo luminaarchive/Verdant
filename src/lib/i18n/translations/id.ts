@@ -36,6 +36,174 @@ export const id = {
       "NaLI membantu ranger, peneliti, dan tim konservasi mengidentifikasi spesies satwa dari foto, audio, dan catatan lapangan sambil menghasilkan catatan ekologis terstruktur dan alur kerja operasional otonom.",
     observationReview: "Tinjauan observasi",
     anomaly: "Anomali",
+    audience: {
+      kicker: "Dirancang untuk",
+      title: "Tim lapangan yang membutuhkan bukti berguna, bukan tampilan berlebihan.",
+      description:
+        "NaLI dibentuk untuk pekerjaan observasi berulang dalam patroli, survei, perjalanan riset, dan praktik lapangan.",
+      cards: {
+        rangers: {
+          title: "Ranger",
+          description: "Pemeriksaan spesies cepat, perekaman GPS, dan catatan anomali siap patroli.",
+        },
+        researchers: {
+          title: "Peneliti",
+          description: "Observasi terstruktur yang selaras dengan alur tinjauan ilmiah.",
+        },
+        ngos: {
+          title: "Organisasi Konservasi",
+          description: "Catatan lapangan aman untuk pemantauan habitat dan perencanaan intervensi.",
+        },
+        students: {
+          title: "Mahasiswa Biologi",
+          description: "Latihan identifikasi lapangan dengan nama ilmiah dan konteks status konservasi.",
+        },
+      },
+    },
+    workflow: {
+      kicker: "Cara kerja NaLI",
+      title: "Alur observasi tertelusur dari bukti lapangan ke catatan tersimpan.",
+      description: "Setiap tahap cukup jelas untuk tinjauan, koreksi, dan serah terima ilmiah.",
+      steps: {
+        media: "Foto / Audio / Teks",
+        species: "Identifikasi Spesies",
+        gbif: "Pemeriksaan Distribusi GBIF",
+        iucn: "Analisis Status IUCN",
+        anomaly: "Deteksi Anomali",
+        saved: "Catatan Lapangan Tersimpan",
+      },
+      notes: {
+        inputs: "Input tetap tertaut ke catatan observasi untuk verifikasi berikutnya.",
+        context: "Pemeriksaan GBIF dan IUCN memberi konteks, bukan menentukan kebenaran tersembunyi.",
+        review: "Bendera anomali tetap dapat ditinjau sebelum laporan diekspor.",
+      },
+    },
+    liveReview: {
+      label: "Demo alur observasi langsung",
+      demo: "Demo",
+      evidencePlaceholder: "Pratinjau bukti demo",
+      probableSpecies: "Kandidat spesies",
+      confidence: "Keyakinan",
+      iucnStatus: "Status IUCN",
+      region: "Wilayah GPS",
+      updated: "Diperbarui",
+      justNow: "baru saja",
+      evidenceType: "Jenis bukti",
+      evidenceTypeValue: "Media + catatan lapangan",
+      stageContext: "Demo ini menampilkan tahap operasional tanpa mewakili data produksi.",
+      anomalyTitle: "Rekomendasi tinjauan dibuat",
+      anomalyDetail: "Konteks sensitif atau tidak biasa memerlukan validasi ahli sebelum ekspor.",
+      mediaSigned: "URL media bertanda tangan",
+      gpsProtected: "GPS terlindungi",
+      syncPending: "Sinkronisasi tertunda",
+      stages: {
+        media: "Media diterima",
+        candidate: "Kandidat spesies dibuat",
+        gbif: "Distribusi GBIF diperiksa",
+        iucn: "Status IUCN diperoleh",
+        anomaly: "Tinjauan anomali diperlukan",
+        ready: "Catatan lapangan siap",
+      },
+    },
+    results: {
+      kicker: "Hasil observasi",
+      title: "Catatan lapangan aktif untuk tinjauan operasional.",
+      description:
+        "Nama, status, keyakinan, lokasi, waktu, rekomendasi tinjauan, dan peringatan terlihat tanpa membuka banyak menu.",
+      demoLabel: "Contoh catatan lapangan",
+      demoDisclosure: "Catatan demo berputar untuk menunjukkan status operasional; ini bukan observasi produksi.",
+      evidencePlaceholder: "Placeholder gambar lapangan",
+      confidence: "Keyakinan",
+      trend: "Tren",
+      region: "Wilayah GPS",
+      timestamp: "Waktu",
+      anomalyFlag: "Bendera anomali",
+      updatedJustNow: "baru diperbarui",
+      protectedRecord: "catatan terlindungi",
+      review: {
+        automatic_review_required: "tinjauan wajib",
+        expert_validation_recommended: "validasi ahli",
+        routine_archive_safe: "aman diarsipkan",
+      },
+      records: {
+        tapanuli: {
+          trend: "Menurun",
+          anomaly: "Sensitivitas habitat sebaran kecil",
+        },
+        tiger: {
+          trend: "Menurun",
+          anomaly: "Kedekatan dengan permukiman manusia",
+        },
+        komodo: {
+          trend: "Stabil di zona pemantauan",
+          anomaly: "Tidak ada anomali terdeteksi",
+        },
+        starling: {
+          trend: "Pemulihan terkelola",
+          anomaly: "Zona pelepasliaran perlu diverifikasi",
+        },
+      },
+    },
+    field: {
+      kicker: "Untuk kondisi lapangan",
+      title: "Dirancang untuk perangkat Android, sinyal terputus, dan ritme patroli nyata.",
+      description:
+        "Antarmuka menjaga jalur inti perekaman dan tinjauan tetap mudah dipakai saat tim bergerak, lelah, basah, atau offline.",
+      features: {
+        offline: "Mode offline ringan",
+        sync: "Sinkronisasi otomatis",
+        lowConnectivity: "Alur konektivitas rendah",
+        pwa: "PWA Android",
+        gps: "Perekaman GPS",
+        fastId: "Identifikasi lapangan cepat",
+      },
+    },
+    conservation: {
+      kicker: "Status konservasi",
+      title: "Kategori IUCN ditampilkan sebagai konteks ekologis, bukan hiasan.",
+      description:
+        "NaLI menampilkan risiko konservasi dengan jelas agar tim dapat memprioritaskan verifikasi, privasi, dan respons.",
+      statuses: {
+        cr: {
+          label: "Kritis",
+          description: "Risiko kepunahan sangat tinggi di alam liar. Akses lokasi harus dilindungi.",
+        },
+        en: {
+          label: "Terancam Punah",
+          description: "Risiko kepunahan tinggi. Catatan harus mendukung keputusan intervensi dan habitat.",
+        },
+        vu: {
+          label: "Rentan",
+          description: "Risiko tinggi tanpa pemantauan, penilaian tekanan, dan perlindungan habitat berkelanjutan.",
+        },
+        nt: {
+          label: "Hampir Terancam",
+          description: "Dekat dengan ambang terancam. Perubahan tren perlu perhatian awal.",
+        },
+        lc: {
+          label: "Risiko Rendah",
+          description: "Risiko kepunahan lebih rendah, tetap bernilai untuk catatan distribusi dan perilaku musiman.",
+        },
+      },
+    },
+    privacy: {
+      kicker: "Privasi dan keamanan",
+      title: "Catatan ekologis sensitif diperlakukan sebagai data lapangan terlindungi.",
+      description: "NaLI menghindari mekanik feed publik dan menjaga koordinat berisiko tinggi dalam akses terkendali.",
+      items: {
+        private: "Observasi lapangan bersifat privat secara default",
+        noFeed: "Tidak ada feed sosial publik",
+        gps: "Perlindungan GPS untuk spesies terancam",
+        signedUrl: "Akses URL bertanda tangan untuk bukti media",
+        secure: "Penanganan data ilmiah yang aman",
+      },
+    },
+    finalCta: {
+      kicker: "Intelijen lapangan NaLI",
+      title: "Dibangun untuk Observasi Lapangan Nyata.",
+      description:
+        "Mulai dari identifikasi, jaga bukti tetap terstruktur, dan berikan tim konservasi catatan yang dapat dipercaya saat kondisi tidak sempurna.",
+    },
   },
   auth: {
     workspace: "Ruang kerja intelijen lapangan",

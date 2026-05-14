@@ -210,6 +210,18 @@ For live infrastructure activation, also complete the auth, storage, browser, mo
 - `/alerts` shows ecological alerts with evidence links, trace IDs, severity, and confidence.
 - Empty states should explain what field data is needed next.
 
+## Landing Bilingual And Demo QA
+
+- Switch the landing page to Indonesian and inspect the full page from top to bottom.
+- Confirm no English marketing copy remains in Indonesian mode. NaLI, GBIF, IUCN, GPS, CR, EN, VU, NT, LC, scientific names, and appropriate technical acronyms can remain unchanged.
+- Confirm `npm run check:i18n` passes before release.
+- Confirm species evidence panels match the species record or are clearly labeled as field image placeholders.
+- Confirm no panda image is used for orangutan records.
+- Confirm the live field workflow card is labeled as a demo when it is not reading from production observations.
+- Confirm the observation results section is labeled as example field records when it uses demo data.
+- Confirm animated demo states do not imply fake production activity, user counts, social activity, or public feed mechanics.
+- Confirm desktop, 390px mobile, and 360px mobile layouts have no horizontal overflow.
+
 ## Known Limitations
 
 - Optional provider keys may be unavailable in local and preview environments.

@@ -36,6 +36,174 @@ export const en = {
       "NaLI helps rangers, researchers, and conservation teams identify wildlife species from photos, audio, and field notes while generating structured ecological records and autonomous operational workflows.",
     observationReview: "Observation review",
     anomaly: "Anomaly",
+    audience: {
+      kicker: "Built for",
+      title: "Field teams who need usable evidence, not spectacle.",
+      description:
+        "NaLI is shaped for repeat observation work across patrols, surveys, research trips, and classroom field practice.",
+      cards: {
+        rangers: {
+          title: "Rangers",
+          description: "Rapid species checks, GPS capture, and patrol-ready anomaly notes.",
+        },
+        researchers: {
+          title: "Researchers",
+          description: "Structured observations aligned with scientific review workflows.",
+        },
+        ngos: {
+          title: "Conservation NGOs",
+          description: "Secure field records for habitat monitoring and intervention planning.",
+        },
+        students: {
+          title: "Biology Students",
+          description: "Guided identification practice with scientific names and status context.",
+        },
+      },
+    },
+    workflow: {
+      kicker: "How NaLI works",
+      title: "A traceable observation pipeline from field evidence to saved log.",
+      description: "Every step is visible enough for review, correction, and scientific handoff.",
+      steps: {
+        media: "Photo / Audio / Text",
+        species: "Species Identification",
+        gbif: "GBIF Distribution Cross-check",
+        iucn: "IUCN Conservation Analysis",
+        anomaly: "Anomaly Detection",
+        saved: "Structured Field Log Saved",
+      },
+      notes: {
+        inputs: "Inputs stay attached to their observation record for later verification.",
+        context: "GBIF and IUCN checks create context, not hidden final authority.",
+        review: "Anomaly flags remain reviewable before reports are exported.",
+      },
+    },
+    liveReview: {
+      label: "Live field workflow demo",
+      demo: "Demo",
+      evidencePlaceholder: "Demo evidence preview",
+      probableSpecies: "Probable species",
+      confidence: "Confidence",
+      iucnStatus: "IUCN status",
+      region: "GPS region",
+      updated: "Updated",
+      justNow: "just now",
+      evidenceType: "Evidence type",
+      evidenceTypeValue: "Media + field note",
+      stageContext: "The demo cycles through operational states without representing production data.",
+      anomalyTitle: "Review recommendation generated",
+      anomalyDetail: "Sensitive or unusual context requires expert validation before export.",
+      mediaSigned: "Media signed URL",
+      gpsProtected: "GPS protected",
+      syncPending: "Sync pending",
+      stages: {
+        media: "Media received",
+        candidate: "Species candidate generated",
+        gbif: "GBIF distribution checked",
+        iucn: "IUCN status retrieved",
+        anomaly: "Anomaly review required",
+        ready: "Field record ready",
+      },
+    },
+    results: {
+      kicker: "Observation results",
+      title: "Active field records designed for operational review.",
+      description:
+        "Readable names, status, confidence, place, time, review recommendation, and warning state are visible without digging through menus.",
+      demoLabel: "Example field records",
+      demoDisclosure: "Demo records rotate to show operational states; they are not production observations.",
+      evidencePlaceholder: "Field image placeholder",
+      confidence: "Confidence",
+      trend: "Trend",
+      region: "GPS region",
+      timestamp: "Timestamp",
+      anomalyFlag: "Anomaly flag",
+      updatedJustNow: "updated just now",
+      protectedRecord: "protected record",
+      review: {
+        automatic_review_required: "review required",
+        expert_validation_recommended: "expert validation",
+        routine_archive_safe: "archive safe",
+      },
+      records: {
+        tapanuli: {
+          trend: "Decreasing",
+          anomaly: "Small-range habitat sensitivity",
+        },
+        tiger: {
+          trend: "Decreasing",
+          anomaly: "Human settlement proximity",
+        },
+        komodo: {
+          trend: "Stable in monitored zones",
+          anomaly: "No anomaly detected",
+        },
+        starling: {
+          trend: "Managed recovery",
+          anomaly: "Release zone verification needed",
+        },
+      },
+    },
+    field: {
+      kicker: "Built for the field",
+      title: "Designed for Android devices, interrupted signal, and real patrol pacing.",
+      description:
+        "The interface keeps the essential capture and review path usable when teams are moving, tired, wet, or offline.",
+      features: {
+        offline: "Offline lite mode",
+        sync: "Auto sync",
+        lowConnectivity: "Low connectivity workflow",
+        pwa: "Android PWA",
+        gps: "GPS logging",
+        fastId: "Fast field identification",
+      },
+    },
+    conservation: {
+      kicker: "Conservation status",
+      title: "IUCN categories are shown as ecological context, not decoration.",
+      description:
+        "NaLI surfaces conservation risk clearly so teams can prioritize verification, privacy, and response.",
+      statuses: {
+        cr: {
+          label: "Critically Endangered",
+          description: "Extremely high risk of extinction in the wild. Location access must be protected.",
+        },
+        en: {
+          label: "Endangered",
+          description: "Very high extinction risk. Records should support intervention and habitat decisions.",
+        },
+        vu: {
+          label: "Vulnerable",
+          description: "High risk without continued monitoring, pressure assessment, and habitat protection.",
+        },
+        nt: {
+          label: "Near Threatened",
+          description: "Close to threatened thresholds. Trend changes deserve early attention.",
+        },
+        lc: {
+          label: "Least Concern",
+          description: "Lower extinction risk, still valuable for distribution and seasonal behavior records.",
+        },
+      },
+    },
+    privacy: {
+      kicker: "Privacy and security",
+      title: "Sensitive ecological records are treated as protected field data.",
+      description: "NaLI avoids public feed mechanics and keeps high-risk coordinates under controlled access.",
+      items: {
+        private: "Private field observations by default",
+        noFeed: "No public social feed",
+        gps: "GPS protection for endangered species",
+        signedUrl: "Signed URL access for media evidence",
+        secure: "Secure scientific data handling",
+      },
+    },
+    finalCta: {
+      kicker: "NaLI field intelligence",
+      title: "Built for Real Field Observation.",
+      description:
+        "Start with identification, keep the evidence structured, and give conservation teams records they can trust when conditions are imperfect.",
+    },
   },
   auth: {
     workspace: "Field intelligence workspace",
