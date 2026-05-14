@@ -1,5 +1,6 @@
 import { AlertTriangle, ClipboardList, Link2, UserCheck, type LucideIcon } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ function percent(value: number | null) {
 }
 
 export default async function FieldCasesPage() {
+  const { t } = await getServerTranslations();
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("field_cases")
@@ -47,30 +49,24 @@ export default async function FieldCasesPage() {
   const hasCases = cases.length > 0;
 
   return (
-    <div className="min-h-screen bg-stone-50 px-4 py-6 text-forest-950 sm:px-6 lg:px-8">
+    <div className="text-forest-950 min-h-screen bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 border-b border-stone-200 pb-5">
-          <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">
-            Conservation operations
-          </p>
-          <h1 className="mt-2 text-3xl font-display-lg text-forest-950">Field cases</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">
-            Escalated ecological signals linked to observations, anomaly clusters, reviewers, and operational notes.
-          </p>
+          <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">{t("cases.eyebrow")}</p>
+          <h1 className="font-display-lg text-forest-950 mt-2 text-3xl">{t("cases.title")}</h1>
+          <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6">{t("cases.context")}</p>
         </header>
 
         {error ? (
           <EmptyState
-            title="Field cases could not be loaded"
-            detail="NaLI could not reach persisted case records. Check Supabase connectivity and field case migrations."
+            eyebrow={t("cases.noRecords")}
+            title={t("cases.loadErrorTitle")}
+            detail={t("cases.loadErrorDetail")}
           />
         ) : null}
 
         {!error && !hasCases ? (
-          <EmptyState
-            title="No field cases are open"
-            detail="Cases are created when observations meet escalation rules such as endangered overlap, repeated anomaly clusters, or habitat pressure."
-          />
+          <EmptyState eyebrow={t("cases.noRecords")} title={t("cases.emptyTitle")} detail={t("cases.emptyDetail")} />
         ) : null}
 
         {!error && hasCases ? (
@@ -88,15 +84,16 @@ export default async function FieldCasesPage() {
                 <article key={fieldCase.id} className="rounded-md border border-stone-200 bg-white p-5">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-data-sm text-sm text-forest-700">{fieldCase.id}</p>
-                      <h2 className="mt-1 text-xl font-headline-md capitalize text-forest-950">
+                      <p className="font-data-sm text-forest-700 text-sm">{fieldCase.id}</p>
+                      <h2 className="font-headline-md text-forest-950 mt-1 text-xl capitalize">
                         {formatStatus(fieldCase.case_type)}
                       </h2>
-                      <p className="mt-1 text-sm text-forest-700">
-                        Updated {fieldCase.updated_at ? new Date(fieldCase.updated_at).toLocaleString() : "time unavailable"}
+                      <p className="text-forest-700 mt-1 text-sm">
+                        Updated{" "}
+                        {fieldCase.updated_at ? new Date(fieldCase.updated_at).toLocaleString() : "time unavailable"}
                       </p>
                     </div>
-                    <span className="rounded-sm border border-olive-300 bg-olive-100 px-2 py-1 text-[10px] font-label-caps uppercase tracking-[0.08em] text-forest-800">
+                    <span className="font-label-caps text-forest-800 rounded-sm border border-olive-300 bg-olive-100 px-2 py-1 text-[10px] tracking-[0.08em] uppercase">
                       {formatStatus(fieldCase.status)}
                     </span>
                   </div>
@@ -108,12 +105,20 @@ export default async function FieldCasesPage() {
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <LinkedList title="Linked observations" items={observations} empty="No linked observations persisted." />
-                    <LinkedList title="Linked clusters" items={clusters} empty="No linked clusters persisted." />
+                    <LinkedList
+                      title={t("cases.linkedObservations")}
+                      items={observations}
+                      empty={t("cases.noLinkedObservations")}
+                    />
+                    <LinkedList
+                      title={t("cases.linkedClusters")}
+                      items={clusters}
+                      empty={t("cases.noLinkedClusters")}
+                    />
                   </div>
 
-                  <div className="mt-4 rounded-sm bg-stone-100 px-4 py-3 text-sm leading-6 text-forest-800">
-                    {notes[0] ?? "Operational notes will appear after reviewer or escalation updates are persisted."}
+                  <div className="text-forest-800 mt-4 rounded-sm bg-stone-100 px-4 py-3 text-sm leading-6">
+                    {notes[0] ?? t("cases.notesPending")}
                   </div>
                 </article>
               );
@@ -125,12 +130,12 @@ export default async function FieldCasesPage() {
   );
 }
 
-function EmptyState({ detail, title }: { detail: string; title: string }) {
+function EmptyState({ detail, eyebrow, title }: { detail: string; eyebrow: string; title: string }) {
   return (
     <section className="rounded-md border border-stone-200 bg-white p-6">
-      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">No escalation records</p>
-      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+      <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">{eyebrow}</p>
+      <h2 className="font-headline-md text-forest-950 mt-2 text-xl">{title}</h2>
+      <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6">{detail}</p>
     </section>
   );
 }
@@ -138,9 +143,9 @@ function EmptyState({ detail, title }: { detail: string; title: string }) {
 function Fact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-sm border border-stone-200 bg-stone-50 p-3">
-      <Icon className="mb-2 h-4 w-4 text-forest-700" />
-      <p className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-forest-600">{label}</p>
-      <p className="mt-1 text-sm font-semibold capitalize text-forest-950">{value}</p>
+      <Icon className="text-forest-700 mb-2 h-4 w-4" />
+      <p className="font-label-caps text-forest-600 text-[10px] tracking-[0.08em] uppercase">{label}</p>
+      <p className="text-forest-950 mt-1 text-sm font-semibold capitalize">{value}</p>
     </div>
   );
 }
@@ -148,19 +153,22 @@ function Fact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; v
 function LinkedList({ empty, items, title }: { empty: string; items: string[]; title: string }) {
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-label-caps uppercase tracking-[0.08em] text-forest-700">
+      <div className="font-label-caps text-forest-700 mb-2 flex items-center gap-2 text-[11px] tracking-[0.08em] uppercase">
         <Link2 className="h-3.5 w-3.5" />
         {title}
       </div>
       <div className="space-y-2">
         {items.length ? (
           items.map((item) => (
-            <div key={item} className="rounded-sm border border-stone-200 px-3 py-2 font-data-sm text-xs text-forest-800">
+            <div
+              key={item}
+              className="font-data-sm text-forest-800 rounded-sm border border-stone-200 px-3 py-2 text-xs"
+            >
               {item}
             </div>
           ))
         ) : (
-          <div className="rounded-sm border border-stone-200 px-3 py-2 text-xs text-forest-700">{empty}</div>
+          <div className="text-forest-700 rounded-sm border border-stone-200 px-3 py-2 text-xs">{empty}</div>
         )}
       </div>
     </div>

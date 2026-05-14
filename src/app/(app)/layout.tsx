@@ -1,24 +1,24 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import BottomNav from "@/components/layout/BottomNav";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
-export default async function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (!session) {
     redirect("/login");
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 text-forest-950 flex flex-col">
-      <main className="flex-1 overflow-y-auto pb-20">
-        {children}
-      </main>
+    <div className="text-forest-950 flex min-h-screen flex-col bg-stone-50">
+      <div className="fixed top-3 right-3 z-[60]">
+        <LanguageSwitcher compact />
+      </div>
+      <main className="flex-1 overflow-y-auto pb-20">{children}</main>
       <BottomNav />
     </div>
   );

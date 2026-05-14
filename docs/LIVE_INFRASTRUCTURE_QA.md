@@ -4,16 +4,16 @@ NaLI live infrastructure validation proves that the deployed conservation operat
 
 ## Current Live Finding
 
-The deployed application at `https://naliai.vercel.app` is currently configured against Supabase project `wvpplfjrbndzxlgpuicn`, named `verdant-memory`.
+The deployed application at `https://naliai.vercel.app` is configured against Supabase project `wvpplfjrbndzxlgpuicn`, which is now treated as the NaLI production target.
 
 Read-only inspection found:
 
 - Applied migrations: `003_durable_jobs`, `004_export_durability`, `20260504105835_auth_signup_repair_005`.
 - NaLI critical tables were not present: `observations`, `observation_events`, `orchestrator_runs`, `analysis_runs`, `species_reference`, `field_cases`, `observation_cases`, `reviewer_profiles`.
 - The private `observation_media` storage bucket was not present.
-- Existing public tables appeared to belong to legacy Verdant data, including `research_jobs`, `research_results`, `verdant_memory`, `virtual_trees`, and related profile/activity tables.
+- Existing public tables appeared to belong to a legacy non-NaLI application, including research job/result tables, a legacy memory table, virtual tree data, and related profile/activity tables.
 
-Because this project name and schema do not clearly match a dedicated NaLI production target, the live database migration was not applied automatically. Applying NaLI schema to this project requires explicit operator approval after confirming that `wvpplfjrbndzxlgpuicn` is the intended production Supabase project.
+The operator has confirmed that this project should be migrated to NaLI. Legacy data was documented before activation, and the additive `nali_live_infrastructure_activation` migration has been applied. Legacy tables remain in place until a separate cleanup/export decision is made.
 
 ## Environment Setup
 
@@ -197,7 +197,7 @@ If live validation fails after deployment:
 
 ## Known Production Limitations
 
-- Live Supabase schema activation is blocked until the intended production project is confirmed.
+- Live Supabase schema activation requires additive migration validation before any legacy data cleanup.
 - Local validation scripts skip live checks when required environment variables are absent.
 - Full cross-user RLS validation requires two disposable authenticated test users.
 - Optional provider keys can remain unconfigured; NaLI should report provider status honestly.

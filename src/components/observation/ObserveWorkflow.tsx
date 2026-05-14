@@ -25,6 +25,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type GpsState = "locating" | "acquired" | "low-accuracy" | "unavailable";
 type PipelineState = "idle" | "running" | "complete";
@@ -62,8 +63,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Known range overlaps Kerinci Seblat and Bukit Barisan forest systems.",
     notes:
       "Possible large carnivore evidence near riparian vegetation. Verify track scale, camera metadata, and recent patrol reports before sharing coordinates.",
-    image:
-      "https://images.unsplash.com/photo-1551969014-7d2c4cddf0b6?auto=format&fit=crop&w=1100&q=80",
+    image: "https://images.unsplash.com/photo-1551969014-7d2c4cddf0b6?auto=format&fit=crop&w=1100&q=80",
   },
   {
     scientificName: "Pongo tapanuliensis",
@@ -75,8 +75,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Restricted to the Batang Toru ecosystem in North Sumatra.",
     notes:
       "Observation should be handled as sensitive habitat data. Look for nest evidence and fruiting tree context in follow-up notes.",
-    image:
-      "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=1100&q=80",
+    image: "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=1100&q=80",
   },
   {
     scientificName: "Varanus komodoensis",
@@ -88,8 +87,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Primarily associated with Komodo, Rinca, Flores, Gili Motang, and nearby islands.",
     notes:
       "Record distance from settlements, temperature, and observed behavior. Maintain safe approach distance during verification.",
-    image:
-      "https://images.unsplash.com/photo-1598755257130-c2aaca1f061c?auto=format&fit=crop&w=1100&q=80",
+    image: "https://images.unsplash.com/photo-1598755257130-c2aaca1f061c?auto=format&fit=crop&w=1100&q=80",
   },
   {
     scientificName: "Spizaetus bartelsi",
@@ -101,8 +99,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Endemic to Java, usually associated with mature forest and mountain habitats.",
     notes:
       "Raptor identification benefits from silhouette, crest visibility, and call evidence. Add audio when available.",
-    image:
-      "https://images.unsplash.com/photo-1611689342806-0863700ce1e4?auto=format&fit=crop&w=1100&q=80",
+    image: "https://images.unsplash.com/photo-1611689342806-0863700ce1e4?auto=format&fit=crop&w=1100&q=80",
   },
   {
     scientificName: "Leucopsar rothschildi",
@@ -112,10 +109,8 @@ const speciesResults: SpeciesResult[] = [
     trend: "Increasing under managed recovery",
     anomaly: "Captive-release zone should be checked",
     distribution: "Native to Bali with highly managed conservation and release populations.",
-    notes:
-      "Confirm leg bands if visible and note flock size. Treat exact coordinates as sensitive until reviewed.",
-    image:
-      "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=1100&q=80",
+    notes: "Confirm leg bands if visible and note flock size. Treat exact coordinates as sensitive until reviewed.",
+    image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=1100&q=80",
   },
 ];
 
@@ -138,6 +133,7 @@ function pickResult(description: string) {
 
 export default function ObserveWorkflow() {
   const router = useRouter();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -216,9 +212,7 @@ export default function ObserveWorkflow() {
     const date = new Date();
     return `OBS-IDN-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
       date.getDate(),
-    ).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(
-      date.getMinutes(),
-    ).padStart(2, "0")}`;
+    ).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}`;
   }, []);
 
   const timestamp = useMemo(
@@ -279,19 +273,14 @@ export default function ObserveWorkflow() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-24 text-forest-950">
+    <div className="text-forest-950 min-h-screen bg-stone-50 pb-24">
       <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
         <header className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-olive-700">
-            Field observation workflow
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-[0] text-forest-950 sm:text-4xl">
-            New Wildlife Observation
+          <p className="text-xs font-semibold tracking-[0.08em] text-olive-700 uppercase">{t("observe.title")}</p>
+          <h1 className="text-forest-950 mt-2 text-2xl font-semibold tracking-[0] sm:text-4xl">
+            {t("common.fieldObservation")}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-forest-700 sm:text-base">
-            Capture evidence, attach GPS context, and run the NaLI field intelligence pipeline
-            when you are ready.
-          </p>
+          <p className="text-forest-700 mt-2 max-w-2xl text-sm leading-6 sm:text-base">{t("observe.context")}</p>
         </header>
 
         <OfflineNotice queued={offlineQueued} />
@@ -300,8 +289,8 @@ export default function ObserveWorkflow() {
           <section className="space-y-4">
             <FieldCard
               icon={<FileImage className="h-5 w-5" />}
-              title="Photo evidence"
-              detail="Drag and drop, upload from gallery, or use the rear camera."
+              title={t("observe.upload")}
+              detail={t("observe.uploadHint")}
             >
               <div
                 className={`relative overflow-hidden rounded-sm border-2 border-dashed ${
@@ -321,14 +310,10 @@ export default function ObserveWorkflow() {
                 {previewUrl ? (
                   <div className="relative h-64">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      alt="Uploaded observation preview"
-                      className="h-full w-full object-cover"
-                      src={previewUrl}
-                    />
+                    <img alt="Uploaded observation preview" className="h-full w-full object-cover" src={previewUrl} />
                     <button
                       aria-label="Remove selected photo"
-                      className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-sm bg-forest-950/85 text-stone-50"
+                      className="bg-forest-950/85 absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-sm text-stone-50"
                       onClick={() => setPhotoFile(null)}
                       type="button"
                     >
@@ -342,10 +327,8 @@ export default function ObserveWorkflow() {
                     type="button"
                   >
                     <Upload className="h-8 w-8 text-olive-700" />
-                    <span className="font-semibold text-forest-950">
-                      Drop wildlife photo here or tap to upload
-                    </span>
-                    <span className="text-sm text-forest-700">
+                    <span className="text-forest-950 font-semibold">{t("observe.upload")}</span>
+                    <span className="text-forest-700 text-sm">
                       JPG, PNG, or HEIC from field camera and Android gallery
                     </span>
                   </button>
@@ -354,15 +337,15 @@ export default function ObserveWorkflow() {
 
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-stone-300 bg-white px-4 text-sm font-semibold text-forest-900"
+                  className="text-forest-900 inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-stone-300 bg-white px-4 text-sm font-semibold"
                   onClick={() => fileInputRef.current?.click()}
                   type="button"
                 >
                   <CloudUpload className="h-4 w-4" />
-                  Upload Photo
+                  {t("observe.upload")}
                 </button>
                 <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-forest-900 px-4 text-sm font-semibold text-stone-50"
+                  className="bg-forest-900 inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-semibold text-stone-50"
                   onClick={() => cameraInputRef.current?.click()}
                   type="button"
                 >
@@ -398,49 +381,41 @@ export default function ObserveWorkflow() {
               <div className="rounded-sm border border-stone-200 bg-stone-100 p-4">
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <button
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-sm bg-forest-900 px-4 text-sm font-semibold text-stone-50"
+                    className="bg-forest-900 inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-semibold text-stone-50"
                     type="button"
                   >
                     <Mic className="h-4 w-4" />
                     Start Recording
                   </button>
-                  <span className="text-right text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">
+                  <span className="text-forest-600 text-right text-xs font-semibold tracking-[0.08em] uppercase">
                     Placeholder
                   </span>
                 </div>
                 <div className="flex h-16 items-end gap-1 rounded-sm border border-stone-200 bg-white px-3 py-2">
-                  {[24, 42, 30, 54, 36, 48, 28, 58, 38, 44, 26, 50, 34, 46, 30, 40].map(
-                    (height, index) => (
-                      <span
-                        className="w-full rounded-t-sm bg-olive-300"
-                        key={`${height}-${index}`}
-                        style={{ height }}
-                      />
-                    ),
-                  )}
+                  {[24, 42, 30, 54, 36, 48, 28, 58, 38, 44, 26, 50, 34, 46, 30, 40].map((height, index) => (
+                    <span className="w-full rounded-t-sm bg-olive-300" key={`${height}-${index}`} style={{ height }} />
+                  ))}
                 </div>
-                <p className="mt-3 text-sm text-forest-700">
-                  Bird audio identification integration coming soon
-                </p>
+                <p className="text-forest-700 mt-3 text-sm">Bird audio identification integration coming soon</p>
               </div>
             </FieldCard>
 
             <FieldCard
               icon={<ClipboardList className="h-5 w-5" />}
-              title="Text description"
+              title={t("observe.description")}
               detail="Write natural field notes in Indonesian or English."
             >
               <textarea
-                className="min-h-36 w-full resize-none rounded-sm border border-stone-300 bg-white p-4 text-base leading-7 text-forest-950 outline-none transition focus:border-olive-700 focus:ring-2 focus:ring-olive-100"
+                className="text-forest-950 min-h-36 w-full resize-none rounded-sm border border-stone-300 bg-white p-4 text-base leading-7 transition outline-none focus:border-olive-700 focus:ring-2 focus:ring-olive-100"
                 maxLength={2000}
                 onChange={(event) => {
                   setDescription(event.target.value);
                   setResult(null);
                 }}
-                placeholder={`Large black snake approximately 2 meters long near riverbank\n\nBurung kecil dengan dada kuning dan suara nyaring di kanopi`}
+                placeholder={t("observe.descriptionPlaceholder")}
                 value={description}
               />
-              <div className="mt-2 flex items-center justify-between text-xs text-forest-600">
+              <div className="text-forest-600 mt-2 flex items-center justify-between text-xs">
                 <span>Supports Bahasa Indonesia and English observations</span>
                 <span>{description.length} / 2000</span>
               </div>
@@ -452,21 +427,21 @@ export default function ObserveWorkflow() {
 
             <div className="rounded-sm border border-stone-200 bg-white p-4">
               {submitError ? (
-                <div className="mb-3 rounded-sm border border-rare-red/40 bg-rare-red/10 p-3 text-sm leading-6 text-forest-800">
-                  Persistence warning: {submitError}. Observation remains available for offline retry.
+                <div className="border-rare-red/40 bg-rare-red/10 text-forest-800 mb-3 rounded-sm border p-3 text-sm leading-6">
+                  {t("observe.uploadFailed")} {submitError}
                 </div>
               ) : null}
               <button
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm bg-forest-900 px-5 text-sm font-semibold text-stone-50 transition disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500"
+                className="bg-forest-900 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm px-5 text-sm font-semibold text-stone-50 transition disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500"
                 disabled={!canAnalyze || pipelineState === "running"}
                 onClick={analyzeObservation}
                 type="button"
               >
                 <SearchCheck className="h-5 w-5" />
-                Analyze Observation
+                {t("common.analyzeObservation")}
               </button>
               <button
-                className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm border border-stone-300 bg-stone-50 px-5 text-sm font-semibold text-forest-900"
+                className="text-forest-900 mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-sm border border-stone-300 bg-stone-50 px-5 text-sm font-semibold"
                 onClick={saveOffline}
                 type="button"
               >
@@ -474,7 +449,7 @@ export default function ObserveWorkflow() {
                 Save Offline
               </button>
               {!canAnalyze ? (
-                <p className="mt-3 text-sm leading-6 text-forest-700">
+                <p className="text-forest-700 mt-3 text-sm leading-6">
                   Add a photo or field description and wait for GPS before analysis.
                 </p>
               ) : null}
@@ -521,8 +496,8 @@ function FieldCard({
           {icon}
         </span>
         <div>
-          <h2 className="text-lg font-semibold text-forest-950">{title}</h2>
-          <p className="text-sm leading-6 text-forest-700">{detail}</p>
+          <h2 className="text-forest-950 text-lg font-semibold">{title}</h2>
+          <p className="text-forest-700 text-sm leading-6">{detail}</p>
         </div>
       </div>
       {children}
@@ -535,7 +510,7 @@ function UploadProgress({ hasPhoto, progress }: { hasPhoto: boolean; progress: n
 
   return (
     <div className="mt-3 rounded-sm border border-stone-200 bg-stone-50 p-3">
-      <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">
+      <div className="text-forest-600 mb-2 flex items-center justify-between text-xs font-semibold tracking-[0.08em] uppercase">
         <span>Upload preparation</span>
         <span>{progress}%</span>
       </div>
@@ -587,8 +562,8 @@ function GpsCard({
           <MapPin className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-lg font-semibold text-forest-950">GPS detection</h2>
-          <p className="text-sm leading-6 text-forest-700">
+          <h2 className="text-forest-950 text-lg font-semibold">GPS detection</h2>
+          <p className="text-forest-700 text-sm leading-6">
             Coordinates are attached to the observation log and protected for sensitive species.
           </p>
         </div>
@@ -611,8 +586,8 @@ function GpsCard({
 function Coordinate({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-stone-200 bg-stone-50 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-forest-950">{value}</p>
+      <p className="text-forest-600 text-xs font-semibold tracking-[0.08em] uppercase">{label}</p>
+      <p className="text-forest-950 mt-1 text-sm font-semibold break-words">{value}</p>
     </div>
   );
 }
@@ -622,10 +597,10 @@ function PipelineCard({ activeStep, state }: { activeStep: number; state: Pipeli
     <section className="rounded-sm border border-stone-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-forest-950">Analysis pipeline</h2>
-          <p className="text-sm text-forest-700">Sequential operational analysis states</p>
+          <h2 className="text-forest-950 text-lg font-semibold">Analysis pipeline</h2>
+          <p className="text-forest-700 text-sm">Sequential operational analysis states</p>
         </div>
-        <span className="rounded-sm bg-stone-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-forest-700">
+        <span className="text-forest-700 rounded-sm bg-stone-100 px-2.5 py-1 text-xs font-semibold tracking-[0.08em] uppercase">
           {state === "complete" ? "Complete" : state === "running" ? "Running" : "Ready"}
         </span>
       </div>
@@ -638,10 +613,10 @@ function PipelineCard({ activeStep, state }: { activeStep: number; state: Pipeli
             <div
               className={`flex items-center gap-3 rounded-sm border p-3 text-sm ${
                 isActive
-                  ? "border-olive-300 bg-olive-100 text-forest-950"
+                  ? "text-forest-950 border-olive-300 bg-olive-100"
                   : isDone
-                    ? "border-stone-200 bg-stone-50 text-forest-700"
-                    : "border-stone-200 bg-white text-forest-500"
+                    ? "text-forest-700 border-stone-200 bg-stone-50"
+                    : "text-forest-500 border-stone-200 bg-white"
               }`}
               key={step}
             >
@@ -697,15 +672,15 @@ function ResultCard({
           sizes="(min-width: 1024px) 42vw, 100vw"
           src={result.image}
         />
-        <span className="absolute left-3 top-3 rounded-sm bg-forest-950/85 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-stone-50">
+        <span className="bg-forest-950/85 absolute top-3 left-3 rounded-sm px-3 py-2 text-xs font-semibold tracking-[0.08em] text-stone-50 uppercase">
           Structured result
         </span>
       </div>
       <div className="p-4">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-semibold italic text-forest-950">{result.scientificName}</h2>
-            <p className="text-sm text-forest-700">{result.localName}</p>
+            <h2 className="text-forest-950 text-2xl font-semibold italic">{result.scientificName}</h2>
+            <p className="text-forest-700 text-sm">{result.localName}</p>
           </div>
           <StatusBadge status={result.status} />
         </div>
@@ -719,12 +694,12 @@ function ResultCard({
           <Coordinate label="Longitude" value={coords.longitude.toFixed(5)} />
         </div>
 
-        <div className="mt-3 rounded-sm border border-conservation-orange/40 bg-conservation-orange/10 p-3">
+        <div className="border-conservation-orange/40 bg-conservation-orange/10 mt-3 rounded-sm border p-3">
           <div className="flex gap-2">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-conservation-orange" />
+            <AlertTriangle className="text-conservation-orange mt-0.5 h-4 w-4 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-forest-950">Anomaly detection warning</p>
-              <p className="mt-1 text-sm leading-6 text-forest-800">{result.anomaly}</p>
+              <p className="text-forest-950 text-sm font-semibold">Anomaly detection warning</p>
+              <p className="text-forest-800 mt-1 text-sm leading-6">{result.anomaly}</p>
             </div>
           </div>
         </div>
@@ -733,7 +708,7 @@ function ResultCard({
         <InfoBlock title="Ecological notes" text={result.notes} />
         {persistedObservationId ? (
           <button
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-forest-900 px-4 text-sm font-semibold text-stone-50"
+            className="bg-forest-900 mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm px-4 text-sm font-semibold text-stone-50"
             onClick={onOpenPersisted}
             type="button"
           >
@@ -741,7 +716,7 @@ function ResultCard({
           </button>
         ) : (
           <Link
-            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm border border-stone-300 bg-stone-50 px-4 text-sm font-semibold text-forest-900"
+            className="text-forest-900 mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-sm border border-stone-300 bg-stone-50 px-4 text-sm font-semibold"
             href="/dashboard"
           >
             View Field Log Dashboard
@@ -754,14 +729,14 @@ function ResultCard({
 
 function EmptyResultCard() {
   return (
-    <section className="rounded-sm border border-stone-200 bg-stone-100 p-4 text-sm leading-6 text-forest-700">
+    <section className="text-forest-700 rounded-sm border border-stone-200 bg-stone-100 p-4 text-sm leading-6">
       <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-sm bg-white text-olive-800">
         <ShieldCheck className="h-5 w-5" />
       </div>
-      <h2 className="text-lg font-semibold text-forest-950">Observation result will appear here</h2>
+      <h2 className="text-forest-950 text-lg font-semibold">Observation result will appear here</h2>
       <p className="mt-2">
-        After analysis, NaLI will show species identification, conservation context, anomaly
-        review, coordinates, and structured notes in this panel.
+        After analysis, NaLI will show species identification, conservation context, anomaly review, coordinates, and
+        structured notes in this panel.
       </p>
     </section>
   );
@@ -779,8 +754,8 @@ function StatusBadge({ status }: { status: SpeciesResult["status"] }) {
 function InfoBlock({ text, title }: { text: string; title: string }) {
   return (
     <div className="mt-3 rounded-sm border border-stone-200 bg-stone-50 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-forest-800">{text}</p>
+      <p className="text-forest-600 text-xs font-semibold tracking-[0.08em] uppercase">{title}</p>
+      <p className="text-forest-800 mt-1 text-sm leading-6">{text}</p>
     </div>
   );
 }
@@ -800,7 +775,7 @@ function OfflineNotice({ queued }: { queued: boolean }) {
 
 function NoticeItem({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-sm border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-forest-800">
+    <div className="text-forest-800 flex items-center gap-2 rounded-sm border border-stone-200 bg-white px-3 py-2 text-sm font-medium">
       <span className="text-olive-700">{icon}</span>
       {label}
     </div>

@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,7 @@ function formatStatus(value: string | null | undefined) {
 }
 
 export default async function MonitoringPage() {
+  const { t } = await getServerTranslations();
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -98,11 +100,7 @@ export default async function MonitoringPage() {
       .select("id, case_type, status, priority_score")
       .order("updated_at", { ascending: false })
       .limit(6),
-    supabase
-      .from("confidence_evolution_events")
-      .select("drift")
-      .order("created_at", { ascending: false })
-      .limit(25),
+    supabase.from("confidence_evolution_events").select("drift").order("created_at", { ascending: false }).limit(25),
   ]);
 
   const observations = (observationsResult.data ?? []) as ObservationRow[];
@@ -130,25 +128,27 @@ export default async function MonitoringPage() {
       observationCount: entries.length,
       endangeredDensity: endangered / entries.length,
       anomalyPressure: anomalies / entries.length,
-      priorityPressure: priorities.length ? priorities.reduce((total, value) => total + value, 0) / priorities.length : 0,
-      confidenceAverage: confidence.length ? confidence.reduce((total, value) => total + value, 0) / confidence.length : 0,
+      priorityPressure: priorities.length
+        ? priorities.reduce((total, value) => total + value, 0) / priorities.length
+        : 0,
+      confidenceAverage: confidence.length
+        ? confidence.reduce((total, value) => total + value, 0) / confidence.length
+        : 0,
     };
   });
 
   return (
-    <div className="min-h-screen bg-stone-50 text-forest-950">
+    <div className="text-forest-950 min-h-screen bg-stone-50">
       <section className="border-b border-stone-200 bg-stone-100">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_390px] lg:px-8">
           <div>
-            <p className="mb-2 text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">
-              Ecosystem monitoring
+            <p className="font-label-caps mb-2 text-[11px] tracking-[0.08em] text-olive-700 uppercase">
+              {t("monitoring.eyebrow")}
             </p>
-            <h1 className="max-w-3xl text-3xl font-display-lg leading-tight text-forest-950 md:text-5xl">
-              Regional ecological intelligence
+            <h1 className="font-display-lg text-forest-950 max-w-3xl text-3xl leading-tight md:text-5xl">
+              {t("monitoring.title")}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700 md:text-base">
-              Monitoring views use persisted observations, longitudinal patterns, field cases, ecological alerts, and confidence drift records.
-            </p>
+            <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6 md:text-base">{t("monitoring.context")}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -163,22 +163,21 @@ export default async function MonitoringPage() {
       <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
         {!hasMonitoringData ? (
           <div className="lg:col-span-2">
-            <EmptyState
-              title="No regional monitoring signals yet"
-              detail="Submit field observations and let orchestration persist reasoning snapshots. Monitoring will populate when observations, patterns, cases, or alerts exist."
-            />
+            <EmptyState title={t("monitoring.emptyTitle")} detail={t("monitoring.emptyDetail")} />
           </div>
         ) : (
           <>
             <section className="rounded-md border border-stone-200 bg-white p-4 sm:p-5">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">
-                    Regional watch grid
+                  <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">
+                    {t("monitoring.regionalWatchGrid")}
                   </p>
-                  <h2 className="text-xl font-headline-md text-forest-950">Ecological pressure regions</h2>
+                  <h2 className="font-headline-md text-forest-950 text-xl">
+                    {t("monitoring.ecologicalPressureRegions")}
+                  </h2>
                 </div>
-                <MapPinned className="h-5 w-5 shrink-0 text-forest-700" />
+                <MapPinned className="text-forest-700 h-5 w-5 shrink-0" />
               </div>
 
               {regions.length ? (
@@ -187,8 +186,10 @@ export default async function MonitoringPage() {
                     <article key={region.code} className="rounded-md border border-stone-200 p-4">
                       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="font-data-sm text-base text-forest-950">{region.name}</h3>
-                          <p className="mt-1 text-xs text-stone-500">{region.observationCount} persisted observations</p>
+                          <h3 className="font-data-sm text-forest-950 text-base">{region.name}</h3>
+                          <p className="mt-1 text-xs text-stone-500">
+                            {region.observationCount} persisted observations
+                          </p>
                         </div>
                       </div>
                       <div className="grid gap-3 md:grid-cols-2">
@@ -201,7 +202,7 @@ export default async function MonitoringPage() {
                   ))}
                 </div>
               ) : (
-                <EmptyState title="No located observation regions" detail="Monitoring needs persisted observations with coordinates to build a regional watch grid." />
+                <EmptyState title={t("monitoring.noLocatedRegions")} detail={t("monitoring.noLocatedRegionsDetail")} />
               )}
             </section>
 
@@ -212,15 +213,21 @@ export default async function MonitoringPage() {
                     {patterns.map((pattern) => (
                       <div key={pattern.id} className="rounded-sm border border-stone-200 bg-stone-50 px-4 py-3">
                         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-data-sm text-sm text-forest-950">{formatStatus(pattern.pattern_type)}</span>
-                          <span className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-olive-700">{pattern.severity}</span>
+                          <span className="font-data-sm text-forest-950 text-sm">
+                            {formatStatus(pattern.pattern_type)}
+                          </span>
+                          <span className="font-label-caps text-[10px] tracking-[0.08em] text-olive-700 uppercase">
+                            {pattern.severity}
+                          </span>
                         </div>
-                        <p className="text-sm leading-6 text-forest-700">{pattern.evidence_summary?.[0] ?? pattern.region_key}</p>
+                        <p className="text-forest-700 text-sm leading-6">
+                          {pattern.evidence_summary?.[0] ?? pattern.region_key}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm leading-6 text-forest-700">No persisted anomaly clusters yet.</p>
+                  <p className="text-forest-700 text-sm leading-6">No persisted anomaly clusters yet.</p>
                 )}
               </Panel>
 
@@ -229,7 +236,7 @@ export default async function MonitoringPage() {
                   <div className="space-y-3">
                     {alerts.map((alert) => (
                       <Link
-                        className="flex items-start justify-between gap-3 rounded-sm border border-stone-200 bg-white px-4 py-3 text-sm text-forest-800 hover:border-olive-600"
+                        className="text-forest-800 flex items-start justify-between gap-3 rounded-sm border border-stone-200 bg-white px-4 py-3 text-sm hover:border-olive-600"
                         href="/alerts"
                         key={alert.id}
                       >
@@ -239,21 +246,25 @@ export default async function MonitoringPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm leading-6 text-forest-700">No active ecological alerts are persisted.</p>
+                  <p className="text-forest-700 text-sm leading-6">No active ecological alerts are persisted.</p>
                 )}
               </Panel>
 
               <Panel icon={Briefcase} title="Linked field cases">
                 {cases.length ? (
-                  <div className="space-y-3 text-sm leading-6 text-forest-800">
+                  <div className="text-forest-800 space-y-3 text-sm leading-6">
                     {cases.map((fieldCase) => (
-                      <Link className="block rounded-sm border border-stone-200 bg-stone-50 px-4 py-3 hover:border-olive-600" href="/cases" key={fieldCase.id}>
+                      <Link
+                        className="block rounded-sm border border-stone-200 bg-stone-50 px-4 py-3 hover:border-olive-600"
+                        href="/cases"
+                        key={fieldCase.id}
+                      >
                         {fieldCase.id}: {formatStatus(fieldCase.case_type)} ({formatStatus(fieldCase.status)})
                       </Link>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm leading-6 text-forest-700">No linked field cases have been created.</p>
+                  <p className="text-forest-700 text-sm leading-6">No linked field cases have been created.</p>
                 )}
               </Panel>
             </section>
@@ -267,12 +278,12 @@ export default async function MonitoringPage() {
 function SignalBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-label-caps uppercase tracking-[0.08em] text-forest-700">
+      <div className="font-label-caps text-forest-700 mb-2 flex items-center justify-between gap-3 text-[11px] tracking-[0.08em] uppercase">
         <span>{label}</span>
-        <span className="shrink-0 font-data-sm">{percent(value)}</span>
+        <span className="font-data-sm shrink-0">{percent(value)}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-sm bg-stone-200">
-        <div className="h-full rounded-sm bg-forest-800" style={{ width: percent(value) }} />
+        <div className="bg-forest-800 h-full rounded-sm" style={{ width: percent(value) }} />
       </div>
     </div>
   );
@@ -281,27 +292,19 @@ function SignalBar({ label, value }: { label: string; value: number }) {
 function EmptyState({ detail, title }: { detail: string; title: string }) {
   return (
     <section className="rounded-md border border-stone-200 bg-white p-6">
-      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">Waiting for field data</p>
-      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+      <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">Waiting for field data</p>
+      <h2 className="font-headline-md text-forest-950 mt-2 text-xl">{title}</h2>
+      <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6">{detail}</p>
     </section>
   );
 }
 
-function Panel({
-  children,
-  icon: Icon,
-  title,
-}: {
-  children: ReactNode;
-  icon: LucideIcon;
-  title: string;
-}) {
+function Panel({ children, icon: Icon, title }: { children: ReactNode; icon: LucideIcon; title: string }) {
   return (
     <div className="rounded-md border border-stone-200 bg-white p-4 sm:p-5">
       <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-5 w-5 text-forest-800" />
-        <h2 className="text-lg font-headline-md text-forest-950">{title}</h2>
+        <Icon className="text-forest-800 h-5 w-5" />
+        <h2 className="font-headline-md text-forest-950 text-lg">{title}</h2>
       </div>
       {children}
     </div>
@@ -311,9 +314,9 @@ function Panel({
 function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-md border border-stone-200 bg-stone-50 p-4">
-      <Icon className="mb-3 h-5 w-5 text-forest-800" />
-      <p className="text-2xl font-data-lg text-forest-950">{value}</p>
-      <p className="mt-1 text-[10px] font-label-caps uppercase tracking-[0.08em] text-forest-600">{label}</p>
+      <Icon className="text-forest-800 mb-3 h-5 w-5" />
+      <p className="font-data-lg text-forest-950 text-2xl">{value}</p>
+      <p className="font-label-caps text-forest-600 mt-1 text-[10px] tracking-[0.08em] uppercase">{label}</p>
     </div>
   );
 }

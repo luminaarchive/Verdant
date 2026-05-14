@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowUpRight, Link2, ShieldAlert } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getServerTranslations } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,13 @@ function formatStatus(value: string) {
 }
 
 export default async function EcologicalAlertsPage() {
+  const { t } = await getServerTranslations();
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("ecological_alerts")
-    .select("id, alert_type, severity, region_key, evidence_pattern_ids, evidence_observation_ids, operational_summary, generated_at")
+    .select(
+      "id, alert_type, severity, region_key, evidence_pattern_ids, evidence_observation_ids, operational_summary, generated_at",
+    )
     .is("resolved_at", null)
     .order("generated_at", { ascending: false })
     .limit(50);
@@ -39,29 +43,29 @@ export default async function EcologicalAlertsPage() {
   const hasAlerts = alerts.length > 0;
 
   return (
-    <div className="min-h-screen bg-stone-50 px-4 py-6 text-forest-950 sm:px-6 lg:px-8">
+    <div className="text-forest-950 min-h-screen bg-stone-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 border-b border-stone-200 pb-5">
-          <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">
-            Ecological monitoring
+          <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">
+            {t("alerts.eyebrow")}
           </p>
-          <h1 className="mt-2 text-3xl font-display-lg text-forest-950">Ecological alerts</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">
-            Traceable operational alerts generated from persisted longitudinal patterns, field cases, and reviewer-confirmed signals.
-          </p>
+          <h1 className="font-display-lg text-forest-950 mt-2 text-3xl">{t("alerts.title")}</h1>
+          <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6">{t("alerts.context")}</p>
         </header>
 
         {error ? (
           <EmptyState
-            title="Ecological alerts could not be loaded"
-            detail="NaLI could not reach persisted alert records. Check Supabase connectivity and longitudinal intelligence migrations."
+            eyebrow={t("alerts.noEvidence")}
+            title={t("alerts.loadErrorTitle")}
+            detail={t("alerts.loadErrorDetail")}
           />
         ) : null}
 
         {!error && !hasAlerts ? (
           <EmptyState
-            title="No ecological alerts are active"
-            detail="Alerts appear when longitudinal reasoning detects repeated endangered observations, escalating anomaly clusters, habitat conflict, or migration disruption."
+            eyebrow={t("alerts.noEvidence")}
+            title={t("alerts.emptyTitle")}
+            detail={t("alerts.emptyDetail")}
           />
         ) : null}
 
@@ -75,20 +79,20 @@ export default async function EcologicalAlertsPage() {
                     <div className="flex gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-olive-300 bg-olive-100">
                         {alert.severity === "high" || alert.severity === "critical" ? (
-                          <ShieldAlert className="h-5 w-5 text-forest-800" />
+                          <ShieldAlert className="text-forest-800 h-5 w-5" />
                         ) : (
-                          <AlertTriangle className="h-5 w-5 text-forest-800" />
+                          <AlertTriangle className="text-forest-800 h-5 w-5" />
                         )}
                       </div>
                       <div>
-                        <p className="font-data-sm text-sm text-forest-700">{alert.id}</p>
-                        <h2 className="mt-1 text-xl font-headline-md capitalize text-forest-950">
+                        <p className="font-data-sm text-forest-700 text-sm">{alert.id}</p>
+                        <h2 className="font-headline-md text-forest-950 mt-1 text-xl capitalize">
                           {formatStatus(alert.alert_type)}
                         </h2>
-                        <p className="mt-1 text-sm text-forest-700">{alert.region_key}</p>
+                        <p className="text-forest-700 mt-1 text-sm">{alert.region_key}</p>
                       </div>
                     </div>
-                    <span className="rounded-sm border border-warning-amber/30 bg-warning-amber/15 px-2 py-1 text-[10px] font-label-caps uppercase tracking-[0.08em] text-forest-900">
+                    <span className="border-warning-amber/30 bg-warning-amber/15 font-label-caps text-forest-900 rounded-sm border px-2 py-1 text-[10px] tracking-[0.08em] uppercase">
                       {alert.severity}
                     </span>
                   </div>
@@ -98,25 +102,28 @@ export default async function EcologicalAlertsPage() {
                     <Metric label="Alert type" value={formatStatus(alert.alert_type)} />
                   </div>
 
-                  <div className="mt-4 rounded-sm bg-stone-100 px-4 py-3 text-sm leading-6 text-forest-800">
+                  <div className="text-forest-800 mt-4 rounded-sm bg-stone-100 px-4 py-3 text-sm leading-6">
                     {alert.operational_summary}
                   </div>
 
                   <div className="mt-4">
-                    <div className="mb-2 flex items-center gap-2 text-[11px] font-label-caps uppercase tracking-[0.08em] text-forest-700">
+                    <div className="font-label-caps text-forest-700 mb-2 flex items-center gap-2 text-[11px] tracking-[0.08em] uppercase">
                       <Link2 className="h-3.5 w-3.5" />
-                      Linked evidence
+                      {t("alerts.linkedEvidence")}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {evidence.length ? (
                         evidence.map((item) => (
-                          <span key={item} className="rounded-sm border border-stone-200 px-3 py-2 font-data-sm text-xs text-forest-800">
+                          <span
+                            key={item}
+                            className="font-data-sm text-forest-800 rounded-sm border border-stone-200 px-3 py-2 text-xs"
+                          >
                             {item}
                           </span>
                         ))
                       ) : (
-                        <span className="rounded-sm border border-stone-200 px-3 py-2 text-xs text-forest-700">
-                          Evidence references pending
+                        <span className="text-forest-700 rounded-sm border border-stone-200 px-3 py-2 text-xs">
+                          {t("alerts.evidencePending")}
                         </span>
                       )}
                     </div>
@@ -131,12 +138,12 @@ export default async function EcologicalAlertsPage() {
   );
 }
 
-function EmptyState({ detail, title }: { detail: string; title: string }) {
+function EmptyState({ detail, eyebrow, title }: { detail: string; eyebrow: string; title: string }) {
   return (
     <section className="rounded-md border border-stone-200 bg-white p-6">
-      <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">No active alert evidence</p>
-      <h2 className="mt-2 text-xl font-headline-md text-forest-950">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-forest-700">{detail}</p>
+      <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">{eyebrow}</p>
+      <h2 className="font-headline-md text-forest-950 mt-2 text-xl">{title}</h2>
+      <p className="text-forest-700 mt-3 max-w-2xl text-sm leading-6">{detail}</p>
     </section>
   );
 }
@@ -145,10 +152,10 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-stone-200 bg-stone-50 p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-forest-600">{label}</p>
-        <ArrowUpRight className="h-3.5 w-3.5 text-forest-500" />
+        <p className="font-label-caps text-forest-600 text-[10px] tracking-[0.08em] uppercase">{label}</p>
+        <ArrowUpRight className="text-forest-500 h-3.5 w-3.5" />
       </div>
-      <p className="mt-2 break-all font-data-sm text-sm text-forest-950">{value}</p>
+      <p className="font-data-sm text-forest-950 mt-2 text-sm break-all">{value}</p>
     </div>
   );
 }
