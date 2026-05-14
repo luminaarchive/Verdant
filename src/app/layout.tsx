@@ -4,9 +4,24 @@ import { I18nProvider } from "@/lib/i18n/provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NaLI - Wildlife Field Intelligence",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://naliai.vercel.app"),
+  title: "NaLI — Wildlife Field Intelligence for Indonesia",
   description:
-    "A field intelligence platform for wildlife identification, ecological observation, conservation analysis, and structured field logging.",
+    "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
+  openGraph: {
+    title: "NaLI — Wildlife Field Intelligence for Indonesia",
+    description:
+      "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
+    url: "https://naliai.vercel.app",
+    siteName: "NaLI",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NaLI — Wildlife Field Intelligence for Indonesia",
+    description:
+      "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
+  },
 };
 
 export default async function RootLayout({

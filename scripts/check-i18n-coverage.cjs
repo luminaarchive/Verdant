@@ -84,6 +84,11 @@ const suspiciousEnglish = [
   "Review",
   "Pending",
   "Protected",
+  "just now",
+  "updated just now",
+  "Live field workflow demo",
+  "realtime",
+  "real-time",
 ];
 
 const warnings = values(id)

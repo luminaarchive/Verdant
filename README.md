@@ -1,15 +1,16 @@
-# NaLI - Wildlife Field Intelligence Agent
+# NaLI - Wildlife Field Intelligence for Indonesia
 
-AI-powered species identification and field intelligence for rangers, researchers, and wildlife enthusiasts in Indonesia.
+NaLI is an ecological field intelligence platform for Indonesian rangers, researchers, conservation NGOs, and biology students.
 
 ## What it does
 
-NaLI is an AI Agent that identifies wildlife species from photos, audio, or text descriptions. It cross-references GBIF and IUCN Red List data in real-time, detects anomalous observations, and automatically generates field logs.
+NaLI structures wildlife observations from photos, audio, and field notes into source-backed ecological records. It supports species context, GBIF and IUCN enrichment, anomaly review recommendations, conservation-priority reasoning, field cases, bilingual English/Indonesian workflows, and export-ready scientific archives.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, Tailwind CSS, PWA
-- **AI Agent**: Claude claude-sonnet-4-20250514 (Vision), GBIF API, IUCN Red List API
+- **Frontend**: Next.js, Tailwind CSS, PWA-oriented field UI
+- **Reasoning Runtime**: NaLI orchestrator, provider abstraction, ecological reasoning, longitudinal intelligence
+- **Data Sources**: GBIF and IUCN integrations where configured, golden-set Indonesian species references for public demos
 - **Database**: Supabase (PostgreSQL + RLS + Storage)
 - **Deployment**: Vercel
 
@@ -25,11 +26,13 @@ NaLI is an AI Agent that identifies wildlife species from photos, audio, or text
 
 See `.env.local.example` for required variables.
 
-Keys needed:
+Required and optional keys are documented in `docs/RELEASE_QA.md`.
+
+Optional provider keys:
 - Anthropic API key: https://console.anthropic.com
 - Supabase project: https://supabase.com
 - IUCN API key: https://apiv3.iucnredlist.org/api/v3/token
 
 ## Architecture
 
-User (field) → PWA → Next.js API → NaLI Orchestrator → Claude Vision + GBIF + IUCN + Anomaly Check → Supabase
+Observation Input -> Provider Signals -> Ecological Reasoning -> Confidence Calibration -> Conservation Prioritization -> Review Recommendation -> Field Cases -> Persistent Scientific Archive

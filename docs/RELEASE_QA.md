@@ -215,11 +215,12 @@ For live infrastructure activation, also complete the auth, storage, browser, mo
 - Switch the landing page to Indonesian and inspect the full page from top to bottom.
 - Confirm no English marketing copy remains in Indonesian mode. NaLI, GBIF, IUCN, GPS, CR, EN, VU, NT, LC, scientific names, and appropriate technical acronyms can remain unchanged.
 - Confirm `npm run check:i18n` passes before release.
-- Confirm species evidence panels match the species record or are clearly labeled as field image placeholders.
-- Confirm no panda image is used for orangutan records.
-- Confirm the live field workflow card is labeled as a demo when it is not reading from production observations.
-- Confirm the observation results section is labeled as example field records when it uses demo data.
-- Confirm animated demo states do not imply fake production activity, user counts, social activity, or public feed mechanics.
+- Confirm landing species records use compact evidence-style cards, not large gradient placeholders or misleading animal photos.
+- Confirm no panda, zebra, cheetah, or unrelated animal image is used for Indonesian species records.
+- Confirm the public species demo works without login for harimau sumatera, komodo, jalak bali, orangutan tapanuli, bekantan, elang jawa, gajah sumatera, badak sumatera, maleo, and cendrawasih.
+- Confirm every demo result is labeled `Public demo · not a verified field observation` or `Demo publik · bukan observasi lapangan terverifikasi`.
+- Confirm no fake realtime wording remains, including `just now`, `updated just now`, or production-style live activity claims.
+- Confirm planned pricing is labeled as early-access pricing and notes that pricing applies when payment launches.
 - Confirm desktop, 390px mobile, and 360px mobile layouts have no horizontal overflow.
 
 ## Known Limitations

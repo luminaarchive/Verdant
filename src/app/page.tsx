@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Camera,
+  CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   Crosshair,
@@ -21,6 +23,7 @@ import {
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { LiveObservationResults } from "@/components/landing/LiveObservationResults";
 import { LiveObservationReview } from "@/components/landing/LiveObservationReview";
+import { PublicSpeciesDemo } from "@/components/landing/PublicSpeciesDemo";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const MotionSection = motion.section;
@@ -33,11 +36,11 @@ const audience = [
 ];
 
 const workflow = [
-  { key: "media", icon: Camera },
-  { key: "species", icon: SearchCheck },
+  { key: "input", icon: Camera },
+  { key: "candidate", icon: SearchCheck },
   { key: "gbif", icon: Database },
   { key: "iucn", icon: ShieldCheck },
-  { key: "anomaly", icon: ShieldCheck },
+  { key: "review", icon: ShieldCheck },
   { key: "saved", icon: ClipboardCheck },
 ];
 
@@ -60,6 +63,10 @@ const conservationStatuses = [
 
 const privacy = ["private", "noFeed", "gps", "signedUrl", "secure"];
 
+const differentiators = ["sources", "status", "memory", "review", "offline", "cases", "bilingual"];
+
+const pricingTiers = ["seeds", "sapling", "forestKeeper"];
+
 function fadeUp(delay = 0) {
   return {
     initial: { opacity: 0, y: 18 },
@@ -71,10 +78,22 @@ function fadeUp(delay = 0) {
 
 export default function LandingPage() {
   const { t } = useTranslation();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 80);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="text-forest-950 min-h-screen bg-stone-50 antialiased">
-      <header className="sticky top-0 z-50 border-b border-stone-200 bg-stone-50/95 backdrop-blur">
+      <header
+        className={`sticky top-0 z-50 transition ${
+          isScrolled ? "border-b border-stone-300 bg-stone-50/96 shadow-sm backdrop-blur" : "border-b border-transparent bg-stone-50/82 backdrop-blur-sm"
+        }`}
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-3" href="/">
             <span className="bg-forest-900 flex h-10 w-10 items-center justify-center rounded-sm text-stone-50">
@@ -86,11 +105,14 @@ export default function LandingPage() {
             </span>
           </Link>
           <nav className="text-forest-700 hidden items-center gap-6 text-sm font-medium md:flex">
+            <Link className="hover:text-forest-950" href="#demo">
+              {t("nav.demo")}
+            </Link>
             <Link className="hover:text-forest-950" href="#workflow">
               {t("nav.workflow")}
             </Link>
-            <Link className="hover:text-forest-950" href="#field">
-              {t("nav.fieldUse")}
+            <Link className="hover:text-forest-950" href="#pricing">
+              {t("nav.pricing")}
             </Link>
             <Link className="hover:text-forest-950" href="#security">
               {t("nav.security")}
@@ -100,10 +122,10 @@ export default function LandingPage() {
             <LanguageSwitcher compact />
           </div>
           <Link
-            className="bg-forest-900 hover:bg-forest-800 inline-flex min-h-10 items-center gap-2 rounded-sm px-4 text-sm font-semibold text-stone-50 transition"
+            className="border-forest-300 text-forest-900 hidden min-h-10 items-center gap-2 rounded-sm border bg-stone-50 px-4 text-sm font-semibold transition hover:bg-white sm:inline-flex"
             href="/login"
           >
-            {t("common.startIdentifying")}
+            {t("common.joinEarlyAccess")}
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -125,12 +147,18 @@ export default function LandingPage() {
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   className="bg-forest-900 hover:bg-forest-800 inline-flex min-h-12 items-center justify-center rounded-sm px-5 text-sm font-semibold text-stone-50 transition"
+                  href="#demo"
+                >
+                  {t("common.tryDemo")}
+                </Link>
+                <Link
+                  className="border-forest-300 text-forest-900 inline-flex min-h-12 items-center justify-center rounded-sm border bg-stone-50 px-5 text-sm font-semibold transition hover:bg-stone-100"
                   href="/login"
                 >
                   {t("common.startIdentifying")}
                 </Link>
                 <Link
-                  className="border-forest-300 text-forest-900 inline-flex min-h-12 items-center justify-center rounded-sm border bg-stone-50 px-5 text-sm font-semibold transition hover:bg-stone-100"
+                  className="inline-flex min-h-12 items-center justify-center px-1 text-sm font-semibold text-forest-800 underline-offset-4 transition hover:text-forest-950 hover:underline"
                   href="#workflow"
                 >
                   {t("common.viewFieldWorkflow")}
@@ -147,6 +175,8 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <PublicSpeciesDemo />
+
         <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-stone-50 py-14">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeading
@@ -161,6 +191,29 @@ export default function LandingPage() {
                   <h3 className="text-lg font-semibold text-forest-950">{t(`landing.audience.cards.${item.key}.title`)}</h3>
                   <p className="mt-2 text-sm leading-6 text-forest-700">
                     {t(`landing.audience.cards.${item.key}.description`)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </MotionSection>
+
+        <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-white py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              kicker={t("landing.difference.kicker")}
+              title={t("landing.difference.title")}
+              description={t("landing.difference.description")}
+            />
+            <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {differentiators.map((item) => (
+                <article className="rounded-sm border border-stone-200 bg-stone-50 p-5" key={item}>
+                  <CheckCircle2 className="mb-4 h-5 w-5 text-olive-700" aria-hidden="true" />
+                  <h3 className="text-base font-semibold text-forest-950">
+                    {t(`landing.difference.items.${item}.title`)}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                    {t(`landing.difference.items.${item}.description`)}
                   </p>
                 </article>
               ))}
@@ -185,10 +238,20 @@ export default function LandingPage() {
                 const Icon = step.icon;
                 return (
                   <div className="relative rounded-sm border border-stone-50/15 bg-stone-50/6 p-4" key={step.key}>
-                    <Icon className="text-data-cyan h-5 w-5" aria-hidden="true" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-data-cyan text-xs font-semibold tracking-[0.08em]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <Icon className="text-data-cyan h-5 w-5" aria-hidden="true" />
+                    </div>
                     <p className="mt-4 min-h-12 text-sm leading-6 font-semibold">
                       {t(`landing.workflow.steps.${step.key}`)}
                     </p>
+                    {step.key === "gbif" || step.key === "iucn" ? (
+                      <span className="mt-3 inline-flex rounded-sm border border-data-cyan/40 px-2 py-1 text-[0.68rem] font-semibold text-data-cyan">
+                        {step.key.toUpperCase()}
+                      </span>
+                    ) : null}
                     {index < workflow.length - 1 ? (
                       <ChevronRight className="absolute top-1/2 -right-3 hidden h-5 w-5 -translate-y-1/2 text-stone-400 lg:block" />
                     ) : null}
@@ -300,6 +363,79 @@ export default function LandingPage() {
           </div>
         </MotionSection>
 
+        <MotionSection {...fadeUp()} className="border-b border-stone-200 bg-white py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+              <SectionHeading
+                kicker={t("landing.trust.kicker")}
+                title={t("landing.trust.title")}
+                description={t("landing.trust.description")}
+              />
+              <div className="grid gap-3">
+                {["integrated", "ready", "scope"].map((item) => (
+                  <div className="rounded-sm border border-stone-200 bg-stone-50 p-4" key={item}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-olive-700">
+                      {t(`landing.trust.sources.${item}.label`)}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-forest-800">
+                      {t(`landing.trust.sources.${item}.description`)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </MotionSection>
+
+        <MotionSection {...fadeUp()} id="pricing" className="border-b border-stone-200 bg-stone-50 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              kicker={t("landing.pricing.kicker")}
+              title={t("landing.pricing.title")}
+              description={t("landing.pricing.description")}
+            />
+            <div className="mt-8 grid gap-4 lg:grid-cols-3">
+              {pricingTiers.map((tier) => (
+                <article
+                  className={`rounded-sm border p-5 ${
+                    tier === "sapling" ? "border-forest-700 bg-white shadow-[0_18px_44px_rgba(31,45,32,0.12)]" : "border-stone-200 bg-white"
+                  }`}
+                  key={tier}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-semibold text-forest-950">{t(`landing.pricing.tiers.${tier}.name`)}</h3>
+                      <p className="mt-2 text-2xl font-semibold text-forest-950">
+                        {t(`landing.pricing.tiers.${tier}.price`)}
+                      </p>
+                    </div>
+                    {tier === "sapling" ? (
+                      <span className="rounded-sm bg-warning-amber px-2.5 py-1 text-xs font-bold text-forest-950">
+                        {t("landing.pricing.popular")}
+                      </span>
+                    ) : null}
+                  </div>
+                  <ul className="mt-5 space-y-3 text-sm leading-6 text-forest-800">
+                    {["feature1", "feature2", "feature3", "feature4"].map((feature) => (
+                      <li className="flex gap-2" key={feature}>
+                        <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-olive-700" />
+                        <span>{t(`landing.pricing.tiers.${tier}.${feature}`)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-sm border border-forest-300 bg-stone-50 px-4 text-sm font-semibold text-forest-900 transition hover:bg-stone-100"
+                    href="/login"
+                  >
+                    {t("common.joinEarlyAccess")}
+                  </Link>
+                </article>
+              ))}
+            </div>
+            <p className="mt-4 text-sm leading-6 text-forest-700">{t("landing.pricing.note")}</p>
+          </div>
+        </MotionSection>
+
         <section className="bg-stone-100 py-16">
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
             <motion.div {...fadeUp()}>
@@ -317,13 +453,7 @@ export default function LandingPage() {
                   className="bg-forest-900 hover:bg-forest-800 inline-flex min-h-12 items-center justify-center rounded-sm px-5 text-sm font-semibold text-stone-50 transition"
                   href="/login"
                 >
-                  {t("common.startIdentifying")}
-                </Link>
-                <Link
-                  className="border-forest-300 text-forest-900 inline-flex min-h-12 items-center justify-center rounded-sm border bg-stone-50 px-5 text-sm font-semibold transition hover:bg-stone-50"
-                  href="#workflow"
-                >
-                  {t("common.viewFieldWorkflow")}
+                  {t("common.joinEarlyAccess")}
                 </Link>
               </div>
             </motion.div>
@@ -334,19 +464,29 @@ export default function LandingPage() {
       <footer className="bg-forest-950 border-t border-stone-200 px-4 py-8 text-stone-300 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p>
-            <span className="font-semibold text-stone-50">NaLI</span> - Nature Life Intelligence and Human Assistance
+            <span className="font-semibold text-stone-50">NaLI</span> - {t("footer.tagline")}
           </p>
           <div className="flex flex-wrap gap-4">
+            <Link className="hover:text-white" href="#demo">
+              {t("nav.demo")}
+            </Link>
             <Link className="hover:text-white" href="#workflow">
               {t("nav.workflow")}
             </Link>
-            <Link className="hover:text-white" href="#field">
-              {t("nav.fieldUse")}
+            <Link className="hover:text-white" href="#pricing">
+              {t("nav.pricing")}
             </Link>
             <Link className="hover:text-white" href="#security">
               {t("nav.security")}
             </Link>
+            <Link className="hover:text-white" href="/privacy">
+              {t("footer.privacy")}
+            </Link>
+            <Link className="hover:text-white" href="/contact">
+              {t("footer.contact")}
+            </Link>
           </div>
+          <p className="text-xs text-stone-400">{t("footer.builtBy")}</p>
         </div>
       </footer>
     </div>
