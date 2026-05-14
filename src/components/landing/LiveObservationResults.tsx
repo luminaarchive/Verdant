@@ -34,20 +34,21 @@ export function LiveObservationResults() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="rounded-sm border border-stone-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-forest-700">
+        <p className="text-forest-700 rounded-sm border border-stone-300 bg-white px-3 py-2 text-xs font-semibold tracking-[0.08em] uppercase">
           {t("landing.results.demoLabel")}
         </p>
-        <p className="max-w-2xl text-sm leading-6 text-forest-700">{t("landing.results.demoDisclosure")}</p>
+        <p className="text-forest-700 max-w-2xl text-sm leading-6">{t("landing.results.demoDisclosure")}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {records.map((item) => (
+        {records.map((item, index) => (
           <SpeciesEvidenceCard
             commonName={item.local}
             conservationContext={t(`landing.results.records.${item.key}.context`)}
             disclaimer={t("landing.results.disclaimer")}
             evidenceType={t(`landing.results.records.${item.key}.evidence`)}
             key={item.scientific}
+            priority={index === 0}
             region={item.region}
             reviewRecommendation={t(`landing.results.records.${item.key}.review`)}
             scientificName={item.scientific}
@@ -57,13 +58,13 @@ export function LiveObservationResults() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-3 text-sm text-forest-800 md:grid-cols-2">
+      <div className="text-forest-800 mt-4 grid gap-3 text-sm md:grid-cols-2">
         <p className="flex items-start gap-2 rounded-sm border border-stone-300 bg-white p-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-olive-800" />
           {t("landing.results.auditNote")}
         </p>
         <p className="flex items-start gap-2 rounded-sm border border-stone-300 bg-white p-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-conservation-orange" />
+          <AlertTriangle className="text-conservation-orange mt-0.5 h-4 w-4 shrink-0" />
           {t("landing.results.reviewNote")}
         </p>
       </div>

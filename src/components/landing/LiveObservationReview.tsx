@@ -63,22 +63,23 @@ export function LiveObservationReview() {
     <div className="rounded-sm border border-stone-300 bg-stone-100 p-4 shadow-[0_22px_60px_rgba(31,45,32,0.14)] sm:p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-forest-700">
+          <p className="text-forest-700 text-xs font-semibold tracking-[0.08em] uppercase">
             {t("landing.liveReview.label")}
           </p>
-          <p className="mt-1 text-sm font-semibold text-forest-950">{observation.id}</p>
+          <p className="text-forest-950 mt-1 text-sm font-semibold">{observation.id}</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-sm bg-olive-100 px-2.5 py-1 text-xs font-bold text-forest-950">
+        <span className="text-forest-950 inline-flex items-center gap-1.5 rounded-sm bg-olive-100 px-2.5 py-1 text-xs font-bold">
           <ClipboardCheck className="h-3.5 w-3.5" />
           {t("landing.liveReview.demo")}
         </span>
       </div>
 
-        <SpeciesEvidenceCard
-          commonName={observation.localName}
-          conservationContext={t(`landing.liveReview.records.${observation.key}.context`)}
+      <SpeciesEvidenceCard
+        commonName={observation.localName}
+        conservationContext={t(`landing.liveReview.records.${observation.key}.context`)}
         disclaimer={t("landing.liveReview.disclaimer")}
         evidenceType={t(`landing.liveReview.records.${observation.key}.evidence`)}
+        priority
         region={observation.region}
         reviewRecommendation={t(`landing.liveReview.records.${observation.key}.review`)}
         scientificName={observation.scientificName}
@@ -96,8 +97,8 @@ export function LiveObservationReview() {
         <div className="flex items-start gap-2">
           <CheckCircle2 className="mt-0.5 h-4 w-4 text-olive-800" />
           <div>
-            <p className="text-sm font-semibold text-forest-950">{stages[stageIndex]}</p>
-            <p className="mt-1 text-sm leading-6 text-forest-800">{t("landing.liveReview.stageContext")}</p>
+            <p className="text-forest-950 text-sm font-semibold">{stages[stageIndex]}</p>
+            <p className="text-forest-800 mt-1 text-sm leading-6">{t("landing.liveReview.stageContext")}</p>
           </div>
         </div>
       </motion.div>

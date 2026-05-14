@@ -1,57 +1,67 @@
-'use client';
+"use client";
 
 // NaLI: Ecological Field Map System
 // WARNING: This component must be dynamically imported by its parent to avoid SSR window issues.
-import React, { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import "leaflet/dist/leaflet.css";
 
 // Dynamic import of leaflet components to disable SSR
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
+const CircleMarker = dynamic(() => import("react-leaflet").then((mod) => mod.CircleMarker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
+
+type MapObservation = {
+  id: string;
+  species: string;
+  localName: string | null;
+  status: string;
+  reviewStatus: string;
+  anomaly: boolean;
+  lat: number;
+  lng: number;
+  protected: boolean;
+};
 
 export default function EcologicalMapPage() {
   const [mounted, setMounted] = useState(false);
+  const [observations, setObservations] = useState<MapObservation[]>([]);
+  const [error, setError] = useState("");
+  const [disclaimer, setDisclaimer] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Simulated ecological observations
-  const observations = [
-    { id: 1, species: "Pongo abelii", status: "CR", isEndangered: true, lat: 3.20, lng: 98.15 },
-    { id: 2, species: "Panthera tigris sumatrae", status: "CR", isEndangered: true, lat: -0.5, lng: 101.5 },
-    { id: 3, species: "Macaca fascicularis", status: "LC", isEndangered: false, lat: -6.2, lng: 106.8 }
-  ];
-
-  /**
-   * Coordinate Obfuscation for Endangered Species
-   * Jitters the location by up to 10km to protect critical habitats
-   */
-  const obfuscateCoordinates = (lat: number, lng: number, isEndangered: boolean) => {
-    if (!isEndangered) return { lat, lng };
-    const jitter = 0.1; // roughly 11km at equator
-    return {
-      lat: lat + (Math.random() - 0.5) * jitter,
-      lng: lng + (Math.random() - 0.5) * jitter
-    };
-  };
+  useEffect(() => {
+    fetch("/api/map/field-layers")
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Map layers unavailable");
+        setObservations(body.observations ?? []);
+        setDisclaimer(body.disclaimer ?? "");
+      })
+      .catch((lookupError) => {
+        setError(lookupError instanceof Error ? lookupError.message : "Map layers unavailable");
+      });
+  }, []);
 
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-surface-container-lowest text-on-surface font-body-md flex flex-col">
-      <header className="bg-surface-dim border-b border-outline-variant h-16 flex items-center px-6 sticky top-0 z-50">
-        <h1 className="font-label-caps text-xs text-primary uppercase tracking-widest">Ecological Occurrence Map</h1>
+    <div className="bg-surface-container-lowest text-on-surface font-body-md flex min-h-screen flex-col">
+      <header className="bg-surface-dim border-outline-variant sticky top-0 z-50 flex h-16 items-center border-b px-6">
+        <h1 className="font-label-caps text-primary text-xs tracking-widest uppercase">
+          Persisted Field Occurrence Map
+        </h1>
       </header>
 
-      <main className="flex-1 w-full h-[calc(100vh-64px)] relative">
-        <MapContainer 
-          center={[-2.0, 118.0]} 
-          zoom={5} 
-          style={{ height: '100%', width: '100%', background: '#1c1b1f' }}
+      <main className="relative h-[calc(100vh-64px)] w-full flex-1">
+        <MapContainer
+          center={[-2.0, 118.0]}
+          zoom={5}
+          style={{ height: "100%", width: "100%", background: "#1c1b1f" }}
           className="z-0"
         >
           {/* Muted, topographic style tiles suitable for conservation UI */}
@@ -61,26 +71,29 @@ export default function EcologicalMapPage() {
           />
 
           {observations.map((obs) => {
-            const { lat, lng } = obfuscateCoordinates(obs.lat, obs.lng, obs.isEndangered);
-            
             return (
               <CircleMarker
                 key={obs.id}
-                center={[lat, lng]}
-                radius={obs.isEndangered ? 12 : 6}
-                pathOptions={{ 
-                  fillColor: obs.isEndangered ? '#ff5449' : '#00e57a', // error vs primary
-                  color: obs.isEndangered ? '#ff5449' : '#00e57a',
+                center={[obs.lat, obs.lng]}
+                radius={obs.protected ? 12 : 6}
+                pathOptions={{
+                  fillColor: obs.protected ? "#ff5449" : obs.anomaly ? "#ffb84d" : "#00e57a",
+                  color: obs.protected ? "#ff5449" : obs.anomaly ? "#ffb84d" : "#00e57a",
                   fillOpacity: 0.4,
-                  weight: 2
+                  weight: 2,
                 }}
               >
-                <Popup className="bg-surface-dim border border-outline-variant text-on-surface">
+                <Popup className="bg-surface-dim border-outline-variant text-on-surface border">
                   <div className="font-body-md">
-                    <h3 className="font-label-caps text-[11px] text-primary mb-1 uppercase tracking-wider">{obs.species}</h3>
-                    <p className="text-sm text-on-surface-variant">Status: {obs.status}</p>
-                    {obs.isEndangered && (
-                      <p className="text-[10px] text-error mt-2 font-data-sm">* Coordinates obfuscated for protection</p>
+                    <h3 className="font-label-caps text-primary mb-1 text-[11px] tracking-wider uppercase">
+                      {obs.species}
+                    </h3>
+                    <p className="text-on-surface-variant text-sm">Status: {obs.status}</p>
+                    <p className="text-on-surface-variant text-sm">Review: {obs.reviewStatus}</p>
+                    {obs.protected && (
+                      <p className="text-error font-data-sm mt-2 text-[10px]">
+                        * Coordinates obfuscated for protection
+                      </p>
                     )}
                   </div>
                 </Popup>
@@ -89,19 +102,34 @@ export default function EcologicalMapPage() {
           })}
         </MapContainer>
 
-        {/* Legend Overlay */}
-        <div className="absolute bottom-6 right-6 z-[1000] bg-surface-container/90 backdrop-blur-sm border border-outline-variant rounded-xl p-4 shadow-lg pointer-events-auto">
-          <h4 className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-widest mb-3">Occurrence Density</h4>
-          <div className="space-y-2">
-             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-error/40 border-2 border-error"></div>
-                <span className="text-xs text-on-surface">Critical/Endangered (Obfuscated)</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-primary/40 border-2 border-primary"></div>
-                <span className="text-xs text-on-surface">Least Concern (Exact)</span>
-             </div>
+        {observations.length === 0 ? (
+          <div className="border-outline-variant bg-surface-container/95 text-on-surface-variant absolute inset-x-4 top-6 z-[1000] rounded-sm border p-4 text-sm shadow-lg md:right-auto md:left-6 md:max-w-md">
+            {error || "No persisted field observations with coordinates are available for this workspace yet."}
           </div>
+        ) : null}
+
+        {/* Legend Overlay */}
+        <div className="bg-surface-container/90 border-outline-variant pointer-events-auto absolute right-6 bottom-6 z-[1000] rounded-xl border p-4 shadow-lg backdrop-blur-sm">
+          <h4 className="font-label-caps text-on-surface-variant mb-3 text-[10px] tracking-widest uppercase">
+            Field Layers
+          </h4>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-error/40 border-error h-3 w-3 rounded-full border-2"></div>
+              <span className="text-on-surface text-xs">Critical/Endangered (Obfuscated)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full border-2 border-[#ffb84d] bg-[#ffb84d]/40"></div>
+              <span className="text-on-surface text-xs">Anomaly flag</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="bg-primary/40 border-primary h-3 w-3 rounded-full border-2"></div>
+              <span className="text-on-surface text-xs">Accessible observation</span>
+            </div>
+          </div>
+          {disclaimer ? (
+            <p className="text-on-surface-variant mt-3 max-w-[15rem] text-[10px] leading-4">{disclaimer}</p>
+          ) : null}
         </div>
       </main>
     </div>

@@ -8,6 +8,7 @@ Report generated for the confirmed NaLI production target before additive schema
 - Production application: `https://naliai.vercel.app`
 - Migration posture: additive NaLI activation first, no destructive cleanup during this phase
 - Activation migration applied: `20260514071941_nali_live_infrastructure_activation`
+- Agentic field intelligence migration applied: `20260514181110_agentic_field_intelligence`
 
 ## Existing Migration History
 
@@ -19,7 +20,7 @@ Live migration history currently contains:
 
 The NaLI observation, reasoning, storage, field case, and longitudinal intelligence schema was not reflected before this phase.
 
-After activation, live migration history includes `nali_live_infrastructure_activation`.
+After activation, live migration history includes `nali_live_infrastructure_activation` and `agentic_field_intelligence`.
 
 ## Existing Legacy Tables
 
@@ -120,6 +121,34 @@ The migration seeds golden-set species used by local regression and field workfl
 - `Leucopsar rothschildi`
 
 Post-activation validation confirmed these seed records exist.
+
+The agentic field intelligence migration additionally seeds:
+
+- `Nasalis larvatus`
+- `Elephas maximus sumatranus`
+- `Macrocephalon maleo`
+- `Paradisaea apoda`
+
+## Agentic Field Intelligence Additions
+
+The applied additive migration adds:
+
+- PostGIS-backed `observations.location`
+- `observations.h3_cell_res7`
+- `get_observations_nearby`
+- `observation_hashes`
+- `observation_anomaly_flags`
+- `user_roles`
+- `review_actions`
+- `notifications`
+- `threat_events`
+- `realtime_alerts`
+- `user_scores`
+- `verify_observation_hash`
+
+No destructive SQL is included. Rollback requires disabling dependent application features before dropping new objects.
+
+Post-migration Supabase MCP validation confirmed PostGIS is enabled, `observations.location` and `observations.h3_cell_res7` exist, `get_observations_nearby` and `verify_observation_hash` exist, all eight new operational tables have RLS enabled, and the private `observation_media` bucket remains non-public.
 
 ## Risks
 

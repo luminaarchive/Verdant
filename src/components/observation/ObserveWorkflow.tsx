@@ -25,7 +25,11 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import { LocationMemoryPanel } from "@/components/observation/LocationMemoryPanel";
+import { VoiceToForm } from "@/components/observation/VoiceToForm";
+import { useRealtimeAlerts } from "@/lib/realtime/alerts";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { getSpeciesVisual } from "@/lib/species/speciesVisuals";
 
 type GpsState = "locating" | "acquired" | "low-accuracy" | "unavailable";
 type PipelineState = "idle" | "running" | "complete";
@@ -63,7 +67,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Known range overlaps Kerinci Seblat and Bukit Barisan forest systems.",
     notes:
       "Possible large carnivore evidence near riparian vegetation. Verify track scale, camera metadata, and recent patrol reports before sharing coordinates.",
-    image: "https://images.unsplash.com/photo-1551969014-7d2c4cddf0b6?auto=format&fit=crop&w=1100&q=80",
+    image: getSpeciesVisual("Panthera tigris sumatrae")?.imagePath ?? "/icon.svg",
   },
   {
     scientificName: "Pongo tapanuliensis",
@@ -75,7 +79,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Restricted to the Batang Toru ecosystem in North Sumatra.",
     notes:
       "Observation should be handled as sensitive habitat data. Look for nest evidence and fruiting tree context in follow-up notes.",
-    image: "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=1100&q=80",
+    image: getSpeciesVisual("Pongo tapanuliensis")?.imagePath ?? "/icon.svg",
   },
   {
     scientificName: "Varanus komodoensis",
@@ -87,7 +91,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Primarily associated with Komodo, Rinca, Flores, Gili Motang, and nearby islands.",
     notes:
       "Record distance from settlements, temperature, and observed behavior. Maintain safe approach distance during verification.",
-    image: "https://images.unsplash.com/photo-1598755257130-c2aaca1f061c?auto=format&fit=crop&w=1100&q=80",
+    image: getSpeciesVisual("Varanus komodoensis")?.imagePath ?? "/icon.svg",
   },
   {
     scientificName: "Spizaetus bartelsi",
@@ -99,7 +103,7 @@ const speciesResults: SpeciesResult[] = [
     distribution: "Endemic to Java, usually associated with mature forest and mountain habitats.",
     notes:
       "Raptor identification benefits from silhouette, crest visibility, and call evidence. Add audio when available.",
-    image: "https://images.unsplash.com/photo-1611689342806-0863700ce1e4?auto=format&fit=crop&w=1100&q=80",
+    image: getSpeciesVisual("Spizaetus bartelsi")?.imagePath ?? "/icon.svg",
   },
   {
     scientificName: "Leucopsar rothschildi",
@@ -110,7 +114,7 @@ const speciesResults: SpeciesResult[] = [
     anomaly: "Captive-release zone should be checked",
     distribution: "Native to Bali with highly managed conservation and release populations.",
     notes: "Confirm leg bands if visible and note flock size. Treat exact coordinates as sensitive until reviewed.",
-    image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=1100&q=80",
+    image: getSpeciesVisual("Leucopsar rothschildi")?.imagePath ?? "/icon.svg",
   },
 ];
 
@@ -133,7 +137,8 @@ function pickResult(description: string) {
 
 export default function ObserveWorkflow() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
+  const realtimeAlerts = useRealtimeAlerts("default", language);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -284,6 +289,21 @@ export default function ObserveWorkflow() {
         </header>
 
         <OfflineNotice queued={offlineQueued} />
+        {realtimeAlerts.length ? (
+          <div className="mb-4 space-y-2">
+            {realtimeAlerts.slice(0, 2).map((alert) => (
+              <div
+                className="border-conservation-orange/40 bg-conservation-orange/10 text-forest-900 rounded-sm border p-3 text-sm font-semibold"
+                key={alert.id}
+              >
+                {alert.message}
+                {typeof alert.distanceKm === "number"
+                  ? ` ${language === "id" ? "Perkiraan jarak" : "Estimated distance"}: ${alert.distanceKm.toFixed(1)} km`
+                  : ""}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[1fr_0.92fr]">
           <section className="space-y-4">
@@ -405,8 +425,24 @@ export default function ObserveWorkflow() {
               title={t("observe.description")}
               detail="Write natural field notes in Indonesian or English."
             >
+              <VoiceToForm
+                onApply={(fields) => {
+                  setDescription((current) => {
+                    const additions = [
+                      fields.species ? `Species: ${fields.species}` : "",
+                      fields.individualCount ? `Individuals: ${fields.individualCount}` : "",
+                      fields.behavior ? `Behavior: ${fields.behavior}` : "",
+                      fields.habitat ? `Habitat: ${fields.habitat}` : "",
+                      fields.threats ? `Threats: ${fields.threats}` : "",
+                      fields.notes,
+                    ].filter(Boolean);
+                    return [current, additions.join("\n")].filter(Boolean).join("\n\n");
+                  });
+                  setResult(null);
+                }}
+              />
               <textarea
-                className="text-forest-950 min-h-36 w-full resize-none rounded-sm border border-stone-300 bg-white p-4 text-base leading-7 transition outline-none focus:border-olive-700 focus:ring-2 focus:ring-olive-100"
+                className="text-forest-950 mt-3 min-h-36 w-full resize-none rounded-sm border border-stone-300 bg-white p-4 text-base leading-7 transition outline-none focus:border-olive-700 focus:ring-2 focus:ring-olive-100"
                 maxLength={2000}
                 onChange={(event) => {
                   setDescription(event.target.value);
@@ -424,6 +460,9 @@ export default function ObserveWorkflow() {
 
           <aside className="space-y-4">
             <GpsCard coords={coords} state={gpsState} />
+            {gpsState !== "locating" && gpsState !== "unavailable" ? (
+              <LocationMemoryPanel latitude={coords.latitude} longitude={coords.longitude} />
+            ) : null}
 
             <div className="rounded-sm border border-stone-200 bg-white p-4">
               {submitError ? (

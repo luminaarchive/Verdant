@@ -18,6 +18,7 @@ export const id = {
     system: "Sistem",
     pending: "Menunggu",
     unconfigured: "Belum dikonfigurasi",
+    unavailable: "Tidak tersedia",
     available: "Tersedia",
     degraded: "Terbatas",
     unverified: "Belum diverifikasi",
@@ -90,6 +91,7 @@ export const id = {
       review: "Rekomendasi tinjauan",
       source: "Sumber",
       demoBadge: "Demo publik · bukan observasi lapangan terverifikasi",
+      createObservation: "Buat observasi lapangan",
     },
     workflow: {
       kicker: "Cara kerja NaLI",
@@ -101,7 +103,7 @@ export const id = {
         gbif: "Periksa distribusi GBIF",
         iucn: "Ambil konteks konservasi IUCN",
         review: "Buat rekomendasi tinjauan",
-        saved: "Catatan Lapangan Tersimpan",
+        saved: "Simpan catatan lapangan",
       },
       notes: {
         inputs: "Input tetap tertaut ke catatan observasi untuk verifikasi berikutnya.",
@@ -128,7 +130,8 @@ export const id = {
         tapanuli: {
           evidence: "Foto + catatan lapangan",
           review: "Validasi ahli direkomendasikan",
-          context: "Konteks kera besar dengan sebaran kecil memerlukan koordinat terlindungi dan tinjauan ahli sebelum ekspor.",
+          context:
+            "Konteks kera besar dengan sebaran kecil memerlukan koordinat terlindungi dan tinjauan ahli sebelum ekspor.",
         },
         tiger: {
           evidence: "Bingkai kamera jebak + GPS",
@@ -138,7 +141,8 @@ export const id = {
         komodo: {
           evidence: "Foto + catatan ranger",
           review: "Aman untuk arsip rutin",
-          context: "Konteks sebaran yang sesuai mendukung pengarsipan rutin saat sinyal distribusi dan habitat selaras.",
+          context:
+            "Konteks sebaran yang sesuai mendukung pengarsipan rutin saat sinyal distribusi dan habitat selaras.",
         },
       },
     },
@@ -148,7 +152,8 @@ export const id = {
       description:
         "Nama, status, keyakinan, lokasi, waktu, rekomendasi tinjauan, dan peringatan terlihat tanpa membuka banyak menu.",
       demoLabel: "Contoh catatan lapangan",
-      demoDisclosure: "Contoh catatan lapangan menggunakan referensi golden-set NaLI dan bukan observasi terverifikasi.",
+      demoDisclosure:
+        "Contoh catatan lapangan menggunakan referensi golden-set NaLI dan bukan observasi terverifikasi.",
       sourceLabel: "Contoh catatan lapangan · belum diverifikasi",
       disclaimer: "Demo publik · bukan observasi lapangan terverifikasi",
       auditNote: "Sinyal dan interpretasi tetap dipisahkan untuk audit dan serah terima peninjau.",
@@ -157,7 +162,8 @@ export const id = {
         tapanuli: {
           evidence: "Foto + catatan lapangan",
           review: "Validasi ahli direkomendasikan",
-          context: "Sensitivitas habitat sebaran kecil memerlukan koordinat terlindungi dan penanganan ekspor yang hati-hati.",
+          context:
+            "Sensitivitas habitat sebaran kecil memerlukan koordinat terlindungi dan penanganan ekspor yang hati-hati.",
         },
         tiger: {
           evidence: "Bingkai kamera jebak + GPS",
@@ -186,17 +192,23 @@ export const id = {
           title: "Konteks spesies berbasis sumber",
           description: "Output spesies dibingkai dengan distribusi GBIF dan konteks konservasi IUCN saat tersedia.",
         },
-        status: {
-          title: "Pengayaan status konservasi",
-          description: "Kategori risiko membentuk privasi, tinjauan, dan eskalasi, bukan hanya hiasan.",
+        gbifIucn: {
+          title: "Pengayaan GBIF/IUCN",
+          description: "Pemeriksaan referensi tetap terlihat agar tim lapangan dapat meninjau dasar konteks ekologis.",
         },
         memory: {
-          title: "Memori observasi lapangan",
-          description: "Struktur longitudinal menyiapkan NaLI untuk menalar observasi dan wilayah berulang.",
+          title: "Riwayat lokasi",
+          description: "Observasi tersimpan di sekitar lokasi membantu ranger memahami catatan sebelumnya.",
         },
         review: {
-          title: "Rekomendasi anomali dan tinjauan",
-          description: "Sinyal penyedia dikalibrasi menjadi rekomendasi terstruktur untuk validasi manusia.",
+          title: "Rekomendasi tinjauan",
+          description:
+            "Observasi tidak pasti atau sensitif diarahkan ke validasi manusia, bukan keyakinan tersembunyi.",
+        },
+        anomaly: {
+          title: "Deteksi anomali",
+          description:
+            "Baseline grid H3 menandai catatan pertama dan aktivitas tidak biasa dari arsip NaLI yang tersedia.",
         },
         offline: {
           title: "Alur offline ringan",
@@ -206,9 +218,49 @@ export const id = {
           title: "Eskalasi kasus konservasi",
           description: "Observasi penting dapat menjadi kasus lapangan operasional dengan bukti tertaut.",
         },
+        sensitiveGps: {
+          title: "Perlindungan GPS sensitif",
+          description: "Koordinat persis spesies terancam ditangani sebagai data operasional terlindungi.",
+        },
+        evidenceHash: {
+          title: "Hash bukti",
+          description: "Catatan terkirim dapat menerima kode integritas SHA-256 untuk pemeriksaan perubahan.",
+        },
         bilingual: {
           title: "UX lapangan Inggris dan Indonesia",
           description: "Alur penting dilokalkan untuk konteks konservasi Indonesia.",
+        },
+        darwinCore: {
+          title: "Catatan siap ekspor ekologis",
+          description:
+            "Observasi terverifikasi dapat dipetakan ke CSV/DwC-A Darwin Core dengan perlindungan koordinat.",
+        },
+        threatPulse: {
+          title: "Lapisan pulsa ancaman",
+          description: "FIRMS, Global Forest Watch, dan laporan NaLI disiapkan sebagai konteks ancaman indikatif.",
+        },
+        voice: {
+          title: "Suara-ke-form",
+          description: "Input suara Bahasa Indonesia membantu pencatatan sambil tetap mewajibkan tinjauan pengguna.",
+        },
+        patrol: {
+          title: "Perencanaan patroli agentik",
+          description:
+            "Rekomendasi patroli memberi peringkat observasi, anomali, ancaman, dan grid yang jarang diperiksa.",
+        },
+        realtimeAlerts: {
+          title: "Peringatan antar-ranger",
+          description:
+            "Kanal Supabase Realtime disiapkan untuk peringatan regional prioritas tinggi tanpa membuka koordinat sensitif.",
+        },
+        credibility: {
+          title: "Skor kredibilitas observer",
+          description: "Kepercayaan didasarkan pada kualitas tinjauan dan kelengkapan bukti, bukan ranking sosial.",
+        },
+        indonesia: {
+          title: "Dirancang untuk alur keanekaragaman hayati Indonesia",
+          description:
+            "Sistem dimulai dari spesies Indonesia, bahasa lapangan, kebutuhan privasi, dan operasi konservasi.",
         },
       },
     },
@@ -390,6 +442,87 @@ export const id = {
     offlineQueued: "Observasi disimpan ke antrean offline. Sinkronkan saat konektivitas lapangan kembali.",
     uploadFailed: "Observasi tidak dapat dikirim. Periksa konektivitas, penyimpanan, dan data lapangan.",
     completed: "Analisis observasi selesai",
+    locationMemory: {
+      title: "Riwayat Lokasi Ini",
+      description: "Observasi tersimpan dalam radius 500 meter, difilter sesuai privasi dan kebijakan akses.",
+      loading: "Memeriksa observasi sebelumnya di dekat lokasi ini.",
+      empty: "Belum ada observasi NaLI yang dapat diakses di sekitar lokasi ini.",
+      anomaly: "Anomali",
+      openDetail: "Buka detail observasi",
+      caseLinked: "Kasus tertaut",
+    },
+    voice: {
+      title: "Suara-ke-form",
+      disclaimer: "Input suara bersifat membantu. Tinjau dan koreksi semua field sebelum mengirim.",
+      start: "Mulai input suara",
+      listening: "Mendengarkan",
+      unsupported: "Browser ini tidak menyediakan pengenalan suara Web Speech API.",
+    },
+  },
+  verify: {
+    kicker: "Pemeriksaan catatan tahan perubahan",
+    title: "Verifikasi hash bukti NaLI",
+    description: "Masukkan kode verifikasi NaLI untuk memeriksa apakah hash observasi yang cocok tersedia.",
+    inputLabel: "Hash verifikasi NaLI",
+    button: "Verifikasi hash",
+    checking: "Memeriksa hash",
+    failed: "NaLI belum dapat memverifikasi hash ini saat ini.",
+    notFound: "Tidak ada hash bukti NaLI yang cocok.",
+    protected: "Terlindungi",
+    notProtected: "Tidak terlindungi",
+    disclaimer:
+      "Hash ini adalah pemeriksaan integritas digital, bukan otomatis menjadi alat bukti yang sah di pengadilan. Penggunaan hukum dapat memerlukan validasi ahli forensik TI.",
+    fields: {
+      hash: "Hash",
+      algorithm: "Algoritme",
+      observation: "Observasi",
+      species: "Nama ilmiah",
+      commonName: "Nama umum",
+      review: "Tinjauan",
+      coordinates: "Koordinat",
+    },
+  },
+  reviewQueue: {
+    roleKicker: "Alur peninjau",
+    roleTitle: "Peran peninjau diperlukan",
+    roleDescription: "Antrean tinjauan NaLI dibatasi untuk pengguna dengan peran reviewer atau admin.",
+    kicker: "Tinjauan manusia",
+    title: "Antrean tinjauan",
+    description:
+      "Observasi yang tidak pasti, terpicu anomali, atau sensitif masuk ke alur tinjauan manusia sebelum verifikasi, ekspor, atau eskalasi.",
+    speciesPending: "Spesies menunggu",
+    commonNamePending: "Nama umum menunggu",
+    pendingReview: "pending_review",
+    unreviewed: "unreviewed",
+    anomaly: "Anomali",
+    confidence: "Keyakinan",
+    pending: "Menunggu",
+    evidenceHash: "Hash bukti",
+    openDetailForHash: "Buka detail untuk hash",
+    reasoningSnapshot: "Snapshot penalaran",
+    signalSnapshot: "Snapshot sinyal",
+    persisted: "Tersimpan",
+    openAuditDetail: "Buka detail audit",
+    empty: "Saat ini tidak ada observasi yang menunggu tinjauan.",
+    reasonLabel: "Alasan peninjau",
+    saving: "Menyimpan tindakan tinjauan...",
+    saved: "Tindakan tinjauan tersimpan.",
+    failed: "Tindakan tinjauan gagal.",
+    verify: "Verifikasi",
+    clarify: "Minta klarifikasi",
+    reject: "Tolak",
+  },
+  patrolPlan: {
+    kicker: "Perencanaan patroli agentik",
+    title: "Prioritas patroli mingguan",
+    description:
+      "Rekomendasi Claude hanya tersedia saat ANTHROPIC_API_KEY dikonfigurasi. Tampilan ini memakai pemeringkatan fallback NaLI berbasis observasi, anomali, ancaman, dan kasus tersimpan.",
+    reason: "Alasan berbasis data",
+    window: "Jendela waktu terbaik",
+    caution: "Catatan kehati-hatian",
+    whatsapp: "Teks WhatsApp",
+    exportPdf: "Ekspor PDF",
+    pdfTitle: "Rencana Patroli NaLI",
   },
   archive: {
     eyebrow: "Arsip Observasi Lapangan",

@@ -18,6 +18,7 @@ export const en = {
     system: "System",
     pending: "Pending",
     unconfigured: "Unconfigured",
+    unavailable: "Unavailable",
     available: "Available",
     degraded: "Degraded",
     unverified: "Unverified",
@@ -75,8 +76,7 @@ export const en = {
       title: "Try a source-backed species lookup",
       description:
         "Search an Indonesian wildlife species and see how NaLI structures ecological context before field verification.",
-      disclaimer:
-        "This public demo uses NaLI golden-set reference data. Results are not verified field observations.",
+      disclaimer: "This public demo uses NaLI golden-set reference data. Results are not verified field observations.",
       inputLabel: "Species name",
       placeholder: "Try harimau sumatera, komodo, jalak bali...",
       button: "Lookup species",
@@ -90,6 +90,7 @@ export const en = {
       review: "Review recommendation",
       source: "Source",
       demoBadge: "Public demo · not a verified field observation",
+      createObservation: "Create field observation",
     },
     workflow: {
       kicker: "How NaLI works",
@@ -114,8 +115,7 @@ export const en = {
       demo: "Public demo",
       sourceLabel: "GBIF + IUCN reference example",
       disclaimer: "Public demo · not a verified field observation",
-      stageContext:
-        "This sample workflow shows how NaLI structures signals before a verified field record is saved.",
+      stageContext: "This sample workflow shows how NaLI structures signals before a verified field record is saved.",
       stages: {
         media: "Sample workflow state: media received",
         candidate: "Sample workflow state: species candidate generated",
@@ -184,19 +184,25 @@ export const en = {
       items: {
         sources: {
           title: "Source-backed species context",
-          description: "Species outputs are framed with GBIF distribution and IUCN conservation context when available.",
+          description:
+            "Species outputs are framed with GBIF distribution and IUCN conservation context when available.",
         },
-        status: {
-          title: "Conservation status enrichment",
-          description: "Risk categories shape privacy, review, and escalation instead of appearing as decoration.",
+        gbifIucn: {
+          title: "GBIF/IUCN enrichment",
+          description: "Reference checks remain visible so field teams can review the basis of ecological context.",
         },
         memory: {
-          title: "Field observation memory",
-          description: "Longitudinal structures prepare NaLI to reason across repeated observations and regions.",
+          title: "Location memory",
+          description: "Nearby persisted observations can help a returning ranger understand what was seen before.",
         },
         review: {
-          title: "Anomaly and review recommendation",
-          description: "Provider signals are calibrated into structured recommendations for human validation.",
+          title: "Review recommendation",
+          description:
+            "Uncertain or sensitive observations are routed toward human validation instead of hidden certainty.",
+        },
+        anomaly: {
+          title: "Anomaly detection",
+          description: "H3 grid baselines flag first records and unusual activity from NaLI's available archive.",
         },
         offline: {
           title: "Offline-lite workflow",
@@ -206,9 +212,47 @@ export const en = {
           title: "Conservation case escalation",
           description: "Important observations can become operational field cases with linked evidence.",
         },
+        sensitiveGps: {
+          title: "Sensitive GPS protection",
+          description: "Exact coordinates for endangered species are handled as protected operational data.",
+        },
+        evidenceHash: {
+          title: "Evidence hash",
+          description: "Submitted records can receive a SHA-256 integrity code for later tamper checks.",
+        },
         bilingual: {
           title: "English and Indonesian field UX",
           description: "Critical workflows are localized for Indonesian conservation contexts.",
+        },
+        darwinCore: {
+          title: "Export-ready ecological records",
+          description: "Verified observations can map to Darwin Core CSV/DwC-A fields with coordinate safeguards.",
+        },
+        threatPulse: {
+          title: "Threat pulse layer",
+          description: "FIRMS, Global Forest Watch, and NaLI reports are scaffolded as an indicative threat context.",
+        },
+        voice: {
+          title: "Voice-to-form",
+          description: "Bahasa Indonesia voice input can assist note capture while keeping user review mandatory.",
+        },
+        patrol: {
+          title: "Agentic patrol planning",
+          description: "Patrol recommendations rank available observations, anomalies, threats, and stale grids.",
+        },
+        realtimeAlerts: {
+          title: "Inter-ranger alerts",
+          description:
+            "Supabase Realtime channels are prepared for high-priority regional alerts without exposing sensitive coordinates.",
+        },
+        credibility: {
+          title: "Observer credibility score",
+          description: "Trust is based on review quality and evidence completeness, not social ranking.",
+        },
+        indonesia: {
+          title: "Designed for Indonesian biodiversity workflows",
+          description:
+            "The system starts from Indonesian species, field language, privacy needs, and conservation operations.",
         },
       },
     },
@@ -390,6 +434,87 @@ export const en = {
     offlineQueued: "Observation saved to offline queue. Sync when field connectivity returns.",
     uploadFailed: "Observation could not be submitted. Check connectivity, storage, and field data.",
     completed: "Observation analysis completed",
+    locationMemory: {
+      title: "Location Memory",
+      description: "Nearby persisted observations within 500 meters, filtered for privacy and access policy.",
+      loading: "Checking previous observations near this location.",
+      empty: "No accessible NaLI observations are stored near this location yet.",
+      anomaly: "Anomaly",
+      openDetail: "Open observation detail",
+      caseLinked: "Linked case",
+    },
+    voice: {
+      title: "Voice-to-form",
+      disclaimer: "Voice input is assistive. Review and correct all fields before submitting.",
+      start: "Start voice input",
+      listening: "Listening",
+      unsupported: "This browser does not expose Web Speech API recognition.",
+    },
+  },
+  verify: {
+    kicker: "Tamper-evident record check",
+    title: "Verify NaLI evidence hash",
+    description: "Enter a NaLI verification code to check whether a matching observation hash exists.",
+    inputLabel: "NaLI verification hash",
+    button: "Verify hash",
+    checking: "Checking hash",
+    failed: "NaLI could not verify this hash right now.",
+    notFound: "No matching NaLI evidence hash was found.",
+    protected: "Protected",
+    notProtected: "Not protected",
+    disclaimer:
+      "This hash is a digital integrity check, not automatic legal admissibility. Legal use may require forensic IT expert validation.",
+    fields: {
+      hash: "Hash",
+      algorithm: "Algorithm",
+      observation: "Observation",
+      species: "Scientific name",
+      commonName: "Common name",
+      review: "Review",
+      coordinates: "Coordinates",
+    },
+  },
+  reviewQueue: {
+    roleKicker: "Reviewer workflow",
+    roleTitle: "Reviewer role required",
+    roleDescription: "NaLI review queues are limited to users with reviewer or admin role records.",
+    kicker: "Human review",
+    title: "Review queue",
+    description:
+      "Uncertain, anomaly-triggering, or sensitive observations enter this human review workflow before verification, export, or escalation.",
+    speciesPending: "Species pending",
+    commonNamePending: "Common name pending",
+    pendingReview: "pending_review",
+    unreviewed: "unreviewed",
+    anomaly: "Anomaly",
+    confidence: "Confidence",
+    pending: "Pending",
+    evidenceHash: "Evidence hash",
+    openDetailForHash: "Open detail for hash",
+    reasoningSnapshot: "Reasoning snapshot",
+    signalSnapshot: "Signal snapshot",
+    persisted: "Persisted",
+    openAuditDetail: "Open audit detail",
+    empty: "No observations are currently waiting for review.",
+    reasonLabel: "Reviewer reason",
+    saving: "Saving review action...",
+    saved: "Review action saved.",
+    failed: "Review action failed.",
+    verify: "Verify",
+    clarify: "Clarify",
+    reject: "Reject",
+  },
+  patrolPlan: {
+    kicker: "Agentic patrol planning",
+    title: "Weekly patrol priorities",
+    description:
+      "Claude recommendations are available only when ANTHROPIC_API_KEY is configured. This view uses deterministic NaLI fallback ranking from persisted observations, anomalies, threats, and cases.",
+    reason: "Data-backed reason",
+    window: "Best time window",
+    caution: "Caution notes",
+    whatsapp: "WhatsApp text",
+    exportPdf: "Export PDF",
+    pdfTitle: "NaLI Patrol Plan",
   },
   archive: {
     eyebrow: "Field Observation Archive",

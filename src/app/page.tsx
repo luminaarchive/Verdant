@@ -25,15 +25,11 @@ import { LiveObservationResults } from "@/components/landing/LiveObservationResu
 import { LiveObservationReview } from "@/components/landing/LiveObservationReview";
 import { PublicSpeciesDemo } from "@/components/landing/PublicSpeciesDemo";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { buildJsonLdGraph } from "@/lib/seo/site";
 
 const MotionSection = motion.section;
 
-const audience = [
-  { key: "rangers" },
-  { key: "researchers" },
-  { key: "ngos" },
-  { key: "students" },
-];
+const audience = [{ key: "rangers" }, { key: "researchers" }, { key: "ngos" }, { key: "students" }];
 
 const workflow = [
   { key: "input", icon: Camera },
@@ -63,7 +59,25 @@ const conservationStatuses = [
 
 const privacy = ["private", "noFeed", "gps", "signedUrl", "secure"];
 
-const differentiators = ["sources", "status", "memory", "review", "offline", "cases", "bilingual"];
+const differentiators = [
+  "sources",
+  "gbifIucn",
+  "memory",
+  "review",
+  "anomaly",
+  "cases",
+  "offline",
+  "sensitiveGps",
+  "evidenceHash",
+  "bilingual",
+  "darwinCore",
+  "threatPulse",
+  "voice",
+  "patrol",
+  "realtimeAlerts",
+  "credibility",
+  "indonesia",
+];
 
 const pricingTiers = ["seeds", "sapling", "forestKeeper"];
 
@@ -79,6 +93,7 @@ function fadeUp(delay = 0) {
 export default function LandingPage() {
   const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
+  const jsonLd = JSON.stringify(buildJsonLdGraph()).replace(/</g, "\\u003c");
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 80);
@@ -89,9 +104,17 @@ export default function LandingPage() {
 
   return (
     <div className="text-forest-950 min-h-screen bg-stone-50 antialiased">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: jsonLd,
+        }}
+        type="application/ld+json"
+      />
       <header
         className={`sticky top-0 z-50 transition ${
-          isScrolled ? "border-b border-stone-300 bg-stone-50/96 shadow-sm backdrop-blur" : "border-b border-transparent bg-stone-50/82 backdrop-blur-sm"
+          isScrolled
+            ? "border-b border-stone-300 bg-stone-50/96 shadow-sm backdrop-blur"
+            : "border-b border-transparent bg-stone-50/82 backdrop-blur-sm"
         }`}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -123,7 +146,7 @@ export default function LandingPage() {
           </div>
           <Link
             className="border-forest-300 text-forest-900 hidden min-h-10 items-center gap-2 rounded-sm border bg-stone-50 px-4 text-sm font-semibold transition hover:bg-white sm:inline-flex"
-            href="/login"
+            href="/register"
           >
             {t("common.joinEarlyAccess")}
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -153,12 +176,12 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   className="border-forest-300 text-forest-900 inline-flex min-h-12 items-center justify-center rounded-sm border bg-stone-50 px-5 text-sm font-semibold transition hover:bg-stone-100"
-                  href="/login"
+                  href="/register"
                 >
                   {t("common.startIdentifying")}
                 </Link>
                 <Link
-                  className="inline-flex min-h-12 items-center justify-center px-1 text-sm font-semibold text-forest-800 underline-offset-4 transition hover:text-forest-950 hover:underline"
+                  className="text-forest-800 hover:text-forest-950 inline-flex min-h-12 items-center justify-center px-1 text-sm font-semibold underline-offset-4 transition hover:underline"
                   href="#workflow"
                 >
                   {t("common.viewFieldWorkflow")}
@@ -188,8 +211,10 @@ export default function LandingPage() {
               {audience.map((item) => (
                 <article className="rounded-sm border border-stone-200 bg-white p-5" key={item.key}>
                   <Users className="mb-4 h-5 w-5 text-olive-700" aria-hidden="true" />
-                  <h3 className="text-lg font-semibold text-forest-950">{t(`landing.audience.cards.${item.key}.title`)}</h3>
-                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                  <h3 className="text-forest-950 text-lg font-semibold">
+                    {t(`landing.audience.cards.${item.key}.title`)}
+                  </h3>
+                  <p className="text-forest-700 mt-2 text-sm leading-6">
                     {t(`landing.audience.cards.${item.key}.description`)}
                   </p>
                 </article>
@@ -209,10 +234,10 @@ export default function LandingPage() {
               {differentiators.map((item) => (
                 <article className="rounded-sm border border-stone-200 bg-stone-50 p-5" key={item}>
                   <CheckCircle2 className="mb-4 h-5 w-5 text-olive-700" aria-hidden="true" />
-                  <h3 className="text-base font-semibold text-forest-950">
+                  <h3 className="text-forest-950 text-base font-semibold">
                     {t(`landing.difference.items.${item}.title`)}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                  <p className="text-forest-700 mt-2 text-sm leading-6">
                     {t(`landing.difference.items.${item}.description`)}
                   </p>
                 </article>
@@ -248,7 +273,7 @@ export default function LandingPage() {
                       {t(`landing.workflow.steps.${step.key}`)}
                     </p>
                     {step.key === "gbif" || step.key === "iucn" ? (
-                      <span className="mt-3 inline-flex rounded-sm border border-data-cyan/40 px-2 py-1 text-[0.68rem] font-semibold text-data-cyan">
+                      <span className="border-data-cyan/40 text-data-cyan mt-3 inline-flex rounded-sm border px-2 py-1 text-[0.68rem] font-semibold">
                         {step.key.toUpperCase()}
                       </span>
                     ) : null}
@@ -298,7 +323,7 @@ export default function LandingPage() {
                     <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-olive-100 text-olive-800">
                       <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
-                    <p className="font-semibold text-forest-950">{t(`landing.field.features.${feature.key}`)}</p>
+                    <p className="text-forest-950 font-semibold">{t(`landing.field.features.${feature.key}`)}</p>
                   </div>
                 );
               })}
@@ -321,10 +346,10 @@ export default function LandingPage() {
                   >
                     {status.code}
                   </span>
-                  <h3 className="mt-4 text-base font-semibold text-forest-950">
+                  <h3 className="text-forest-950 mt-4 text-base font-semibold">
                     {t(`landing.conservation.statuses.${status.key}.label`)}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-forest-700">
+                  <p className="text-forest-700 mt-2 text-sm leading-6">
                     {t(`landing.conservation.statuses.${status.key}.description`)}
                   </p>
                 </article>
@@ -374,10 +399,10 @@ export default function LandingPage() {
               <div className="grid gap-3">
                 {["integrated", "ready", "scope"].map((item) => (
                   <div className="rounded-sm border border-stone-200 bg-stone-50 p-4" key={item}>
-                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-olive-700">
+                    <p className="text-xs font-semibold tracking-[0.08em] text-olive-700 uppercase">
                       {t(`landing.trust.sources.${item}.label`)}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-forest-800">
+                    <p className="text-forest-800 mt-2 text-sm leading-6">
                       {t(`landing.trust.sources.${item}.description`)}
                     </p>
                   </div>
@@ -398,24 +423,28 @@ export default function LandingPage() {
               {pricingTiers.map((tier) => (
                 <article
                   className={`rounded-sm border p-5 ${
-                    tier === "sapling" ? "border-forest-700 bg-white shadow-[0_18px_44px_rgba(31,45,32,0.12)]" : "border-stone-200 bg-white"
+                    tier === "sapling"
+                      ? "border-forest-700 bg-white shadow-[0_18px_44px_rgba(31,45,32,0.12)]"
+                      : "border-stone-200 bg-white"
                   }`}
                   key={tier}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-xl font-semibold text-forest-950">{t(`landing.pricing.tiers.${tier}.name`)}</h3>
-                      <p className="mt-2 text-2xl font-semibold text-forest-950">
+                      <h3 className="text-forest-950 text-xl font-semibold">
+                        {t(`landing.pricing.tiers.${tier}.name`)}
+                      </h3>
+                      <p className="text-forest-950 mt-2 text-2xl font-semibold">
                         {t(`landing.pricing.tiers.${tier}.price`)}
                       </p>
                     </div>
                     {tier === "sapling" ? (
-                      <span className="rounded-sm bg-warning-amber px-2.5 py-1 text-xs font-bold text-forest-950">
+                      <span className="bg-warning-amber text-forest-950 rounded-sm px-2.5 py-1 text-xs font-bold">
                         {t("landing.pricing.popular")}
                       </span>
                     ) : null}
                   </div>
-                  <ul className="mt-5 space-y-3 text-sm leading-6 text-forest-800">
+                  <ul className="text-forest-800 mt-5 space-y-3 text-sm leading-6">
                     {["feature1", "feature2", "feature3", "feature4"].map((feature) => (
                       <li className="flex gap-2" key={feature}>
                         <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-olive-700" />
@@ -424,15 +453,15 @@ export default function LandingPage() {
                     ))}
                   </ul>
                   <Link
-                    className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-sm border border-forest-300 bg-stone-50 px-4 text-sm font-semibold text-forest-900 transition hover:bg-stone-100"
-                    href="/login"
+                    className="border-forest-300 text-forest-900 mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-sm border bg-stone-50 px-4 text-sm font-semibold transition hover:bg-stone-100"
+                    href="/register"
                   >
                     {t("common.joinEarlyAccess")}
                   </Link>
                 </article>
               ))}
             </div>
-            <p className="mt-4 text-sm leading-6 text-forest-700">{t("landing.pricing.note")}</p>
+            <p className="text-forest-700 mt-4 text-sm leading-6">{t("landing.pricing.note")}</p>
           </div>
         </MotionSection>
 
@@ -451,7 +480,7 @@ export default function LandingPage() {
               <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
                   className="bg-forest-900 hover:bg-forest-800 inline-flex min-h-12 items-center justify-center rounded-sm px-5 text-sm font-semibold text-stone-50 transition"
-                  href="/login"
+                  href="/register"
                 >
                   {t("common.joinEarlyAccess")}
                 </Link>

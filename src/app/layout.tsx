@@ -1,26 +1,55 @@
 import type { Metadata } from "next";
 import { getServerLanguage } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { seoKeywords, siteDescription, siteUrl } from "@/lib/seo/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://naliai.vercel.app"),
-  title: "NaLI — Wildlife Field Intelligence for Indonesia",
-  description:
-    "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
+  metadataBase: new URL(siteUrl),
+  applicationName: "NaLI",
+  title: {
+    default: "NaLI - Wildlife Field Intelligence for Indonesia",
+    template: "%s | NaLI",
+  },
+  description: siteDescription,
+  keywords: seoKeywords,
+  alternates: {
+    canonical: siteUrl,
+  },
+  category: "conservation technology",
   openGraph: {
-    title: "NaLI — Wildlife Field Intelligence for Indonesia",
-    description:
-      "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
-    url: "https://naliai.vercel.app",
+    title: "NaLI - Wildlife Field Intelligence for Indonesia",
+    description: siteDescription,
+    url: siteUrl,
     siteName: "NaLI",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 512,
+        height: 512,
+        alt: "NaLI wildlife field intelligence logo",
+      },
+    ],
+    locale: "en_US",
+    alternateLocale: ["id_ID"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "NaLI — Wildlife Field Intelligence for Indonesia",
-    description:
-      "Identify Indonesian wildlife species from photos, audio, and field notes. Field intelligence for rangers, researchers, and conservation teams.",
+    title: "NaLI - Wildlife Field Intelligence for Indonesia",
+    description: siteDescription,
+    images: ["/icon.svg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 };
 

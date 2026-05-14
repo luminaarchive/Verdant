@@ -40,15 +40,19 @@ export class ObservationOrchestrator {
    * Initializes the DB client and starts the run.
    */
   async start() {
-    this.db = this.db ?? await createServerSupabaseClient();
+    this.db = this.db ?? (await createServerSupabaseClient());
     this.trace = metricsEngine.startTrace(this.observationId);
-    
+
     // 1. Create orchestrator_run
-    const { data, error } = await this.db.from('orchestrator_runs').insert({
-      observation_id: this.observationId,
-      status: 'running',
-      reasoning_trace_id: this.reasoningTraceId,
-    }).select('id').single();
+    const { data, error } = await this.db
+      .from("orchestrator_runs")
+      .insert({
+        observation_id: this.observationId,
+        status: "running",
+        reasoning_trace_id: this.reasoningTraceId,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       logger.error("Failed to initialize orchestrator run", {
@@ -60,7 +64,7 @@ export class ObservationOrchestrator {
     }
     this.orchestratorRunId = data.id;
 
-    await this.emitEvent('ORCHESTRATION_STARTED', 'info', {
+    await this.emitEvent("ORCHESTRATION_STARTED", "info", {
       pipeline_length: this.pipeline.length,
       trace_id: this.trace.trace_id,
     });
@@ -75,9 +79,9 @@ export class ObservationOrchestrator {
       observation_id: this.observationId,
       reasoning_trace_id: this.reasoningTraceId,
     });
-    
+
     let totalLatency = 0;
-    let finalStatus = 'completed';
+    let finalStatus = "completed";
     let failedTool = null;
     let finalConfidence = 0;
 
@@ -92,30 +96,29 @@ export class ObservationOrchestrator {
         reasoning_trace_id: this.reasoningTraceId,
       });
 
-      await this.emitEvent(`${tool.name.toUpperCase()}_STARTED`, 'info', { version: tool.version });
+      await this.emitEvent(`${tool.name.toUpperCase()}_STARTED`, "info", { version: tool.version });
       await this.updateProcessingStage(this.mapToolToStage(tool.name));
 
       try {
         output = await tool.execute({ observationId: this.observationId });
-        
+
         // Track confidence and calibration
         if (output.score_breakdown && output.score_breakdown.confidence) {
           finalConfidence = output.score_breakdown.confidence;
           this.confidenceCalibration[tool.name] = output.score_breakdown;
         }
-
       } catch (err) {
         if (tool.fallback) {
           fallbackUsed = true;
-          await this.emitEvent(`FALLBACK_TRIGGERED`, 'warning', { tool: tool.name });
+          await this.emitEvent(`FALLBACK_TRIGGERED`, "warning", { tool: tool.name });
           output = await tool.fallback({ observationId: this.observationId }, err);
         } else {
           output = {
-            status: 'error',
+            status: "error",
             latency_ms: Date.now() - startTime,
             score_breakdown: {},
-            raw_output: err instanceof Error ? err.message : 'Unknown tool error',
-            error: 'Tool execution failed completely without fallback.'
+            raw_output: err instanceof Error ? err.message : "Unknown tool error",
+            error: "Tool execution failed completely without fallback.",
           };
         }
       }
@@ -124,7 +127,7 @@ export class ObservationOrchestrator {
       totalLatency += output.latency_ms;
 
       // Persist analysis_run
-      await this.db.from('analysis_runs').insert({
+      await this.db.from("analysis_runs").insert({
         observation_id: this.observationId,
         tool_name: tool.name,
         tool_version: tool.version,
@@ -137,7 +140,7 @@ export class ObservationOrchestrator {
         retry_count: retryCount,
         fallback_used: fallbackUsed,
         execution_order: i + 1,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       });
 
       this.providerOutputs.push({
@@ -151,19 +154,19 @@ export class ObservationOrchestrator {
       });
 
       if (this.trace) {
-        metricsEngine.logToolExecution(this.trace, tool.name, output.latency_ms, output.status !== 'error', retryCount);
+        metricsEngine.logToolExecution(this.trace, tool.name, output.latency_ms, output.status !== "error", retryCount);
       }
 
-      if (output.status === 'error') {
+      if (output.status === "error") {
         failedTool = tool.name;
-        finalStatus = 'error';
-        await this.emitEvent(`${tool.name.toUpperCase()}_FAILED`, 'error', { error: output.error });
-        break; 
-      } else if (output.status === 'warning') {
-        finalStatus = 'warning';
-        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED_WITH_WARNINGS`, 'warning', output.score_breakdown);
+        finalStatus = "error";
+        await this.emitEvent(`${tool.name.toUpperCase()}_FAILED`, "error", { error: output.error });
+        break;
+      } else if (output.status === "warning") {
+        finalStatus = "warning";
+        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED_WITH_WARNINGS`, "warning", output.score_breakdown);
       } else {
-        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED`, 'info', output.score_breakdown);
+        await this.emitEvent(`${tool.name.toUpperCase()}_COMPLETED`, "info", output.score_breakdown);
       }
     }
 
@@ -175,51 +178,59 @@ export class ObservationOrchestrator {
     });
 
     // Wrap up Orchestrator Run
-    await this.db.from('orchestrator_runs').update({
-      status: finalStatus,
-      completed_at: new Date().toISOString(),
-      total_latency_ms: totalLatency,
-      total_tools_executed: this.pipeline.length,
-      final_confidence: operationalReasoning.reasoning.ecological_confidence,
-      conservation_priority_score: operationalReasoning.reasoning.conservation_priority.priority_score,
-      review_recommendation: operationalReasoning.review.recommendation,
-      final_result_status: failedTool ? `Failed at ${failedTool}` : 'Success'
-    }).eq('id', this.orchestratorRunId);
+    await this.db
+      .from("orchestrator_runs")
+      .update({
+        status: finalStatus,
+        completed_at: new Date().toISOString(),
+        total_latency_ms: totalLatency,
+        total_tools_executed: this.pipeline.length,
+        final_confidence: operationalReasoning.reasoning.ecological_confidence,
+        conservation_priority_score: operationalReasoning.reasoning.conservation_priority.priority_score,
+        review_recommendation: operationalReasoning.review.recommendation,
+        final_result_status: failedTool ? `Failed at ${failedTool}` : "Success",
+      })
+      .eq("id", this.orchestratorRunId);
 
     // Synthesize Confidence (Phase 10)
     const synthesizedCalibration = this.synthesizeConfidence(finalConfidence);
-    const observationStatus = finalStatus === 'error'
-      ? 'failed'
-      : operationalReasoning.review.routine_archive_safe
-        ? 'identified'
-        : 'review_needed';
-    const legacyStatus = finalStatus === 'error' ? 'review_needed' : observationStatus;
+    const observationStatus =
+      finalStatus === "error"
+        ? "failed"
+        : operationalReasoning.review.routine_archive_safe
+          ? "identified"
+          : "review_needed";
+    const legacyStatus = finalStatus === "error" ? "review_needed" : observationStatus;
 
     // Update observation
-    await this.db.from('observations').update({
-      processing_stage: finalStatus === 'error' ? 'failed' : 'completed',
-      observation_status: observationStatus,
-      status: legacyStatus,
-      review_status: operationalReasoning.review.automatic_review_required ? 'unreviewed' : 'unreviewed',
-      qa_flag: operationalReasoning.review.automatic_review_required,
-      confidence_level: operationalReasoning.reasoning.ecological_confidence,
-      confidence_calibration: synthesizedCalibration,
-      reasoning_trace_id: this.reasoningTraceId,
-      reasoning_snapshot: operationalReasoning.reasoningSnapshot,
-      signal_snapshot: operationalReasoning.signalSnapshot,
-      scientific_name: operationalReasoning.scientificName === "Unknown species" ? null : operationalReasoning.scientificName,
-      conservation_status: operationalReasoning.iucnStatus,
-      conservation_priority_score: operationalReasoning.reasoning.conservation_priority.priority_score,
-      conservation_priority_category: operationalReasoning.reasoning.conservation_priority.category,
-    }).eq('id', this.observationId);
+    await this.db
+      .from("observations")
+      .update({
+        processing_stage: finalStatus === "error" ? "failed" : "completed",
+        observation_status: observationStatus,
+        status: legacyStatus,
+        review_status: operationalReasoning.review.automatic_review_required ? "unreviewed" : "unreviewed",
+        qa_flag: operationalReasoning.review.automatic_review_required,
+        confidence_level: operationalReasoning.reasoning.ecological_confidence,
+        confidence_calibration: synthesizedCalibration,
+        reasoning_trace_id: this.reasoningTraceId,
+        reasoning_snapshot: operationalReasoning.reasoningSnapshot,
+        signal_snapshot: operationalReasoning.signalSnapshot,
+        scientific_name:
+          operationalReasoning.scientificName === "Unknown species" ? null : operationalReasoning.scientificName,
+        conservation_status: operationalReasoning.iucnStatus,
+        conservation_priority_score: operationalReasoning.reasoning.conservation_priority.priority_score,
+        conservation_priority_category: operationalReasoning.reasoning.conservation_priority.category,
+      })
+      .eq("id", this.observationId);
 
-    await this.emitEvent('ECOLOGICAL_REASONING_SYNTHESIZED', 'info', {
+    await this.emitEvent("ECOLOGICAL_REASONING_SYNTHESIZED", "info", {
       ecological_confidence: operationalReasoning.reasoning.ecological_confidence,
       conservation_priority: operationalReasoning.reasoning.conservation_priority,
       review_recommendation: operationalReasoning.review,
       provider_conflicts: operationalReasoning.conflicts,
     });
-    await this.emitEvent('REASONING_SYNTHESIZED', 'info', {
+    await this.emitEvent("REASONING_SYNTHESIZED", "info", {
       ecological_confidence: operationalReasoning.reasoning.ecological_confidence,
       conservation_priority: operationalReasoning.reasoning.conservation_priority,
       review_recommendation: operationalReasoning.review.recommendation,
@@ -228,28 +239,35 @@ export class ObservationOrchestrator {
 
     if (operationalReasoning.caseEscalation.case_required) {
       await this.persistFieldCases(operationalReasoning.caseEscalation.cases);
-      await this.emitEvent('FIELD_CASE_ESCALATION_DECIDED', 'warning', {
+      await this.emitEvent("CASE_LINKED", "warning", {
+        case_ids: operationalReasoning.caseEscalation.cases.map((fieldCase) => fieldCase.id),
+      });
+      await this.emitEvent("FIELD_CASE_ESCALATION_DECIDED", "warning", {
         triggered_rules: operationalReasoning.caseEscalation.triggered_rules,
         case_count: operationalReasoning.caseEscalation.cases.length,
       });
     }
 
     await this.emitEvent(
-      finalStatus === 'error' ? 'OBSERVATION_FAILED' : 'OBSERVATION_COMPLETED',
-      finalStatus === 'error' ? 'error' : 'info',
+      finalStatus === "error" ? "OBSERVATION_FAILED" : "OBSERVATION_COMPLETED",
+      finalStatus === "error" ? "error" : "info",
       { finalStatus },
     );
-    await this.emitEvent('ORCHESTRATION_COMPLETED', finalStatus === 'error' ? 'error' : 'info', { finalStatus });
+    await this.emitEvent("ORCHESTRATION_COMPLETED", finalStatus === "error" ? "error" : "info", { finalStatus });
 
     if (this.trace) {
-      metricsEngine.endTrace(this.trace, finalStatus === 'error' ? 'failed' : finalStatus === 'warning' ? 'degraded' : 'completed');
+      metricsEngine.endTrace(
+        this.trace,
+        finalStatus === "error" ? "failed" : finalStatus === "warning" ? "degraded" : "completed",
+      );
     }
     orchestrationTiming.end({ final_status: finalStatus, total_latency_ms: totalLatency });
   }
 
   private synthesizeOperationalReasoning() {
     const modalitySignals = this.providerOutputs.map(providerOutputToSignal);
-    const scientificName = modalitySignals.find((signal) => signal.scientific_name)?.scientific_name ?? "Unknown species";
+    const scientificName =
+      modalitySignals.find((signal) => signal.scientific_name)?.scientific_name ?? "Unknown species";
     const gbifOutput = this.providerOutputs.find((output) => output.tool_name === "GBIF Cross-check");
     const iucnOutput = this.providerOutputs.find((output) => output.tool_name === "IUCN Analysis");
     const anomalyOutput = this.providerOutputs.find((output) => output.tool_name === "Anomaly Detection");
@@ -388,21 +406,24 @@ export class ObservationOrchestrator {
   private async persistFieldCases(cases: Array<{ id: string; [key: string]: any }>) {
     if (!this.db || cases.length === 0) return;
 
-    await this.db.from('field_cases').upsert(cases.map((fieldCase) => ({
-      id: fieldCase.id,
-      observation_id: this.observationId,
-      reasoning_trace_id: this.reasoningTraceId,
-      case_type: fieldCase.type,
-      status: fieldCase.status,
-      priority_score: fieldCase.priority_score,
-      linked_observation_ids: fieldCase.linked_observation_ids,
-      linked_ecological_patterns: fieldCase.linked_ecological_patterns,
-      linked_anomaly_cluster_ids: fieldCase.linked_anomaly_cluster_ids,
-      migration_grouping_id: fieldCase.migration_grouping_id,
-      reviewer_assignment_ids: fieldCase.reviewer_assignment_ids,
-      operational_notes: fieldCase.operational_notes,
-      updated_at: new Date().toISOString(),
-    })), { onConflict: 'id' });
+    await this.db.from("field_cases").upsert(
+      cases.map((fieldCase) => ({
+        id: fieldCase.id,
+        observation_id: this.observationId,
+        reasoning_trace_id: this.reasoningTraceId,
+        case_type: fieldCase.type,
+        status: fieldCase.status,
+        priority_score: fieldCase.priority_score,
+        linked_observation_ids: fieldCase.linked_observation_ids,
+        linked_ecological_patterns: fieldCase.linked_ecological_patterns,
+        linked_anomaly_cluster_ids: fieldCase.linked_anomaly_cluster_ids,
+        migration_grouping_id: fieldCase.migration_grouping_id,
+        reviewer_assignment_ids: fieldCase.reviewer_assignment_ids,
+        operational_notes: fieldCase.operational_notes,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "id" },
+    );
   }
 
   /**
@@ -410,28 +431,28 @@ export class ObservationOrchestrator {
    * Synthesizes provider outputs to explicitly explain certainty and uncertainty.
    */
   private synthesizeConfidence(baseConfidence: number) {
-    const contributors: { type: 'positive' | 'negative', reason: string }[] = [];
+    const contributors: { type: "positive" | "negative"; reason: string }[] = [];
     let adjustedConfidence = baseConfidence;
 
     // Evaluate GBIF (Density)
-    const gbifScore = this.confidenceCalibration['GBIF Cross-check']?.occurrence_density_score;
+    const gbifScore = this.confidenceCalibration["GBIF Cross-check"]?.occurrence_density_score;
     if (gbifScore !== undefined) {
       if (gbifScore > 0.8) {
-        contributors.push({ type: 'positive', reason: "Strong regional occurrence match in GBIF" });
+        contributors.push({ type: "positive", reason: "Strong regional occurrence match in GBIF" });
         adjustedConfidence += 0.05;
       } else if (gbifScore < 0.2) {
-        contributors.push({ type: 'negative', reason: "Limited regional occurrence records, potential anomaly" });
+        contributors.push({ type: "negative", reason: "Limited regional occurrence records, potential anomaly" });
         adjustedConfidence -= 0.15;
       }
     }
 
     // Evaluate Vision (Quality - if integrated in future, for now stubbed)
-    const visionConfidence = this.confidenceCalibration['Vision Engine']?.confidence;
+    const visionConfidence = this.confidenceCalibration["Vision Engine"]?.confidence;
     if (visionConfidence !== undefined) {
       if (visionConfidence > 0.9) {
-        contributors.push({ type: 'positive', reason: "Clear species morphology detected by Vision model" });
+        contributors.push({ type: "positive", reason: "Clear species morphology detected by Vision model" });
       } else if (visionConfidence < 0.6) {
-        contributors.push({ type: 'negative', reason: "Ambiguous morphological features detected" });
+        contributors.push({ type: "negative", reason: "Ambiguous morphological features detected" });
       }
     }
 
@@ -439,13 +460,13 @@ export class ObservationOrchestrator {
       base_confidence: baseConfidence,
       adjusted_confidence: Math.min(Math.max(adjustedConfidence, 0), 1),
       contributors,
-      raw_tool_scores: this.confidenceCalibration
+      raw_tool_scores: this.confidenceCalibration,
     };
   }
 
   private async emitEvent(type: string, severity: EventSeverity, payload: any) {
     if (!this.db) return;
-    await this.db.from('observation_events').insert({
+    await this.db.from("observation_events").insert({
       observation_id: this.observationId,
       event_type: type,
       severity,
@@ -453,23 +474,23 @@ export class ObservationOrchestrator {
       payload: {
         ...payload,
         reasoning_trace_id: this.reasoningTraceId,
-      }
+      },
     });
   }
 
   private async updateProcessingStage(stage: string) {
     if (!this.db) return;
-    await this.db.from('observations').update({ processing_stage: stage }).eq('id', this.observationId);
+    await this.db.from("observations").update({ processing_stage: stage }).eq("id", this.observationId);
   }
 
   private mapToolToStage(toolName: string): string {
     const map: Record<string, string> = {
-      'Vision Engine': 'identifying',
-      'GBIF Cross-check': 'gbif_analysis',
-      'IUCN Analysis': 'iucn_analysis',
-      'Anomaly Detection': 'anomaly_check',
-      'BirdNET Acoustic Engine': 'audio_analysis'
+      "Vision Engine": "identifying",
+      "GBIF Cross-check": "gbif_analysis",
+      "IUCN Analysis": "iucn_analysis",
+      "Anomaly Detection": "anomaly_check",
+      "BirdNET Acoustic Engine": "audio_analysis",
     };
-    return map[toolName] || 'processing';
+    return map[toolName] || "processing";
   }
 }

@@ -1,6 +1,10 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { assignH3Cell } from "@/lib/anomaly/h3";
+import { persistH3AnomalyFlags } from "@/lib/anomaly/persist";
+import { persistObservationHash } from "@/lib/evidence/persist";
 import { storageService } from "@/lib/services/storage.service";
 import { toAppError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import type { ConservationStatus, PopulationTrend } from "@/types/species";
 import type { Result } from "@/types/common";
 
@@ -130,8 +134,18 @@ export async function createFieldObservation(
   let photoStorageUrl: string | null = null;
   let photoChecksum: string | null = null;
   let mediaUploaded = false;
+  let h3Cell: string | null = null;
 
   try {
+    try {
+      h3Cell = assignH3Cell(input.latitude, input.longitude, 7);
+    } catch (error) {
+      logger.warn("Observation H3 assignment failed", {
+        observation_id: observationId,
+        error,
+      });
+    }
+
     if (input.photoFile) {
       photoChecksum = await storageService.generateChecksum(input.photoFile);
       const upload = await storageService.uploadObservationMedia(
@@ -196,8 +210,9 @@ export async function createFieldObservation(
       conservation_status: null,
       is_anomaly: false,
       anomaly_flag: false,
+      h3_cell_res7: h3Cell,
       processing_stage: "uploaded",
-      observation_status: "pending",
+      observation_status: "submitted",
       status,
       review_status: reviewStatus,
       verified_by_human: false,
@@ -211,6 +226,26 @@ export async function createFieldObservation(
     if (mediaUploaded && photoStorageUrl && photoChecksum) {
       await storageService.registerMediaRecord(observationId, "photo", photoStorageUrl, photoChecksum);
     }
+
+    const hashResult = await persistObservationHash({
+      fallbackClient: supabase,
+      observationId,
+      serverTimestamp: createdAt.toISOString(),
+      userId: input.userId,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      textDescription: input.textDescription || null,
+      mediaChecksum: photoChecksum,
+      speciesRefId: speciesRef.id,
+      createdBy: input.userId,
+    });
+    const anomalyResult = await persistH3AnomalyFlags({
+      fallbackClient: supabase,
+      observationId,
+      speciesRefId: speciesRef.id,
+      h3Cell,
+      iucnStatus: species.conservationStatus,
+    });
 
     await supabase.from("observation_events").insert([
       {
@@ -237,6 +272,64 @@ export async function createFieldObservation(
             },
           ]
         : []),
+      {
+        observation_id: observationId,
+        event_type: "H3_CELL_ASSIGNED",
+        severity: h3Cell ? "info" : "warning",
+        payload: {
+          h3_cell_res7: h3Cell,
+        },
+      },
+      {
+        observation_id: observationId,
+        event_type: "LOCATION_MEMORY_CHECKED",
+        severity: "info",
+        payload: {
+          radius_m: 500,
+          deferred_to_location_memory_panel: true,
+        },
+      },
+      {
+        observation_id: observationId,
+        event_type: "EVIDENCE_HASH_CREATED",
+        severity: hashResult.persisted ? "info" : "warning",
+        payload: {
+          hash_algorithm: hashResult.algorithm,
+          hash: hashResult.hash,
+          persisted: hashResult.persisted,
+          skipped_reason: hashResult.skippedReason,
+        },
+      },
+      {
+        observation_id: observationId,
+        event_type: "ANOMALY_FLAGGED",
+        severity: anomalyResult.flags.length ? "warning" : "info",
+        payload: {
+          flags: anomalyResult.flags,
+          persisted: anomalyResult.persisted,
+          error: anomalyResult.error,
+        },
+      },
+      ...(anomalyResult.flags.some((flag) => flag.severity === "critical" || flag.severity === "high")
+        ? [
+            {
+              observation_id: observationId,
+              event_type: "REVIEW_QUEUE_ASSIGNED",
+              severity: "warning",
+              payload: {
+                reason: "High-severity anomaly or sensitive conservation status requires human review.",
+              },
+            },
+          ]
+        : []),
+      {
+        observation_id: observationId,
+        event_type: "CREDIBILITY_SCORE_PENDING",
+        severity: "info",
+        payload: {
+          reason: "Observer credibility updates after human review actions.",
+        },
+      },
     ]);
 
     return { success: true, data: { observationId } };

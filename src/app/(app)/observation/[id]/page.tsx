@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   Clock,
   Database,
+  Download,
+  Fingerprint,
   FileImage,
   Link2,
   MapPin,
@@ -34,6 +36,7 @@ type ObservationRecord = {
   observation_status: string | null;
   review_status: string | null;
   processing_stage: string | null;
+  verified_by_human: boolean | null;
   is_anomaly: boolean | null;
   anomaly_flag: boolean | null;
   reasoning_trace_id: string | null;
@@ -77,6 +80,20 @@ type FieldCase = {
   linked_observation_ids: unknown;
   linked_anomaly_cluster_ids: unknown;
   operational_notes: unknown;
+};
+
+type ObservationHashRecord = {
+  hash: string;
+  hash_algorithm: string;
+  created_at: string | null;
+};
+
+type AnomalyFlagRecord = {
+  flag_type: string;
+  severity: string;
+  reason: string;
+  h3_cell: string | null;
+  created_at: string | null;
 };
 
 function asObject(value: unknown): JsonObject {
@@ -139,8 +156,11 @@ export default async function ObservationDetailPage({ params }: { params: Promis
   }
 
   const observation = observationData as ObservationRecord;
-  const [mediaResult, runsResult, eventsResult, casesResult] = await Promise.all([
-    supabase.from("observation_media").select("media_type, storage_url, checksum, captured_at").eq("observation_id", id),
+  const [mediaResult, runsResult, eventsResult, casesResult, hashResult, anomalyFlagsResult] = await Promise.all([
+    supabase
+      .from("observation_media")
+      .select("media_type, storage_url, checksum, captured_at")
+      .eq("observation_id", id),
     supabase
       .from("analysis_runs")
       .select("tool_name, tool_version, status, latency_ms, score_breakdown, raw_output, error, completed_at")
@@ -153,9 +173,22 @@ export default async function ObservationDetailPage({ params }: { params: Promis
       .order("event_timestamp", { ascending: true }),
     supabase
       .from("field_cases")
-      .select("id, case_type, status, priority_score, linked_observation_ids, linked_anomaly_cluster_ids, operational_notes")
+      .select(
+        "id, case_type, status, priority_score, linked_observation_ids, linked_anomaly_cluster_ids, operational_notes",
+      )
       .eq("observation_id", id)
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("observation_hashes")
+      .select("hash, hash_algorithm, created_at")
+      .eq("observation_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("observation_anomaly_flags")
+      .select("flag_type, severity, reason, h3_cell, created_at")
+      .eq("observation_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const mediaRows = (mediaResult.data ?? []) as MediaRecord[];
@@ -163,6 +196,8 @@ export default async function ObservationDetailPage({ params }: { params: Promis
   const runs = (runsResult.data ?? []) as AnalysisRun[];
   const events = (eventsResult.data ?? []) as ObservationEvent[];
   const linkedCases = (casesResult.data ?? []) as FieldCase[];
+  const observationHash = ((hashResult.data ?? []) as ObservationHashRecord[])[0];
+  const anomalyFlags = (anomalyFlagsResult.data ?? []) as AnomalyFlagRecord[];
   const reasoning = asObject(observation.reasoning_snapshot);
   const signals = asObject(observation.signal_snapshot);
   const review = asObject(reasoning.review_recommendation);
@@ -172,27 +207,37 @@ export default async function ObservationDetailPage({ params }: { params: Promis
   const providerConflicts = asStrings(reasoning.provider_conflicts);
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface-container-lowest text-on-surface">
-      <header className="sticky top-0 z-50 flex h-16 items-center border-b border-outline-variant bg-surface-dim px-4 sm:px-6">
-        <Link href="/archive" className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-primary">
+    <div className="bg-surface-container-lowest text-on-surface flex min-h-screen flex-col">
+      <header className="border-outline-variant bg-surface-dim sticky top-0 z-50 flex h-16 items-center border-b px-4 sm:px-6">
+        <Link
+          href="/archive"
+          className="text-on-surface-variant hover:text-primary flex items-center gap-2 transition-colors"
+        >
           <ArrowLeft className="h-4 w-4" />
-          <span className="font-label-caps text-[11px] uppercase tracking-[0.08em]">Back to Archive</span>
+          <span className="font-label-caps text-[11px] tracking-[0.08em] uppercase">Back to Archive</span>
         </Link>
       </header>
 
       <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-12 lg:gap-8 lg:py-8">
         <section className="space-y-6 lg:col-span-7">
-          <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border border-outline-variant bg-surface-dim">
+          <div className="border-outline-variant bg-surface-dim relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border">
             {mediaUrls[0] ? (
-              <Image src={mediaUrls[0]} alt="Observation media" fill sizes="(min-width: 1024px) 58vw, 100vw" className="object-cover" unoptimized />
+              <Image
+                src={mediaUrls[0]}
+                alt="Observation media"
+                fill
+                sizes="(min-width: 1024px) 58vw, 100vw"
+                className="object-cover"
+                unoptimized
+              />
             ) : (
-              <div className="flex flex-col items-center gap-3 text-on-surface-variant">
+              <div className="text-on-surface-variant flex flex-col items-center gap-3">
                 <FileImage className="h-8 w-8" />
                 <span className="text-sm">No media preview available</span>
               </div>
             )}
             {observation.is_anomaly || observation.anomaly_flag ? (
-              <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-sm bg-error px-3 py-1 font-label-caps text-[10px] tracking-[0.08em] text-surface-container-lowest shadow-lg">
+              <div className="bg-error font-label-caps text-surface-container-lowest absolute top-4 left-4 flex items-center gap-1.5 rounded-sm px-3 py-1 text-[10px] tracking-[0.08em] shadow-lg">
                 <AlertTriangle className="h-3 w-3" />
                 Anomaly detected
               </div>
@@ -200,10 +245,10 @@ export default async function ObservationDetailPage({ params }: { params: Promis
           </div>
 
           <div>
-            <h1 className="break-words text-3xl font-display-lg text-primary sm:text-4xl">
+            <h1 className="font-display-lg text-primary text-3xl break-words sm:text-4xl">
               {observation.scientific_name || "Species pending"}
             </h1>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-on-surface-variant">
+            <div className="text-on-surface-variant mt-3 flex flex-wrap items-center gap-3 text-sm">
               <span>{observation.local_name || "Common name pending"}</span>
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
@@ -217,10 +262,32 @@ export default async function ObservationDetailPage({ params }: { params: Promis
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Fact label="Conservation" value={observation.conservation_status || observation.conservation_priority_category || "Pending"} />
+            <Fact
+              label="Conservation"
+              value={observation.conservation_status || observation.conservation_priority_category || "Pending"}
+            />
             <Fact label="Confidence" value={percent(observation.confidence_level)} />
             <Fact label="Review" value={formatStatus(review.recommendation || observation.review_status)} />
           </div>
+
+          {observation.review_status === "verified" || observation.verified_by_human ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                className="border-outline-variant bg-surface-container text-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border px-4 text-sm font-semibold"
+                href={`/api/observations/${observation.id}/darwin-core`}
+              >
+                <Download className="h-4 w-4" />
+                Export Darwin Core CSV
+              </Link>
+              <Link
+                className="border-outline-variant bg-surface-container text-primary inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border px-4 text-sm font-semibold"
+                href={`/api/observations/${observation.id}/darwin-core?format=dwca`}
+              >
+                <Download className="h-4 w-4" />
+                Export DwC-A ZIP
+              </Link>
+            </div>
+          ) : null}
 
           <AuditCard icon={ShieldCheck} title="Reasoning Snapshot">
             <div className="grid gap-4 md:grid-cols-2">
@@ -236,7 +303,10 @@ export default async function ObservationDetailPage({ params }: { params: Promis
               />
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <ContextBlock label="Habitat context" value={textValue(habitat.summary || habitat.biome, "Habitat context pending")} />
+              <ContextBlock
+                label="Habitat context"
+                value={textValue(habitat.summary || habitat.biome, "Habitat context pending")}
+              />
               <ContextBlock
                 label="Temporal context"
                 value={textValue(temporal.summary || temporal.seasonal_alignment, "Temporal context pending")}
@@ -245,7 +315,7 @@ export default async function ObservationDetailPage({ params }: { params: Promis
           </AuditCard>
 
           <AuditCard icon={AlertTriangle} title="Priority Explanation">
-            <p className="mb-3 font-data-sm text-sm text-primary">
+            <p className="font-data-sm text-primary mb-3 text-sm">
               {observation.conservation_priority_category || "Priority pending"}
             </p>
             <ReasoningList
@@ -255,36 +325,107 @@ export default async function ObservationDetailPage({ params }: { params: Promis
             />
           </AuditCard>
 
-          <AuditCard icon={Link2} title="Linked Field Cases">
-            {linkedCases.length ? (
+          <AuditCard icon={AlertTriangle} title="H3 Anomaly Flags">
+            {anomalyFlags.length ? (
               <div className="space-y-3">
-                {linkedCases.map((fieldCase) => (
-                  <div key={fieldCase.id} className="rounded-sm border border-outline-variant bg-surface-dim px-3 py-2">
+                {anomalyFlags.map((flag) => (
+                  <div
+                    key={`${flag.flag_type}-${flag.created_at}`}
+                    className="border-outline-variant bg-surface-dim rounded-sm border px-3 py-2"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-data-sm text-sm text-primary">{fieldCase.id}</p>
-                      <span className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">
-                        {formatStatus(fieldCase.status)}
+                      <p className="font-data-sm text-primary text-sm">{formatStatus(flag.flag_type)}</p>
+                      <span className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">
+                        {flag.severity}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm capitalize text-on-surface-variant">{formatStatus(fieldCase.case_type)}</p>
+                    <p className="text-on-surface-variant mt-1 text-sm leading-6">{flag.reason}</p>
+                    {flag.h3_cell ? (
+                      <p className="font-data-sm text-on-surface-variant mt-2 text-xs break-all">{flag.h3_cell}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm leading-6 text-on-surface-variant">No field case has been linked to this observation.</p>
+              <p className="text-on-surface-variant text-sm leading-6">
+                No H3 anomaly flags are stored for this observation.
+              </p>
+            )}
+            <p className="border-outline-variant bg-surface-dim text-on-surface-variant mt-3 rounded-sm border px-3 py-2 text-xs leading-5">
+              Flags are based on NaLI&apos;s available records. Accuracy improves as more observations are submitted.
+            </p>
+          </AuditCard>
+
+          <AuditCard icon={Link2} title="Linked Field Cases">
+            {linkedCases.length ? (
+              <div className="space-y-3">
+                {linkedCases.map((fieldCase) => (
+                  <div key={fieldCase.id} className="border-outline-variant bg-surface-dim rounded-sm border px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-data-sm text-primary text-sm">{fieldCase.id}</p>
+                      <span className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">
+                        {formatStatus(fieldCase.status)}
+                      </span>
+                    </div>
+                    <p className="text-on-surface-variant mt-1 text-sm capitalize">
+                      {formatStatus(fieldCase.case_type)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-on-surface-variant text-sm leading-6">
+                No field case has been linked to this observation.
+              </p>
             )}
           </AuditCard>
         </section>
 
         <aside className="space-y-6 lg:col-span-5">
+          <AuditCard icon={Fingerprint} title="Evidence Integrity Hash">
+            {observationHash ? (
+              <div className="space-y-3">
+                <p className="border-outline-variant bg-surface-dim font-data-sm text-primary rounded-sm border px-3 py-2 text-xs break-all">
+                  {observationHash.hash}
+                </p>
+                <p className="text-on-surface-variant text-sm leading-6">
+                  NaLI Verification Code: {observationHash.hash}
+                </p>
+                <p className="text-on-surface-variant text-xs leading-5">
+                  This hash is a digital integrity check, not automatic legal admissibility. Legal use may require
+                  forensic IT expert validation.
+                </p>
+                <Link
+                  className="text-primary inline-flex text-sm font-semibold underline"
+                  href={`/verify?hash=${observationHash.hash}`}
+                >
+                  Open verification page
+                </Link>
+              </div>
+            ) : (
+              <p className="text-on-surface-variant text-sm leading-6">
+                No evidence hash has been persisted for this observation yet.
+              </p>
+            )}
+          </AuditCard>
+
           <AuditCard icon={Activity} title="Signal Snapshot">
-            <p className="mb-4 rounded-sm bg-surface-variant/30 px-3 py-2 font-data-sm text-xs text-on-surface-variant">
+            <p className="bg-surface-variant/30 font-data-sm text-on-surface-variant mb-4 rounded-sm px-3 py-2 text-xs">
               Trace {observation.reasoning_trace_id || "pending"}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Metric label="Agreement score" value={percent(typeof agreement.agreement_score === "number" ? agreement.agreement_score : null)} />
-              <Metric label="Anomaly score" value={percent(typeof agreement.anomaly_score === "number" ? agreement.anomaly_score : null)} />
-              <Metric label="Provider outputs" value={String(asStrings(signals.provider_outputs).length || runs.length)} />
+              <Metric
+                label="Agreement score"
+                value={percent(typeof agreement.agreement_score === "number" ? agreement.agreement_score : null)}
+              />
+              <Metric
+                label="Anomaly score"
+                value={percent(typeof agreement.anomaly_score === "number" ? agreement.anomaly_score : null)}
+              />
+              <Metric
+                label="Provider outputs"
+                value={String(asStrings(signals.provider_outputs).length || runs.length)}
+              />
               <Metric label="Conflict detected" value={textValue(agreement.conflict_detected, "pending")} />
             </div>
           </AuditCard>
@@ -301,20 +442,23 @@ export default async function ObservationDetailPage({ params }: { params: Promis
             <div className="space-y-3">
               {events.length ? (
                 events.map((event) => (
-                  <div key={`${event.event_type}-${event.event_timestamp}`} className="rounded-sm border border-outline-variant bg-surface-container p-3">
+                  <div
+                    key={`${event.event_type}-${event.event_timestamp}`}
+                    className="border-outline-variant bg-surface-container rounded-sm border p-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-data-sm text-sm text-primary">{event.event_type}</p>
-                      <span className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">
+                      <p className="font-data-sm text-primary text-sm">{event.event_type}</p>
+                      <span className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">
                         {event.severity || "info"}
                       </span>
                     </div>
-                    <p className="mt-1 break-all text-xs text-on-surface-variant">
+                    <p className="text-on-surface-variant mt-1 text-xs break-all">
                       {event.reasoning_trace_id || observation.reasoning_trace_id || "trace pending"}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm leading-6 text-on-surface-variant">No analysis events have been persisted yet.</p>
+                <p className="text-on-surface-variant text-sm leading-6">No analysis events have been persisted yet.</p>
               )}
             </div>
           </AuditCard>
@@ -323,25 +467,35 @@ export default async function ObservationDetailPage({ params }: { params: Promis
             <div className="space-y-4">
               {runs.length ? (
                 runs.map((run) => (
-                  <div key={`${run.tool_name}-${run.completed_at}`} className="rounded-md border border-outline-variant bg-surface-container p-4">
+                  <div
+                    key={`${run.tool_name}-${run.completed_at}`}
+                    className="border-outline-variant bg-surface-container rounded-md border p-4"
+                  >
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 font-data-sm text-sm text-primary">
+                      <div className="font-data-sm text-primary flex items-center gap-2 text-sm">
                         {run.status === "completed" ? (
                           <CheckCircle2 className="h-4 w-4" />
                         ) : (
-                          <AlertTriangle className="h-4 w-4 text-error" />
+                          <AlertTriangle className="text-error h-4 w-4" />
                         )}
                         {run.tool_name || "Provider"}
                       </div>
-                      <span className="font-data-sm text-[10px] text-on-surface-variant">{run.latency_ms ?? "--"}ms</span>
+                      <span className="font-data-sm text-on-surface-variant text-[10px]">
+                        {run.latency_ms ?? "--"}ms
+                      </span>
                     </div>
-                    <p className="text-sm leading-6 text-on-surface-variant">{run.error || run.raw_output || "No provider output persisted."}</p>
-                    <div className="mt-3 flex flex-wrap gap-2 border-t border-outline-variant/20 pt-3">
-                      <span className="rounded-sm border border-outline-variant/30 bg-surface-variant/30 px-1.5 py-0.5 text-[10px] font-label-caps text-on-surface-variant">
+                    <p className="text-on-surface-variant text-sm leading-6">
+                      {run.error || run.raw_output || "No provider output persisted."}
+                    </p>
+                    <div className="border-outline-variant/20 mt-3 flex flex-wrap gap-2 border-t pt-3">
+                      <span className="border-outline-variant/30 bg-surface-variant/30 font-label-caps text-on-surface-variant rounded-sm border px-1.5 py-0.5 text-[10px]">
                         {run.tool_version || "version pending"}
                       </span>
                       {Object.entries(run.score_breakdown ?? {}).map(([key, value]) => (
-                        <span key={key} className="rounded-sm border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-data-sm text-[10px] text-primary">
+                        <span
+                          key={key}
+                          className="border-primary/20 bg-primary/10 font-data-sm text-primary rounded-sm border px-1.5 py-0.5 text-[10px]"
+                        >
                           {key}: {textValue(value)}
                         </span>
                       ))}
@@ -349,7 +503,9 @@ export default async function ObservationDetailPage({ params }: { params: Promis
                   </div>
                 ))
               ) : (
-                <p className="text-sm leading-6 text-on-surface-variant">Provider runs will appear after orchestration starts.</p>
+                <p className="text-on-surface-variant text-sm leading-6">
+                  Provider runs will appear after orchestration starts.
+                </p>
               )}
             </div>
           </AuditCard>
@@ -367,12 +523,15 @@ function Unavailable({
   title: string;
 }) {
   return (
-    <div className="min-h-screen bg-stone-50 px-4 py-10 text-forest-950">
+    <div className="text-forest-950 min-h-screen bg-stone-50 px-4 py-10">
       <section className="mx-auto max-w-xl rounded-md border border-stone-200 bg-white p-6">
-        <p className="text-[11px] font-label-caps uppercase tracking-[0.08em] text-olive-700">Observation audit</p>
-        <h1 className="mt-2 text-2xl font-headline-md">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-forest-700">{detail}</p>
-        <Link className="mt-5 inline-flex rounded-sm bg-forest-900 px-4 py-2 text-sm font-semibold text-white" href="/archive">
+        <p className="font-label-caps text-[11px] tracking-[0.08em] text-olive-700 uppercase">Observation audit</p>
+        <h1 className="font-headline-md mt-2 text-2xl">{title}</h1>
+        <p className="text-forest-700 mt-3 text-sm leading-6">{detail}</p>
+        <Link
+          className="bg-forest-900 mt-5 inline-flex rounded-sm px-4 py-2 text-sm font-semibold text-white"
+          href="/archive"
+        >
           Return to Archive
         </Link>
       </section>
@@ -382,8 +541,8 @@ function Unavailable({
 
 function AuditCard({ children, icon: Icon, title }: { children: ReactNode; icon: LucideIcon; title: string }) {
   return (
-    <section className="rounded-md border border-outline-variant bg-surface-container p-5">
-      <h2 className="mb-4 flex items-center gap-2 font-label-caps text-xs uppercase tracking-[0.08em] text-primary">
+    <section className="border-outline-variant bg-surface-container rounded-md border p-5">
+      <h2 className="font-label-caps text-primary mb-4 flex items-center gap-2 text-xs tracking-[0.08em] uppercase">
         <Icon className="h-4 w-4" />
         {title}
       </h2>
@@ -394,9 +553,9 @@ function AuditCard({ children, icon: Icon, title }: { children: ReactNode; icon:
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-outline-variant bg-surface-container p-4">
-      <p className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">{label}</p>
-      <p className="mt-2 text-sm font-semibold capitalize text-primary">{value}</p>
+    <div className="border-outline-variant bg-surface-container rounded-md border p-4">
+      <p className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">{label}</p>
+      <p className="text-primary mt-2 text-sm font-semibold capitalize">{value}</p>
     </div>
   );
 }
@@ -404,17 +563,20 @@ function Fact({ label, value }: { label: string; value: string }) {
 function ReasoningList({ empty, items, title }: { empty: string; items: string[]; title: string }) {
   return (
     <div>
-      <p className="mb-2 text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">{title}</p>
+      <p className="font-label-caps text-on-surface-variant mb-2 text-[10px] tracking-[0.08em] uppercase">{title}</p>
       {items.length ? (
         <ul className="space-y-2">
           {items.map((item) => (
-            <li key={item} className="rounded-sm border border-outline-variant/60 bg-surface-dim px-3 py-2 text-sm leading-6 text-on-surface-variant">
+            <li
+              key={item}
+              className="border-outline-variant/60 bg-surface-dim text-on-surface-variant rounded-sm border px-3 py-2 text-sm leading-6"
+            >
               {item}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="rounded-sm border border-outline-variant/60 bg-surface-dim px-3 py-2 text-sm leading-6 text-on-surface-variant">
+        <p className="border-outline-variant/60 bg-surface-dim text-on-surface-variant rounded-sm border px-3 py-2 text-sm leading-6">
           {empty}
         </p>
       )}
@@ -424,18 +586,18 @@ function ReasoningList({ empty, items, title }: { empty: string; items: string[]
 
 function ContextBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="mt-3 rounded-sm border border-outline-variant/60 bg-surface-dim px-3 py-2">
-      <p className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">{label}</p>
-      <p className="mt-1 text-sm leading-6 text-on-surface-variant">{value}</p>
+    <div className="border-outline-variant/60 bg-surface-dim mt-3 rounded-sm border px-3 py-2">
+      <p className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">{label}</p>
+      <p className="text-on-surface-variant mt-1 text-sm leading-6">{value}</p>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-outline-variant bg-surface-container p-3">
-      <p className="text-[10px] font-label-caps uppercase tracking-[0.08em] text-on-surface-variant">{label}</p>
-      <p className="mt-2 break-all font-data-sm text-sm text-primary">{value}</p>
+    <div className="border-outline-variant bg-surface-container rounded-sm border p-3">
+      <p className="font-label-caps text-on-surface-variant text-[10px] tracking-[0.08em] uppercase">{label}</p>
+      <p className="font-data-sm text-primary mt-2 text-sm break-all">{value}</p>
     </div>
   );
 }
