@@ -85,6 +85,7 @@ After migration:
 - Confirm `019_ecological_reasoning_operational_runtime.sql` has added `reasoning_snapshot`, `signal_snapshot`, and `reasoning_trace_id`.
 - Confirm `020_longitudinal_ecological_intelligence.sql` has created ecological memory, patterns, alerts, confidence evolution, and replay tables.
 - Run `npm run validate:supabase` against the target environment to confirm expected tables and operational reasoning columns are reachable.
+- Confirm the live Supabase project ID and name before applying migrations. The live activation checklist and current production finding are tracked in `docs/LIVE_INFRASTRUCTURE_QA.md`.
 
 ## Supabase Live Validation
 
@@ -199,6 +200,8 @@ This creates a test observation, runs the mock orchestrator against live Supabas
 7. Open `/monitoring`, `/cases`, and `/alerts`; confirm they show real data or honest empty states.
 8. Check `/api/health`.
 9. Check `/system` for E2E readiness checks.
+
+For live infrastructure activation, also complete the auth, storage, browser, mobile, and rollback checks in `docs/LIVE_INFRASTRUCTURE_QA.md`.
 
 ## Monitoring, Cases, And Alerts Smoke Test
 

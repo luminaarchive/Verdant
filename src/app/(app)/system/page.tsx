@@ -1,5 +1,7 @@
 import { AlertTriangle, CheckCircle2, Database, HardDrive, KeyRound, RadioTower, ShieldCheck, WifiOff, type LucideIcon } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 import { getEnvStatus } from "@/lib/config/env";
+import { env } from "@/lib/config/env";
 
 const knownWarnings = [
   "Optional provider keys can remain unavailable until live provider integrations are enabled.",
@@ -9,11 +11,64 @@ const knownWarnings = [
 
 export const dynamic = "force-dynamic";
 
-export default function SystemReadinessPage() {
+type LiveStatus = "ok" | "degraded" | "unverified";
+type LiveInfrastructureStatus = {
+  database: LiveStatus;
+  storage: LiveStatus;
+  migrations: LiveStatus;
+  livePersistence: LiveStatus;
+  rls: LiveStatus;
+};
+
+async function getLiveInfrastructureStatus(): Promise<LiveInfrastructureStatus> {
+  if (!env.supabase.url || !env.supabase.serviceRoleKey) {
+    return {
+      database: "degraded" as LiveStatus,
+      storage: "degraded" as LiveStatus,
+      migrations: "degraded" as LiveStatus,
+      livePersistence: "degraded" as LiveStatus,
+      rls: "unverified" as LiveStatus,
+    };
+  }
+
+  const supabase = createClient(env.supabase.url, env.supabase.serviceRoleKey, {
+    auth: { persistSession: false },
+  });
+
+  const [{ error: observationsError }, { error: reasoningColumnError }, { data: buckets, error: bucketsError }] = await Promise.all([
+    supabase.from("observations").select("id", { count: "exact", head: true }).limit(1),
+    supabase
+      .from("observations")
+      .select("reasoning_snapshot,signal_snapshot,reasoning_trace_id,conservation_priority_score,conservation_priority_category")
+      .limit(1),
+    supabase.storage.listBuckets(),
+  ]);
+
+  const observationBucket = buckets?.find((bucket) => bucket.name === "observation_media" || bucket.id === "observation_media");
+  const storageReady = !bucketsError && observationBucket?.public === false;
+  const reasoningReady = !reasoningColumnError;
+  const databaseReady = !observationsError;
+
+  return {
+    database: databaseReady ? "ok" : "degraded",
+    storage: storageReady ? "ok" : "degraded",
+    migrations: databaseReady && reasoningReady ? "ok" : "degraded",
+    livePersistence: databaseReady && reasoningReady && storageReady ? "ok" : "degraded",
+    rls: "unverified" as LiveStatus,
+  };
+}
+
+export default async function SystemReadinessPage() {
   const envStatus = getEnvStatus();
   const providerEntries = Object.entries(envStatus.providers);
+  const liveStatus = await getLiveInfrastructureStatus();
 
-  const checks = [
+  const checks: Array<{
+    label: string;
+    detail: string;
+    status: LiveStatus;
+    icon: LucideIcon;
+  }> = [
     {
       label: "Auth configured",
       detail: "Supabase public URL and anon key are available for session handling.",
@@ -26,32 +81,38 @@ export default function SystemReadinessPage() {
     },
     {
       label: "Supabase connected",
-      detail: "Required Supabase environment variables are present for runtime access.",
-      status: envStatus.ready ? "ok" : "degraded",
+      detail: "Server-side runtime can reach the observations schema using configured Supabase credentials.",
+      status: liveStatus.database,
       icon: Database,
     },
     {
       label: "Storage configured",
-      detail: "Service role key is present for protected storage and bucket health checks.",
-      status: envStatus.required.SUPABASE_SERVICE_ROLE_KEY.availability === "configured" ? "ok" : "degraded",
+      detail: "The private observation_media bucket is reachable and public access is disabled.",
+      status: liveStatus.storage,
       icon: HardDrive,
     },
     {
       label: "Storage bucket validation",
       detail: "Run npm run validate:storage to verify the private observation_media bucket, signed URLs, path convention, and cleanup behavior.",
-      status: envStatus.required.SUPABASE_SERVICE_ROLE_KEY.availability === "configured" ? "ok" : "degraded",
+      status: liveStatus.storage,
       icon: HardDrive,
+    },
+    {
+      label: "Migrations reflected",
+      detail: "Observations schema includes operational reasoning columns for snapshots, trace IDs, and conservation priority persistence.",
+      status: liveStatus.migrations,
+      icon: Database,
     },
     {
       label: "RLS validation",
       detail: "Run npm run validate:rls to check anon access, user-scoped observation data, media access, analysis traces, and public species reference behavior.",
-      status: envStatus.ready ? "ok" : "degraded",
+      status: liveStatus.rls,
       icon: ShieldCheck,
     },
     {
       label: "Live persistence readiness",
       detail: "Run npm run validate:supabase and node tests/e2e/smoke-observation-flow.cjs with production-like env vars before release.",
-      status: envStatus.ready ? "ok" : "degraded",
+      status: liveStatus.livePersistence,
       icon: Database,
     },
     {
@@ -84,7 +145,7 @@ export default function SystemReadinessPage() {
       status: "ok",
       icon: ShieldCheck,
     },
-  ] as const;
+  ];
 
   return (
     <div className="min-h-screen bg-stone-50 px-4 py-6 text-forest-950 sm:px-6 lg:px-8">
@@ -173,9 +234,10 @@ function StatusCard({
   detail: string;
   icon: LucideIcon;
   label: string;
-  status: "ok" | "degraded";
+  status: LiveStatus;
 }) {
   const isOk = status === "ok";
+  const isUnverified = status === "unverified";
 
   return (
     <article className="rounded-md border border-stone-200 bg-white p-5">
@@ -186,7 +248,15 @@ function StatusCard({
           </div>
           <h2 className="text-lg font-headline-md text-forest-950">{label}</h2>
         </div>
-        <span className={`rounded-sm px-2 py-1 text-[10px] font-label-caps uppercase tracking-[0.08em] ${isOk ? "bg-olive-100 text-forest-800" : "bg-warning-amber/20 text-forest-900"}`}>
+        <span
+          className={`rounded-sm px-2 py-1 text-[10px] font-label-caps uppercase tracking-[0.08em] ${
+            isOk
+              ? "bg-olive-100 text-forest-800"
+              : isUnverified
+                ? "bg-stone-100 text-forest-700"
+                : "bg-warning-amber/20 text-forest-900"
+          }`}
+        >
           {status}
         </span>
       </div>

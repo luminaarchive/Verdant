@@ -89,6 +89,8 @@ npm run validate:supabase
 
 If local secrets are unavailable, the script prints skipped checks and exits without claiming live readiness.
 
+Before applying migrations to a live project, confirm the project ID and name match the intended NaLI production target. See `docs/LIVE_INFRASTRUCTURE_QA.md` for the current live infrastructure finding and activation checklist.
+
 ## Storage Bucket Notes
 
 - Confirm field media buckets exist before production observation testing.
@@ -136,6 +138,8 @@ NALI_LIVE_TEST_USER_ID=<auth-user-uuid> node tests/e2e/smoke-observation-flow.cj
 ```
 
 Without `NALI_LIVE_TEST_USER_ID`, the smoke test keeps the local mock validation and skips live persistence.
+
+Use `docs/LIVE_INFRASTRUCTURE_QA.md` for the full live browser, auth, storage, observation, rollback, and mobile validation checklist.
 
 ## Health Check URL
 
