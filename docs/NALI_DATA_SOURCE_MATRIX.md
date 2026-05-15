@@ -1,23 +1,43 @@
-# NaLI Data Source and Library Matrix
+# NaLI Data Source Matrix
 
-| Name                    | Purpose                             | URL/docs                                                  | Auth required?                | Free/paid?             | API key required?     | Env var                     | Risk                                       | Status                               | Priority | Safe fallback                 | MVP recommendation                      |
-| ----------------------- | ----------------------------------- | --------------------------------------------------------- | ----------------------------- | ---------------------- | --------------------- | --------------------------- | ------------------------------------------ | ------------------------------------ | -------- | ----------------------------- | --------------------------------------- |
-| GBIF API                | Species/taxonomy/occurrence context | https://techdocs.gbif.org/en/openapi/                     | No for public reads           | Free                   | No                    | none                        | Taxonomic ambiguity and rate limits        | Existing mock/provider + demo labels | High     | NaLI golden set               | Use cached lookups before live reliance |
-| IUCN Red List API       | Conservation status and trends      | https://api.iucnredlist.org/                              | Yes                           | Free account/API token | Yes                   | `IUCN_API_KEY`              | Terms, token limits, stale cache           | Existing mock/provider               | High     | Golden-set statuses           | Implement cache and unconfigured state  |
-| BirdNET Analyzer        | Audio identification                | https://github.com/kahst/BirdNET-Analyzer                 | No local model, API varies    | Free/open-source       | Depends on deployment | `BIRDNET_API_URL` if remote | Model fit and audio quality                | Provider scaffold                    | Medium   | Manual audio notes            | Keep "BirdNET-ready", not live          |
-| NASA FIRMS              | Fire alerts                         | https://firms.modaps.eosdis.nasa.gov/api/                 | Yes for MAP_KEY               | Free registration      | Yes                   | `NASA_FIRMS_API_KEY`        | False positives and product choice         | Fetcher scaffold                     | Medium   | No threat layer               | Add cron only after key validation      |
-| Global Forest Watch API | Deforestation alerts                | https://data-api.globalforestwatch.org/                   | Usually yes for some datasets | Mixed/free tiers       | Maybe                 | `GFW_API_KEY`               | Dataset licensing and alert interpretation | Fetcher scaffold                     | Medium   | No deforestation layer        | Document dataset before import          |
-| h3-js                   | H3 spatial indexing                 | https://github.com/uber/h3-js                             | No                            | OSS                    | No                    | none                        | Resolution choice affects baseline         | Installed and tested                 | High     | Region key fallback           | Use res7 for MVP anomaly grid           |
-| PostGIS                 | Distance queries and geography      | https://postgis.net/docs/ST_DWithin.html                  | Supabase DB                   | Included with Supabase | No                    | none                        | RLS/security definer mistakes              | Migration added                      | High     | Own-observation queries       | Use RPC with obfuscated cross-user data |
-| GeoJSON                 | Map/export geometry                 | https://geojson.org/                                      | No                            | Open standard          | No                    | none                        | Sensitive coordinate leakage               | Future                               | Medium   | Protected summary only        | Use only with permission policy         |
-| Darwin Core             | Biodiversity export standard        | https://dwc.tdwg.org/terms/                               | No                            | Open standard          | No                    | none                        | Incorrect mapping can pollute datasets     | Implemented mapper                   | High     | CSV with withheld coordinates | Verified-only export                    |
-| jszip                   | DwC-A zip export                    | https://stuk.github.io/jszip/                             | No                            | OSS                    | No                    | none                        | Bundle size if overused                    | Installed                            | Medium   | CSV only                      | Use only on export route                |
-| jsPDF                   | Patrol/report PDF                   | https://github.com/parallax/jsPDF                         | No                            | OSS                    | No                    | none                        | Client bundle size                         | Installed for patrol export          | Medium   | WhatsApp text                 | Use client-only export                  |
-| Leaflet                 | Map visualization                   | https://leafletjs.com/reference.html                      | No                            | OSS                    | No                    | none                        | SSR issues                                 | Existing                             | Medium   | Text list                     | Use client dynamic import               |
-| IndexedDB               | Offline storage                     | https://developer.mozilla.org/docs/Web/API/IndexedDB_API  | No                            | Browser API            | No                    | none                        | Browser quota/conflicts                    | Existing offline modules             | High     | Supabase-only submit          | Keep offline-lite                       |
-| CSV export              | Basic exports                       | RFC 4180 / Darwin Core                                    | No                            | Built-in               | No                    | none                        | Encoding/escaping mistakes                 | Implemented                          | High     | JSON export                   | Use simple verified exports             |
-| Web Speech API          | Voice-to-form                       | https://developer.mozilla.org/docs/Web/API/Web_Speech_API | Browser dependent             | Browser API            | No                    | none                        | Not offline, noisy environments            | Implemented assistive UI             | Medium   | Manual notes                  | Always require user review              |
-| Supabase Realtime       | Inter-ranger alerts                 | https://supabase.com/docs/guides/realtime                 | Supabase auth                 | Supabase plan          | No                    | Supabase env                | Overexposure of sensitive payloads         | Subscriber + table scaffold          | Medium   | Polling/alerts page           | Publish region/grid only                |
-| Supabase Edge Functions | Server-side jobs                    | https://supabase.com/docs/guides/functions                | Supabase auth                 | Supabase plan          | No                    | Supabase env                | Deployment/config drift                    | Future path documented               | Medium   | Next route/server module      | Use after DB workflow stabilizes        |
-| Vercel Cron             | Scheduled import                    | https://vercel.com/docs/cron-jobs                         | Vercel project                | Plan-dependent         | No                    | Vercel env                  | Cron limits and retries                    | Documented only                      | Medium   | Manual script                 | Use for FIRMS/GFW after keys            |
-| WhatsApp share URI      | Patrol plan handoff                 | https://faq.whatsapp.com/5913398998672934                 | No                            | Free                   | No                    | none                        | User device dependency                     | Implemented link                     | Low      | Plain text                    | Useful for field team sharing           |
+Status date: 2026-05-15.
+
+| Name | Purpose | URL/docs | Auth required? | Free/paid? | API key required? | Env var | Risk | Status | Priority | Safe fallback | MVP recommendation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| NaLI golden set | Public demo fallback | `src/lib/demo/species.ts` | No | Local | No | none | Can go stale | Live | High | None | Keep small, curated, labeled demo |
+| GBIF API | Taxonomy/occurrence | https://techdocs.gbif.org/en/openapi/ | Mostly no | Free | No | none | Rate limits, taxonomic ambiguity | Live bridge | High | Golden set | Cache and cite |
+| IUCN Red List API | Status/threats/habitat/actions | https://api.iucnredlist.org/ | Yes | Free registration | Yes | `IUCN_API_KEY` | Token/caching/terms | Unconfigured unless key exists | High | Golden set | Key-gated bridge |
+| eBird | Bird taxonomy/occurrence | https://documenter.getpostman.com/view/664302/S1ENwy59 | Yes | Free key | Yes | `EBIRD_API_KEY` | Bird-only, context misuse | Unconfigured unless key exists | Medium | Manual bird notes | Add cached server route later |
+| iNaturalist | Community observations | https://www.inaturalist.org/api | No for public reads | Free | No | none | Not authoritative | Live bridge | Medium | Golden set | Label as community signal |
+| EOL | Descriptions/traits | https://api.eol.org/ | No for public search | Free | No | none | Copyright/summarization | Live bridge | Low | Omit description | Summarize with source |
+| Catalogue of Life | Taxonomy cross-check | https://www.catalogueoflife.org/tools/api | Sometimes | Free/open access | No for basic | none | Maintenance/API changes | Live bridge | Medium | GBIF | Cross-check only |
+| BirdNET | Audio ID | https://github.com/birdnet-team/BirdNET-Analyzer | Depends deployment | Code open, models NC terms | If hosted | `BIRDNET_API_KEY` | Model/license/runtime | Scaffolded | Medium | Manual audio notes | Separate service later |
+| NASA FIRMS | Fire hotspots | https://firms.modaps.eosdis.nasa.gov/api/ | Yes MAP_KEY | Free key | Yes | `NASA_FIRMS_API_KEY` | False positives/rate limits | Scaffolded | Medium | No threat layer | Cron after key/product policy |
+| Global Forest Watch | Deforestation alerts | https://vizzuality.github.io/gfw-doc-api/ | Usually | Dataset-dependent | Maybe | `GFW_API_KEY` | Terms/dataset choice | Scaffolded | Medium | No deforestation layer | Choose dataset first |
+| PostGIS | Radius queries | https://postgis.net/docs/ST_DWithin.html | DB | Supabase | No | none | RLS/security definer mistakes | Migration scaffold | High | Own records only | Use RPC with redaction |
+| H3 | Grid anomaly | https://github.com/uber/h3-js | No | OSS | No | none | Sparse baselines | Installed | High | Region fallback | Use res7 MVP |
+| Darwin Core | Biodiversity export | https://dwc.tdwg.org/terms/ | No | Open standard | No | none | Bad mapping | Implemented | High | CSV only | Verified-only export |
+
+## Live
+
+Golden set, GBIF public bridge, iNaturalist bridge, EOL search bridge, Catalogue of Life bridge, H3 code, Darwin Core helpers.
+
+## Scaffolded
+
+IUCN/eBird/BirdNET/FIRMS/GFW provider adapters and health states.
+
+## Requires API Keys
+
+`IUCN_API_KEY`, `EBIRD_API_KEY`, `NASA_FIRMS_API_KEY`, `GFW_API_KEY`, `BIRDNET_API_KEY`.
+
+## Requires Edge/Cron Activation
+
+FIRMS/GFW scheduled imports and any production threat event ingestion.
+
+## Unproven
+
+Provider rate limits, production cache policy, live Supabase validation, scheduled imports.
+
+## What Must Not Be Claimed
+
+Source context is not a verified field observation. Threat pulse is indicative, not an official assessment.

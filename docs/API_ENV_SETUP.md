@@ -1,51 +1,48 @@
-# NaLI API and Environment Setup
+# API Environment Setup
 
-Never commit `.env.local` or service role keys.
+NaLI must run safely when optional providers are unconfigured. Missing optional keys return `unconfigured` status and must not crash the app.
 
-| Env var                         | Required for                           | Scope                     | Free/paid         | Degraded state                                                   |
-| ------------------------------- | -------------------------------------- | ------------------------- | ----------------- | ---------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase client/server access          | Public URL                | Supabase plan     | Dummy client, validation skipped                                 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Authenticated browser requests         | Public anon key           | Supabase plan     | Auth/API unavailable                                             |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only hash/anomaly/review writes | Service role, server only | Supabase plan     | App falls back where RLS permits and reports skipped persistence |
-| `IUCN_API_KEY`                  | Live Red List enrichment               | IUCN API token            | Free registration | Golden-set/cache fallback                                        |
-| `NASA_FIRMS_API_KEY`            | FIRMS fire import                      | FIRMS MAP_KEY             | Free registration | Threat fetcher reports unconfigured                              |
-| `GFW_API_KEY`                   | GFW datasets requiring auth            | GFW token                 | Dataset dependent | GFW fetcher reports unconfigured                                 |
-| `ANTHROPIC_API_KEY`             | Claude patrol plan parser/generator    | Server-only AI key        | Paid usage        | Deterministic patrol fallback                                    |
+## Required Core Env
 
-## Signup Steps
+| Env var | Purpose | Client exposed? |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase browser auth/data key | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only privileged DB/storage tasks | No |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL/SEO | Yes |
 
-### IUCN Red List
+Never expose `SUPABASE_SERVICE_ROLE_KEY` in client code.
 
-1. Create an account at https://api.iucnredlist.org/.
-2. Generate an API token.
-3. Store it as `IUCN_API_KEY` in Vercel/Supabase server environment.
+## Optional Provider Env
 
-### NASA FIRMS
+| Env var | Source | Signup/docs URL | Free/paid status | Scope needed | Safe fallback |
+| --- | --- | --- | --- | --- | --- |
+| `IUCN_API_KEY` | IUCN Red List API | https://api.iucnredlist.org/ | Free registration/API token | Read species assessments, threats, habitats, measures | Golden-set/cache status |
+| `EBIRD_API_KEY` | eBird API 2.0 | https://documenter.getpostman.com/view/664302/S1ENwy59 | Free key | Bird taxonomy/observations | Disable bird occurrence context |
+| `NASA_FIRMS_API_KEY` | NASA FIRMS MAP_KEY | https://firms.modaps.eosdis.nasa.gov/api/ | Free MAP_KEY | Area fire hotspot API | No threat layer/import |
+| `GFW_API_KEY` | Global Forest Watch | https://vizzuality.github.io/gfw-doc-api/ | Dataset/API terms vary | Deforestation alert API/datasets | No deforestation layer |
+| `ANTHROPIC_API_KEY` | Anthropic Claude | https://docs.anthropic.com/ | Paid API | Optional parser/planner assistance | Deterministic fallback |
+| `BIRDNET_API_KEY` | BirdNET adapter if hosted | https://github.com/birdnet-team/BirdNET-Analyzer | Depends on deployment | Remote audio inference if implemented | Manual audio notes |
 
-1. Request a MAP_KEY at https://firms.modaps.eosdis.nasa.gov/api/.
-2. Store it as `NASA_FIRMS_API_KEY`.
-3. Choose product, bbox, and retention before enabling cron.
+## Live
 
-### Global Forest Watch
+- GBIF public reads are available without a NaLI key.
+- iNaturalist/EOL/Catalogue of Life bridge modules can perform public lookup when network access is available.
+- Demo works from local golden-set data.
 
-1. Review datasets at https://data-api.globalforestwatch.org/.
-2. Create credentials only if selected endpoints require them.
-3. Store as `GFW_API_KEY`.
+## Scaffolded
 
-## Validation Commands
+- FIRMS/GFW fetchers.
+- BirdNET remote adapter.
+- Claude-assisted patrol planning/parser.
+- Supabase Realtime alerts require live DB publication validation.
 
-- `npm run check:i18n`
-- `npm run lint`
-- `npm run typecheck`
-- `npm run build`
-- `npm run verify`
-- `npm run validate:production`
-- `npm run seo:google-checklist`
+## Unproven
 
-## Live / Scaffolded Status
+- Live provider rate limits and production cache behavior.
+- Scheduled imports.
+- Any legal use of evidence hash.
 
-Live locally: demo, species visuals, SEO routes, field-intelligence libraries, verify page, review page, patrol planner fallback.
+## Must Not Be Claimed
 
-Live in Supabase after migration `20260514181110_agentic_field_intelligence`: PostGIS location memory schema, evidence hash table/RPC, anomaly flag table, review roles/actions, threat event table, realtime alert table, and observer credibility score table.
-
-Scaffolded pending provider keys/scheduled activation: FIRMS/GFW threat imports, Claude-assisted patrol generation, production cron/Edge Function import jobs, and region-specific realtime alert operating procedures.
+Configured env vars do not prove a live integration is active. Claim a provider as live only after a successful request is verified and logged.

@@ -13,6 +13,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getEnvStatus } from "@/lib/config/env";
 import { env } from "@/lib/config/env";
 import { getServerTranslations } from "@/lib/i18n/server";
+import { getScientificProviderHealth, type ScientificProviderStatus } from "@/lib/scientific-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,7 @@ export default async function SystemReadinessPage() {
   const { language, t } = await getServerTranslations();
   const envStatus = getEnvStatus();
   const providerEntries = Object.entries(envStatus.providers);
+  const scientificHealth = getScientificProviderHealth();
   const liveStatus = await getLiveInfrastructureStatus();
   const knownWarnings = [
     t("warnings.optionalProviders"),
@@ -215,6 +217,80 @@ export default async function SystemReadinessPage() {
 
             <section className="rounded-md border border-stone-200 bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
+                <Database className="text-forest-700 h-5 w-5" />
+                <h2 className="font-headline-md text-lg">
+                  {language === "id" ? "Matriks Intelijen Sumber" : "Source Intelligence Matrix"}
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {scientificHealth.map((entry) => (
+                  <ProviderMatrixRow
+                    key={entry.name}
+                    name={entry.name}
+                    note={language === "id" ? (entry.noteId ?? entry.note) : entry.note}
+                    purpose={language === "id" ? (entry.purposeId ?? entry.purpose) : entry.purpose}
+                    status={entry.status}
+                  />
+                ))}
+                <ProviderMatrixRow
+                  name="Location memory"
+                  note={
+                    language === "id"
+                      ? "RPC PostGIS telah discaffold; status live bergantung pada validasi migrasi Supabase."
+                      : "PostGIS RPC scaffolded; live status depends on Supabase migration validation."
+                  }
+                  purpose={language === "id" ? "Riwayat observasi sekitar 500m." : "500m nearby observation history."}
+                  status={liveStatus.database === "ok" ? "configured" : "degraded"}
+                />
+                <ProviderMatrixRow
+                  name="Evidence hash"
+                  note={
+                    language === "id"
+                      ? "Library SHA-256 dan scaffold migrasi tersedia; penggunaan hukum tetap perlu validasi forensik."
+                      : "SHA-256 library and migration scaffold exist; legal use still needs forensic validation."
+                  }
+                  purpose={
+                    language === "id"
+                      ? "Pemeriksaan integritas catatan lapangan yang tahan perubahan."
+                      : "Tamper-evident field record integrity check."
+                  }
+                  status={liveStatus.migrations === "ok" ? "configured" : "degraded"}
+                />
+                <ProviderMatrixRow
+                  name="Review queue"
+                  note={
+                    language === "id"
+                      ? "Kebijakan reviewer/admin harus divalidasi sebelum digunakan operasional."
+                      : "Reviewer/admin policies must be validated before operational use."
+                  }
+                  purpose={language === "id" ? "Alur validasi manusia." : "Human validation workflow."}
+                  status={liveStatus.migrations === "ok" ? "configured" : "degraded"}
+                />
+                <ProviderMatrixRow
+                  name="Workflow power tools"
+                  note={
+                    language === "id"
+                      ? "Konsep GSD, LLM-wiki, Hermes, dan DESIGN.md didokumentasikan dan diekstrak ke skill lokal."
+                      : "GSD, LLM-wiki, Hermes, and DESIGN.md concepts are documented and extracted into local skills."
+                  }
+                  purpose={language === "id" ? "Disiplin workflow Codex." : "Codex workflow discipline."}
+                  status="fallback"
+                />
+                <ProviderMatrixRow
+                  name="Codex skill pack"
+                  note={
+                    language === "id"
+                      ? ".codex/skills/nali-* dicommit sebagai manual operasi lokal untuk pekerjaan berikutnya."
+                      : ".codex/skills/nali-* is committed as the local operating manual for future work."
+                  }
+                  purpose={language === "id" ? "Perilaku agen khusus NaLI." : "NaLI-specific agent behavior."}
+                  status="configured"
+                />
+              </div>
+            </section>
+
+            <section className="rounded-md border border-stone-200 bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
                 <ShieldCheck className="text-forest-700 h-5 w-5" />
                 <h2 className="font-headline-md text-lg">{t("system.validationCommands")}</h2>
               </div>
@@ -258,6 +334,38 @@ export default async function SystemReadinessPage() {
           </aside>
         </main>
       </div>
+    </div>
+  );
+}
+
+function ProviderMatrixRow({
+  name,
+  note,
+  purpose,
+  status,
+}: {
+  name: string;
+  note: string;
+  purpose: string;
+  status: ScientificProviderStatus;
+}) {
+  const available = status === "live" || status === "configured";
+
+  return (
+    <div className="rounded-sm border border-stone-200 bg-stone-50 px-3 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-forest-900 text-sm font-semibold">{name}</span>
+        <span
+          className={`font-label-caps flex items-center gap-1.5 rounded-sm px-2 py-1 text-[10px] tracking-[0.08em] uppercase ${
+            available ? "bg-olive-100 text-olive-800" : "bg-stone-100 text-forest-600"
+          }`}
+        >
+          {available ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+          {status}
+        </span>
+      </div>
+      <p className="text-forest-700 mt-2 text-xs leading-5">{purpose}</p>
+      <p className="text-forest-600 mt-1 text-xs leading-5">{note}</p>
     </div>
   );
 }

@@ -15,7 +15,16 @@ const SUPABASE_ENV = [
   "SUPABASE_SERVICE_ROLE_KEY",
 ];
 
-const OPTIONAL_ENV = ["ANTHROPIC_API_KEY", "IUCN_API_KEY", "BIRDNET_API_KEY", "SENTRY_DSN", "VERCEL_ANALYTICS_ID"];
+const OPTIONAL_ENV = [
+  "ANTHROPIC_API_KEY",
+  "IUCN_API_KEY",
+  "EBIRD_API_KEY",
+  "NASA_FIRMS_API_KEY",
+  "GFW_API_KEY",
+  "BIRDNET_API_KEY",
+  "SENTRY_DSN",
+  "VERCEL_ANALYTICS_ID",
+];
 
 function loadLocalEnv() {
   [".env.local", ".env"].forEach((filename) => {

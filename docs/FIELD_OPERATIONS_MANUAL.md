@@ -1,52 +1,51 @@
 # NaLI Field Operations Manual
 
-## Public Demo
+Status date: 2026-05-15.
 
-The public demo is not a verified observation. Every result must carry:
+## Intended Users
 
-- EN: `Public demo · not a verified field observation`
-- ID: `Demo publik · bukan observasi lapangan terverifikasi`
+Rangers, conservation NGO staff, biology students, field researchers, biodiversity survey teams, patrol coordinators, and reviewer/validator teams in Indonesia.
 
-Use it to show structured species context, not production field data.
+## Operational Principles
 
-## Observation Capture
+- Record evidence, not just species names.
+- Protect sensitive coordinates.
+- Keep uncertainty visible.
+- Route CR/EN, wildlife crime, threat, and high-anomaly cases to human review.
+- Export only verified observations by default.
+- Treat threat pulse as indicative, not official.
 
-1. Capture photo/media and notes.
-2. Acquire GPS.
-3. Optionally use Bahasa Indonesia voice input.
-4. Review all fields manually.
-5. Submit or save offline.
+## Live / Partial Workflows
 
-## Location Memory
+1. Public user tries species lookup demo.
+2. Authenticated user creates observation with media/GPS/notes.
+3. NaLI stores structured observation and optional source context.
+4. H3 flags and evidence hash can be attached when migrations are active.
+5. Reviewer/admin reviews queue and records action.
+6. Verified records can be exported to Darwin Core.
+7. Patrol planner ranks available NaLI signals with deterministic fallback.
 
-When GPS is available, NaLI checks accessible observations within 500 meters. Cross-user results are summarized and do not expose exact sensitive coordinates. Users can open detail only when permitted.
+## Scaffolded Workflows
 
-## Evidence Hash
+- Threat import from FIRMS/GFW.
+- Realtime alerts per region/H3 area.
+- Camera trap batch mode.
+- Transect/point-count/timed survey protocols.
+- Conservation weekly/monthly reports.
+- Area/project workspace roles.
 
-NaLI hashes a canonical server-side payload with SHA-256 when configured. The hash verifies integrity, not legal admissibility.
+## Requires API Keys
 
-Required disclaimer:
+See `docs/API_ENV_SETUP.md`.
 
-EN: This hash is a digital integrity check, not automatic legal admissibility. Legal use may require forensic IT expert validation.
+## Requires Edge/Cron Activation
 
-ID: Hash ini adalah pemeriksaan integritas digital, bukan otomatis menjadi alat bukti yang sah di pengadilan. Penggunaan hukum dapat memerlukan validasi ahli forensik TI.
+Threat imports and scheduled reports.
 
-## Review Workflow
+## Unproven
 
-Reviewer/admin users inspect anomaly flags, reasoning snapshots, signal snapshots, evidence hash, media, and linked cases. Actions are verify, request clarification, or reject.
+Field usability in low-signal Indonesian patrol conditions still needs real pilot testing.
 
-## Exports
+## What Must Not Be Claimed
 
-Darwin Core export is verified-only by default. CR/EN coordinates are withheld unless exact export permission is explicitly allowed.
-
-## Threat Pulse
-
-Required disclaimer:
-
-EN: Indicative threat index based on FIRMS fire data, GFW deforestation alerts, and NaLI field reports. Not an official government or scientific assessment.
-
-ID: Indeks ancaman indikatif berdasarkan data titik api FIRMS, peringatan deforestasi GFW, dan laporan lapangan NaLI. Bukan penilaian resmi pemerintah atau lembaga ilmiah.
-
-## Patrol Planner
-
-Patrol recommendations are generated from available NaLI data. Final operational decisions remain with rangers and field leadership.
+Do not claim NaLI replaces ranger leadership, government assessment, expert review, or forensic/legal validation.

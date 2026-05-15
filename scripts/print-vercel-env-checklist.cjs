@@ -13,7 +13,16 @@ loadLocalEnv();
 printHeader("Vercel Environment Checklist");
 
 const publicKeys = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_APP_URL"];
-const serverOnlyKeys = ["SUPABASE_SERVICE_ROLE_KEY", "ANTHROPIC_API_KEY", "IUCN_API_KEY", "BIRDNET_API_KEY", "SENTRY_DSN"];
+const serverOnlyKeys = [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "ANTHROPIC_API_KEY",
+  "IUCN_API_KEY",
+  "EBIRD_API_KEY",
+  "NASA_FIRMS_API_KEY",
+  "GFW_API_KEY",
+  "BIRDNET_API_KEY",
+  "SENTRY_DSN",
+];
 const optionalKeys = OPTIONAL_ENV;
 
 console.log("\nRequired variables:");

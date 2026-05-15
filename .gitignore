@@ -47,6 +47,10 @@ ui-ux-pro-max-skill
 .kiro
 .openclaude-profile.json
 .playwright-mcp
+.codex/sop-context.local.json
+.codex/sop-cache/
+nali-*.png
+nali-playwright-console-*.md
 
 /tests/fixtures/golden-set/**/*.jpg
 /tests/fixtures/golden-set/**/*.mp3

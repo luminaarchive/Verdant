@@ -4,6 +4,7 @@ import { FileText, MessageCircle } from "lucide-react";
 import jsPDF from "jspdf";
 import type { PatrolPriority } from "@/lib/patrol-planner";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { buildWhatsAppShareUrl } from "@/lib/share/whatsapp";
 
 export function PatrolPlanExport({ priorities }: { priorities: PatrolPriority[] }) {
   const { t } = useTranslation();
@@ -29,7 +30,7 @@ export function PatrolPlanExport({ priorities }: { priorities: PatrolPriority[] 
     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
       <a
         className="text-forest-900 inline-flex min-h-11 items-center justify-center gap-2 rounded-sm border border-stone-300 bg-white px-4 text-sm font-semibold"
-        href={`https://wa.me/?text=${encodeURIComponent(text)}`}
+        href={buildWhatsAppShareUrl("patrol_plan", text)}
         rel="noreferrer"
         target="_blank"
       >

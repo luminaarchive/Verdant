@@ -13,7 +13,14 @@ const requiredKeys = [
   "NEXT_PUBLIC_APP_URL",
 ] as const;
 
-const optionalProviderKeys = ["IUCN_API_KEY", "BIRDNET_API_KEY", "ANTHROPIC_API_KEY"] as const;
+const optionalProviderKeys = [
+  "IUCN_API_KEY",
+  "EBIRD_API_KEY",
+  "NASA_FIRMS_API_KEY",
+  "GFW_API_KEY",
+  "BIRDNET_API_KEY",
+  "ANTHROPIC_API_KEY",
+] as const;
 
 type RequiredEnvKey = (typeof requiredKeys)[number];
 type OptionalProviderKey = (typeof optionalProviderKeys)[number];
@@ -76,6 +83,15 @@ export const env = {
     birdnet: {
       apiBase: process.env.BIRDNET_API_BASE ?? "",
       apiKey: process.env.BIRDNET_API_KEY ?? "",
+    },
+    ebird: {
+      apiKey: process.env.EBIRD_API_KEY ?? "",
+    },
+    firms: {
+      apiKey: process.env.NASA_FIRMS_API_KEY ?? "",
+    },
+    gfw: {
+      apiKey: process.env.GFW_API_KEY ?? "",
     },
     anthropic: {
       apiKey: process.env.ANTHROPIC_API_KEY ?? "",

@@ -1,54 +1,35 @@
-# SEO Google Search Readiness
+# SEO / Google Search Readiness
 
-NaLI now has metadata, canonical URL, `robots.ts`, `sitemap.ts`, Open Graph/Twitter metadata, and JSON-LD for WebSite, SoftwareApplication, and Organization. This improves technical readiness, but indexing and ranking still depend on Google crawling, content quality, links, and user behavior.
+Status date: 2026-05-15.
 
-## Google Search Console Checklist
+## Implemented
 
-1. Open Google Search Console.
-2. Add the property for `https://naliai.vercel.app`.
-3. Verify ownership using the method available to the deployment owner.
-4. Submit `https://naliai.vercel.app/sitemap.xml`.
-5. Inspect `https://naliai.vercel.app`.
-6. Request indexing after production deployment.
-7. Check coverage and indexing status.
+- Metadata in App Router layout/pages.
+- `src/app/sitemap.ts`.
+- `src/app/robots.ts`.
+- JSON-LD graph in `src/lib/seo/site.ts`.
+- Natural keyword targets for NaLI, AI identifikasi satwa Indonesia, wildlife field intelligence Indonesia, AI konservasi Indonesia, biodiversity intelligence Indonesia, and conservation field software Indonesia.
+- Script: `npm run seo:google-checklist`.
 
-## Manual Search Checks After Indexing
+## Scaffolded
 
-- `site:naliai.vercel.app`
-- `NaLI wildlife intelligence`
-- `AI identifikasi satwa Indonesia`
-- `aplikasi identifikasi satwa liar`
-- `wildlife field intelligence Indonesia`
+- FAQ schema only if real FAQ content is added.
+- Organization schema is generic to NaLI project and does not imply institutional status.
 
-Record date, time, query, country/language context, screenshot, and observed ranking.
+## Requires API Keys
 
-## Target Keywords
+None.
 
-- NaLI
-- NaLI AI
-- wildlife field intelligence Indonesia
-- AI identifikasi satwa Indonesia
-- aplikasi identifikasi satwa liar
-- AI konservasi Indonesia
-- ecological intelligence Indonesia
-- biodiversity intelligence Indonesia
-- conservation field software Indonesia
-- agentic wildlife intelligence Indonesia
-- sistem observasi satwa Indonesia
+## Requires Edge/Cron Activation
 
-## What Can Be Proven
+None.
 
-- Metadata exists in built HTML.
-- Sitemap and robots routes compile.
-- JSON-LD renders without hidden text or cloaking.
-- Page content naturally supports the target topics.
+## Unproven
 
-## What Cannot Be Guaranteed
+- Google indexing.
+- Search Console submission.
+- Rich Results validation after deployment.
 
-- No one can guarantee #1 ranking.
-- Search Console impressions/clicks require live property access.
-- Proof requires Search Console or live Google result screenshots after indexing.
+## Must Not Be Claimed
 
-## Ethical Boundaries
-
-NaLI must not use cloaking, hidden text, doorway pages, keyword stuffing, or fake institutional claims. Conservation trust matters more than short-term ranking tricks.
+No #1 ranking, no guaranteed indexing, no fake reviews/testimonials, no doorway pages, no hidden text, no keyword stuffing.

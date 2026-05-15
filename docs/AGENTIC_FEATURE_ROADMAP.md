@@ -1,38 +1,47 @@
-# NaLI Agentic Feature Roadmap
+# Agentic Feature Roadmap
 
-## Live In This Branch
+Status date: 2026-05-15.
 
-- Public species demo with NaLI golden-set fallback.
-- Local verified species visuals under `public/species`.
-- Landing sections for source-backed workflow, agentic differentiation, pricing, trust, and demo disclaimers.
-- Evidence hash library and `/verify` page.
-- H3 anomaly library and tests.
-- Location Memory API/panel backed by planned PostGIS RPC.
-- Review queue and review action API.
-- Darwin Core CSV/DwC-A export route.
-- Voice-to-form assistive component.
-- Patrol planner deterministic fallback with WhatsApp/PDF export.
-- Map page changed from simulated points to persisted layer fetch.
+## Live / Partial
 
-## Scaffolded, Requires Activation
+- Public demo with golden-set fallback and non-verified labels.
+- Source-backed scientific bridge scaffolds for GBIF/IUCN/eBird/iNat/EOL/COL.
+- Location memory API/panel backed by planned PostGIS RPC.
+- Evidence hash library and `/verify` route.
+- H3 anomaly flag logic and tests.
+- Review queue route and review action API.
+- Darwin Core export helpers.
+- Voice-to-form assistive UI.
+- Deterministic patrol planner with WhatsApp/PDF export.
 
-- PostGIS migration `022_agentic_field_intelligence.sql`.
-- `observation_hashes`, `observation_anomaly_flags`, `user_roles`, `review_actions`, `notifications`, `threat_events`, `realtime_alerts`, `user_scores`.
-- Supabase Realtime alert table and observe-page subscriber.
-- FIRMS/GFW threat fetchers.
-- Observer credibility score trigger.
+## Scaffolded
+
+- FIRMS/GFW threat events and threat pulse.
+- Supabase Realtime alerts.
+- Observer credibility score.
+- Field templates/evidence types.
+- Camera trap batch, transect, point count, patrol route, and timed survey foundations.
+- Conservation report generator concept.
+- Project/area workspace model.
+- Fine-tuning data/evaluator.
 
 ## Requires API Keys
 
-- `IUCN_API_KEY` for live Red List calls.
-- `NASA_FIRMS_API_KEY` for FIRMS imports.
-- `GFW_API_KEY` when selected GFW datasets require authentication.
-- `ANTHROPIC_API_KEY` for Claude patrol plan generation beyond deterministic fallback.
+`IUCN_API_KEY`, `EBIRD_API_KEY`, `NASA_FIRMS_API_KEY`, `GFW_API_KEY`, `ANTHROPIC_API_KEY`, `BIRDNET_API_KEY`.
 
-## Requires Production Validation
+## Requires Edge/Cron Activation
 
-- RLS policy behavior for reviewer/admin roles.
-- Exact coordinate export permissions for CR/EN species.
-- Realtime channel subscription in authenticated regional contexts.
-- Scheduled threat imports and retention policy.
-- Governance before any GBIF publishing workflow.
+- FIRMS/GFW imports every 6 hours.
+- Realtime alert trigger/publication validation.
+- Optional report generation schedule.
+
+## Unproven
+
+- Production Supabase schema validation in current environment.
+- Browser QA for all authenticated routes.
+- Live threat data ingestion.
+- Any fine-tuned model.
+
+## Must Not Be Claimed
+
+No live payments, institutional usage, legal admissibility, official threat assessment, or fully autonomous verification.
